@@ -2,9 +2,24 @@
 
 An interactive English grammar drill. The app shows a random **subject + cue**
 (e.g. `She + work`) tagged with a **tense**, **type**, and **sentence form**.
-You form the correct sentence in your head, then reveal the answer.
+You **type the full sentence**, and the app checks it word-by-word, celebrates
+correct answers, and pinpoints exactly what went wrong when you miss.
 
-Built with **React + Vite + TypeScript**. Fully static — no backend.
+Built with **React + Vite + TypeScript**. Fully static — no backend, no API
+keys. All answer checking runs locally in the browser.
+
+## Answer checking
+
+- **Type and check**: enter the full sentence; press Enter to check, Enter
+  again to advance.
+- **Tolerant matching**: capitalization, spacing, punctuation, and contractions
+  are all accepted (`don't` = `do not`, `she's been` = `she has been`).
+- **Word-level diff**: wrong answers are shown with each word colored
+  (correct / wrong / missing / extra) against the correct sentence.
+- **Targeted hints**: rule-based hints point at the real mistake ("third-person
+  singular uses *does*", "this tense needs the past participle (V3)"), derived
+  from the question context — no LLM, no network call.
+- Correct answers trigger a confetti burst (respects `prefers-reduced-motion`).
 
 ## What it covers
 
@@ -16,9 +31,20 @@ Built with **React + Vite + TypeScript**. Fully static — no backend.
 
 Grammar rules enforced by the engine:
 
-- Passive requires a **transitive** verb and produces only + / − forms
-- **Continuous** tenses exclude **stative** verbs (no `-ing`)
-- Perfect-continuous **nominal** falls back to the perfect `been` form
+- **Passive** is built from the active sentence: the object becomes the subject
+  and the doer moves to a `by ...` phrase (*The teacher explains the lesson* →
+  *The lesson is explained by the teacher*). Supports + / − / ? / WH.
+- **Continuous** tenses exclude **stative** verbs (no `-ing`).
+- The "being" nominal form (temporary behavior) is used only with **behavioral
+  adjectives** (rude, careful), never state adjectives (happy, tired).
+- Perfect-continuous has **no true nominal**; it falls back to the perfect
+  `been` form, with an on-screen note explaining the shift.
+- Subjects are matched to verbs/complements by **entity** (a dog never becomes
+  a teacher) and plural subjects get plural nouns (*they are doctors*).
+- **Time signals** per tense (yesterday, for 2 hours, by 2028, ...) keep
+  otherwise-identical tenses distinguishable.
+- Rare-but-valid forms (e.g. `will be being`, perfect-continuous passive) and
+  stative-verb traps are hidden from the random pool behind a toggle.
 
 ## Develop
 

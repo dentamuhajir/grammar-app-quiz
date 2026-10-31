@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { checkAnswer, type CheckResult } from "./grammar/check";
 import {
   DEFAULT_FILTER,
+  displayCap,
   generateQuestion,
   type QuizFilter,
 } from "./grammar/generator";
@@ -11,47 +13,103 @@ import {
   TENSE_ORDER,
 } from "./grammar/labels";
 import type { Mode, Question, SentenceForm } from "./grammar/types";
+import { Confetti } from "./ui/Confetti";
+import { DiffView } from "./ui/DiffView";
 
-/** Build the "prompt" (the puzzle) the learner tries to form in their head. */
-function promptParts(q: Question): { subject: string; cue: string } {
-  if (q.mode === "nominal") {
-    return { subject: q.subject.text, cue: q.complement?.text ?? "" };
+/** The chips shown as the puzzle prompt. */
+function PromptChips({ q }: { q: Question }) {
+  if (q.mode === "passive") {
+    // Show the active sentence without the trailing time signal, then the time
+    // as its own chip so the learner clearly sees it belongs in the answer.
+    const activeCore =
+      q.timeSignal && q.activePrompt?.endsWith(q.timeSignal)
+        ? q.activePrompt.slice(0, -q.timeSignal.length).trim()
+        : q.activePrompt;
+    return (
+      <div className="prompt">
+        <span className="prompt-label">Rewrite this in the passive voice:</span>
+        <span className="chip chip-active">{activeCore}</span>
+        {q.timeSignal && <span className="chip chip-time">{q.timeSignal}</span>}
+      </div>
+    );
   }
-  // verbal + passive both revolve around a verb's base form
-  return { subject: q.subject.text, cue: q.verb?.base ?? "" };
+
+  const subject = displayCap(q.subject.text);
+  const cue =
+    q.mode === "nominal" ? q.complement?.text ?? "" : q.verb?.base ?? "";
+  const object = q.mode === "verbal" ? q.verb?.object : undefined;
+
+  return (
+    <div className="prompt">
+      {q.whWord && <span className="chip chip-wh">{q.whWord}</span>}
+      <span className="chip chip-subject">{subject}</span>
+      <span className="plus">+</span>
+      <span className="chip chip-cue">{cue}</span>
+      {object && (
+        <>
+          <span className="plus">+</span>
+          <span className="chip chip-object">
+            {q.whWord === "What" ? "?" : object}
+          </span>
+        </>
+      )}
+      {q.timeSignal && <span className="chip chip-time">{q.timeSignal}</span>}
+    </div>
+  );
 }
+
+const PRAISE = [
+  "Correct!",
+  "Nice!",
+  "Spot on!",
+  "Perfect!",
+  "You nailed it!",
+  "Excellent!",
+];
 
 export default function App() {
   const [filter, setFilter] = useState<QuizFilter>(DEFAULT_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
     generateQuestion(DEFAULT_FILTER),
   );
+  const [input, setInput] = useState("");
+  const [result, setResult] = useState<CheckResult | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [confetti, setConfetti] = useState(0);
+  const [praise, setPraise] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const next = useCallback(
-    (f: QuizFilter) => {
-      setQuestion(generateQuestion(f));
-      setRevealed(false);
-    },
-    [],
-  );
+  const next = useCallback((f: QuizFilter) => {
+    setQuestion(generateQuestion(f));
+    setInput("");
+    setResult(null);
+    setRevealed(false);
+    setPraise("");
+    // focus the input for fast keyboard flow
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, []);
 
-  // Keyboard: Space/Enter reveals, "n" gets a new question.
+  const check = useCallback(() => {
+    // If already answered correctly, Enter advances to the next question.
+    if (result?.correct) {
+      next(filter);
+      return;
+    }
+    const r = checkAnswer(question, input);
+    if (r.empty) {
+      setResult(r);
+      return;
+    }
+    setResult(r);
+    if (r.correct) {
+      setPraise(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
+      setConfetti((c) => c + 1);
+    }
+  }, [filter, input, next, question, result]);
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLSelectElement) return;
-      if (e.key === " " || e.key === "Enter") {
-        e.preventDefault();
-        setRevealed((r) => !r);
-      } else if (e.key.toLowerCase() === "n") {
-        next(filter);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [filter, next]);
-
-  const { subject, cue } = useMemo(() => promptParts(question), [question]);
+    inputRef.current?.focus();
+  }, []);
 
   function updateFilter(patch: Partial<QuizFilter>) {
     const merged = { ...filter, ...patch };
@@ -61,10 +119,12 @@ export default function App() {
 
   return (
     <div className="page">
+      <Confetti fire={confetti} />
+
       <header className="header">
         <h1>Grammar App Quiz</h1>
         <p className="subtitle">
-          Form the sentence in your head, then reveal the answer.
+          Build the sentence, type it, and check your answer.
         </p>
       </header>
 
@@ -128,52 +188,106 @@ export default function App() {
         </label>
       </section>
 
+      <label className="rare-toggle">
+        <input
+          type="checkbox"
+          checked={filter.includeRare}
+          onChange={(e) => updateFilter({ includeRare: e.target.checked })}
+        />
+        <span>Include rare forms &amp; stative-verb traps</span>
+      </label>
+
       <main className="card">
         <div className="tags">
           <span className="tag tag-tense">{TENSE_LABELS[question.tense]}</span>
           <span className="tag tag-mode">{MODE_LABELS[question.mode]}</span>
           <span className="tag tag-form">{FORM_LABELS[question.form]}</span>
+          {question.rare && <span className="tag tag-rare">⚠ rarely used</span>}
         </div>
 
-        <div className="prompt">
-          <span className="chip chip-subject">{subject}</span>
-          <span className="plus">+</span>
-          <span className="chip chip-cue">{cue}</span>
-          {question.whWord && (
-            <>
-              <span className="plus">·</span>
-              <span className="chip chip-wh">{question.whWord}</span>
-            </>
-          )}
+        <PromptChips q={question} />
+
+        <div className="answer-input">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            placeholder="Type the full sentence here…"
+            spellCheck={false}
+            autoComplete="off"
+            autoCapitalize="off"
+            className={
+              result && !result.empty
+                ? result.correct
+                  ? "ok"
+                  : "bad"
+                : ""
+            }
+            onChange={(e) => {
+              setInput(e.target.value);
+              if (result && !result.correct) setResult(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                check();
+              }
+            }}
+          />
         </div>
 
-        <div className={`answer ${revealed ? "shown" : "hidden"}`}>
-          {revealed ? (
-            <p className="answer-text">{question.answer}</p>
-          ) : (
-            <p className="answer-placeholder">Answer hidden</p>
-          )}
-        </div>
+        {result?.correct && (
+          <div className="feedback feedback-ok" role="status">
+            <span className="feedback-title">🎉 {praise}</span>
+            <span className="feedback-answer">{question.answer}</span>
+          </div>
+        )}
+
+        {result && !result.correct && !result.empty && (
+          <div className="feedback feedback-bad" role="status">
+            <DiffView diff={result.diff} />
+            <p className="hint">💡 {result.hint}</p>
+          </div>
+        )}
+
+        {result?.empty && (
+          <p className="hint hint-plain">Type your sentence, then check it.</p>
+        )}
+
+        {revealed && !result?.correct && (
+          <div className="feedback feedback-reveal">
+            <span className="feedback-answer">{question.answer}</span>
+          </div>
+        )}
+
+        {(revealed || result?.correct) && question.note && (
+          <p className="note">💡 {question.note}</p>
+        )}
 
         <div className="actions">
-          <button
-            className="btn btn-primary"
-            onClick={() => setRevealed((r) => !r)}
-          >
-            {revealed ? "Hide answer" : "Show hint / answer"}
+          <button className="btn btn-primary" onClick={check}>
+            {result?.correct ? "Next question →" : "Check answer"}
           </button>
+          {!result?.correct && (
+            <button
+              className="btn btn-ghost"
+              onClick={() => setRevealed((r) => !r)}
+            >
+              {revealed ? "Hide answer" : "Reveal answer"}
+            </button>
+          )}
           <button className="btn btn-ghost" onClick={() => next(filter)}>
-            Shuffle (new question)
+            Skip / shuffle
           </button>
         </div>
 
         <p className="hotkeys">
-          <kbd>Space</kbd> reveal · <kbd>N</kbd> new question
+          <kbd>Enter</kbd> check / next
         </p>
       </main>
 
       <footer className="footer">
-        Covers all 12 tenses · verbal, nominal &amp; passive · {`+ / − / ? / WH`}
+        All 12 tenses · verbal, nominal &amp; passive · {`+ / − / ? / WH`}
       </footer>
     </div>
   );

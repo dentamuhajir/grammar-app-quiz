@@ -134,6 +134,11 @@ body {
   border-color: #e9d5ff;
   background: #faf5ff;
 }
+.tag-rare {
+  color: #b45309;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
 
 /* ---- prompt chips ---- */
 .prompt {
@@ -163,44 +168,259 @@ body {
   background: #9333ea;
 }
 
+.chip-object {
+  background: #0d9488;
+}
+
+.chip-time {
+  background: #475569;
+  font-size: 1rem;
+}
+
+.chip-active {
+  background: #0f172a;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.prompt-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  width: 100%;
+}
+
 .plus {
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--muted);
 }
 
-/* ---- answer ---- */
-.answer {
-  min-height: 3.2rem;
+.note {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+.rare-toggle {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
+  margin: -0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.rare-toggle input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+/* ---- answer input ---- */
+.answer-input input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-size: 1.1rem;
+  border-radius: 0.7rem;
+  border: 2px solid var(--line);
+  background: #f8fafc;
+  color: var(--ink);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.answer-input input:focus-visible {
+  outline: none;
+  border-color: var(--brand);
+  background: #fff;
+}
+
+.answer-input input.ok {
+  border-color: #16a34a;
+  background: #ecfdf5;
+}
+
+.answer-input input.bad {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+/* ---- feedback ---- */
+.feedback {
   border-radius: 0.7rem;
   padding: 0.9rem 1rem;
-  text-align: center;
-  transition: background 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.answer.hidden {
-  background: #f1f5f9;
-}
-
-.answer.shown {
+.feedback-ok {
   background: #ecfdf5;
   border: 1px solid #bbf7d0;
+  align-items: center;
+  text-align: center;
+  animation: pop 0.3s ease;
 }
 
-.answer-text {
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: 700;
+.feedback-title {
+  font-size: 1.3rem;
+  font-weight: 800;
   color: var(--ok);
 }
 
-.answer-placeholder {
+.feedback-answer {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.feedback-bad {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.feedback-reveal {
+  background: #f1f5f9;
+  border: 1px solid var(--line);
+  padding: 0.9rem 1rem;
+  border-radius: 0.7rem;
+  text-align: center;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.hint {
   margin: 0;
-  color: #94a3b8;
+  font-size: 0.9rem;
+  color: #9a3412;
+}
+
+.hint-plain {
+  color: var(--muted);
   font-style: italic;
+}
+
+/* ---- diff ---- */
+.diff {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.diff-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.diff-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  min-width: 4.5rem;
+}
+
+.diff-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dw {
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.3rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.dw-match {
+  color: #166534;
+}
+
+.dw-wrong {
+  background: #fee2e2;
+  color: #b91c1c;
+  text-decoration: line-through;
+}
+
+.dw-extra {
+  background: #fee2e2;
+  color: #b91c1c;
+  text-decoration: line-through;
+}
+
+.dw-missing {
+  background: #fde68a;
+  color: #92400e;
+}
+
+.dw-fix {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.diff-empty {
+  color: #94a3b8;
+}
+
+/* ---- confetti ---- */
+.confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 50;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -10px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0.9;
+  animation-name: fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-10px) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) translateX(var(--drift)) rotate(var(--rot));
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    display: none;
+  }
+  .feedback-ok {
+    animation: none;
+  }
 }
 
 /* ---- actions ---- */
