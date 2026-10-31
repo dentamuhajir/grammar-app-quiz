@@ -30,13 +30,58 @@ function classifyWord(w: string): "do" | "be" | "have" | "modal" | "not" | "othe
  * Returns a human-friendly hint string, or a generic nudge if nothing specific
  * applies. `diff` is user-vs-correct at the token level.
  */
+/** Adverbs that sit before the main verb (after the first auxiliary or "be"). */
+const MID_ADVERBS = new Set(["usually", "often", "always", "already", "just", "never", "sometimes"]);
+
+/**
+ * A word the user typed, but in the wrong place: it shows up both as
+ * "missing" (where it should be) and as "extra"/"wrong" (where the user put it).
+ */
+function movedWord(diff: DiffToken[]): string | undefined {
+  const expected = new Set(
+    diff.filter((d) => d.op === "missing" || d.op === "wrong").map((d) => d.correct),
+  );
+  const typed = diff
+    .filter((d) => d.op === "extra" || d.op === "wrong")
+    .map((d) => d.user);
+  return typed.find((w) => w !== undefined && expected.has(w));
+}
+
 export function buildHint(q: Question, diff: DiffToken[]): string {
   const issue = firstIssue(diff);
   if (!issue) return "Looks right.";
 
+  // --- stative-verb trap: "have been knowing" -> "have known" ---
+  if (q.verb?.stative && isContinuous(q.tense)) {
+    return `"${q.verb.base}" is a stative verb, so it can't take -ing. Use the perfect instead: have/has/had/will have + V3 ("${q.verb.participle}").`;
+  }
+
+  // --- word order: the right word in the wrong place ---
+  const moved = movedWord(diff);
+  if (moved) {
+    if (MID_ADVERBS.has(moved)) {
+      return `"${moved}" is in the wrong place. Adverbs like "${moved}" go before the main verb, after the auxiliary or "to be" (Do you usually…? / She has just… / He is always…).`;
+    }
+    if (q.form === "yesNoQuestion" || q.form === "whQuestion") {
+      // Whether the user moved the auxiliary or the subject, the rule is the same.
+      const aux = diff
+        .map((d) => d.correct)
+        .find((w) => w !== undefined && (DO_AUX.has(w) || BE_AUX.has(w) || HAVE_AUX.has(w) || MODAL.has(w)));
+      if (aux) {
+        return `In questions, the auxiliary "${aux}" comes before the subject.`;
+      }
+    }
+    return `"${moved}" is in the wrong position. Check the word order.`;
+  }
+
   const correctWord = issue.correct ?? "";
   const userWord = issue.user ?? "";
   const kind = classifyWord(correctWord || userWord);
+
+  // --- already vs yet ---
+  if (correctWord === "yet" && userWord === "already") {
+    return 'Use "yet" (at the end) in negatives and questions; "already" is for positive sentences.';
+  }
 
   // --- auxiliary agreement (do/does/did) ---
   if (DO_AUX.has(correctWord) || DO_AUX.has(userWord)) {
