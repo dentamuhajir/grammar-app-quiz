@@ -122,7 +122,9 @@ export default function App() {
       <Confetti fire={confetti} />
 
       <header className="header">
-        <h1>Grammar App Quiz</h1>
+        <h1 className="brand">
+          Grammar <span className="brand-accent">Drill</span>
+        </h1>
         <p className="subtitle">
           Build the sentence, type it, and check your answer.
         </p>
@@ -277,7 +279,7 @@ export default function App() {
             </button>
           )}
           <button className="btn btn-ghost" onClick={() => next(filter)}>
-            Skip / shuffle
+            New sentence
           </button>
         </div>
 
