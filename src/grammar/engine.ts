@@ -42,45 +42,73 @@ function cap(sentence: string): string {
 
 /** Join non-empty parts, collapse spaces, capitalize first word, add punctuation. */
 function build(parts: Array<string | undefined>, punctuation: "." | "?"): string {
-  let text = parts
+  const text = parts
     .filter((p): p is string => Boolean(p && p.trim()))
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();
-  // A trailing abbreviation like "p.m." already ends in a period; don't double it.
+  // A statement ending in an abbreviation ("by 9 p.m.") keeps that single period.
   if (punctuation === "." && text.endsWith(".")) {
     return cap(text);
   }
-  // If a question ends on an abbreviation period, replace it with "?".
-  if (punctuation === "?" && text.endsWith(".")) {
-    text = text.slice(0, -1);
-  }
+  // A question ending in an abbreviation keeps its period: "by 9 p.m.?"
   return cap(text) + punctuation;
 }
 
+interface RenderParts {
+  /** words between subject and the rest, positive form */
+  positiveCluster: string;
+  /** auxiliary that fronts in questions and carries negation */
+  aux: string;
+  /** words after the aux (and after "not") in -/?/wh forms */
+  afterAux: string;
+  /** object/complement/time that trails the clause */
+  tail?: string;
+  /**
+   * Mid-position adverb (usually, already, just). It goes after the first
+   * auxiliary or "be"; when there is no auxiliary (present/past simple
+   * positive), it goes right before the main verb.
+   */
+  mid?: string;
+  /** true when positiveCluster is a bare main verb (no auxiliary in front) */
+  midBeforeCluster?: boolean;
+}
+
+/** Split "has been" -> ["has", "been"]; "is" -> ["is", ""]. */
+function splitFirst(cluster: string): [string, string] {
+  const i = cluster.indexOf(" ");
+  return i === -1 ? [cluster, ""] : [cluster.slice(0, i), cluster.slice(i + 1)];
+}
+
 /**
- * Generic verbal/nominal renderer. The caller supplies the clusters; this
- * applies the +/-/?/wh structure uniformly.
- * - positiveCluster: words between subject and object in positive form
- * - aux: auxiliary that fronts in questions and carries negation
- * - afterAux: words after the aux (and after "not") in -/?/wh forms
- * - tail: object/complement/time that trails the clause
+ * Generic renderer. The caller supplies the clusters; this applies the
+ * +/-/?/wh structure uniformly, including the mid-adverb slot:
+ *   +   She usually cooks / She has just cooked / She is usually happy
+ *   -   She does not usually cook / She is not usually happy
+ *   ?   Does she usually cook / Has she just cooked
+ *   wh  Why does she usually cook
  */
 function render(
   subject: string,
   form: SentenceForm,
   wh: WhWord | undefined,
-  p: { positiveCluster: string; aux: string; afterAux: string; tail?: string },
+  p: RenderParts,
 ): string {
   switch (form) {
-    case "positive":
-      return build([subject, p.positiveCluster, p.tail], ".");
+    case "positive": {
+      if (!p.mid) return build([subject, p.positiveCluster, p.tail], ".");
+      if (p.midBeforeCluster) {
+        return build([subject, p.mid, p.positiveCluster, p.tail], ".");
+      }
+      const [first, rest] = splitFirst(p.positiveCluster);
+      return build([subject, first, p.mid, rest, p.tail], ".");
+    }
     case "negative":
-      return build([subject, p.aux, "not", p.afterAux, p.tail], ".");
+      return build([subject, p.aux, "not", p.mid, p.afterAux, p.tail], ".");
     case "yesNoQuestion":
-      return build([p.aux, subject, p.afterAux, p.tail], "?");
+      return build([p.aux, subject, p.mid, p.afterAux, p.tail], "?");
     case "whQuestion":
-      return build([wh, p.aux, subject, p.afterAux, p.tail], "?");
+      return build([wh, p.aux, subject, p.mid, p.afterAux, p.tail], "?");
   }
 }
 
@@ -206,17 +234,28 @@ function passiveClusters(tense: Tense, a: NumberAgreement): Clusters {
 
 // ---------- public API ----------
 
+export interface TimeOpts {
+  /** mid-position adverb (usually, already, just) */
+  mid?: string;
+  /** end-position time phrase (yesterday, for two hours) */
+  tail?: string;
+}
+
 export function conjugateVerbal(
   tense: Tense,
   s: Subject,
   verb: Verb,
   form: SentenceForm,
-  opts: { wh?: WhWord; tail?: string } = {},
+  opts: TimeOpts & { wh?: WhWord; dropObject?: boolean } = {},
 ): string {
   const c = verbalClusters(tense, s, verb);
-  // WH "What" replaces the object, so no object tail then.
-  const tail = opts.wh === "What" ? opts.tail : [verb.object, opts.tail].filter(Boolean).join(" ");
-  return render(s.text, form, opts.wh, { ...c, tail });
+  // "What" replaces the object; "How" replaces a manner adverb (run fast -> How does he run?).
+  const dropObject = opts.wh === "What" || Boolean(opts.dropObject);
+  const tail = [dropObject ? undefined : verb.object, opts.tail].filter(Boolean).join(" ");
+  // Present/past simple positive has no auxiliary: the adverb goes before the verb.
+  const midBeforeCluster =
+    form === "positive" && (tense === "presentSimple" || tense === "pastSimple");
+  return render(s.text, form, opts.wh, { ...c, tail, mid: opts.mid, midBeforeCluster });
 }
 
 export function conjugateNominal(
@@ -224,7 +263,7 @@ export function conjugateNominal(
   s: Subject,
   comp: Complement,
   form: SentenceForm,
-  opts: { wh?: WhWord; being?: boolean; tail?: string } = {},
+  opts: TimeOpts & { wh?: WhWord; being?: boolean } = {},
 ): string {
   const c = nominalClusters(tense, s, Boolean(opts.being));
   const text =
@@ -234,26 +273,25 @@ export function conjugateNominal(
   // WH "What/Where/How" can replace the complement.
   const replacesComp =
     opts.wh === "What" || opts.wh === "Where" || opts.wh === "How";
-  const tail = replacesComp
-    ? opts.tail
-    : [text, opts.tail].filter(Boolean).join(" ");
-  return render(s.text, form, opts.wh, { ...c, tail });
+  const tail = [replacesComp ? undefined : text, opts.tail].filter(Boolean).join(" ");
+  return render(s.text, form, opts.wh, { ...c, tail, mid: opts.mid });
 }
 
 /**
  * Passive. The passive subject (the thing acted on) is passed as `subject`;
  * callers derive it from the active verb's object. An optional "by <agent>"
- * phrase names the original doer.
+ * phrase names the original doer. Time phrases go after the agent:
+ * "The boxes are usually carried by me." / "Dinner was cooked by her yesterday."
  */
 export function conjugatePassive(
   tense: Tense,
   passiveSubject: { text: string } & NumberAgreement,
   verb: Verb,
   form: SentenceForm,
-  opts: { wh?: WhWord; byAgent?: string } = {},
+  opts: TimeOpts & { wh?: WhWord; byAgent?: string } = {},
 ): string {
   const c = passiveClusters(tense, passiveSubject);
   const by = opts.byAgent ? `by ${opts.byAgent}` : undefined;
-  const tail = [verb.participle, by].filter(Boolean).join(" ");
-  return render(passiveSubject.text, form, opts.wh, { ...c, tail });
+  const tail = [verb.participle, by, opts.tail].filter(Boolean).join(" ");
+  return render(passiveSubject.text, form, opts.wh, { ...c, tail, mid: opts.mid });
 }

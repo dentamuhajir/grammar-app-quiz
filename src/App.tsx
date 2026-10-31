@@ -19,16 +19,12 @@ import { DiffView } from "./ui/DiffView";
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
   if (q.mode === "passive") {
-    // Show the active sentence without the trailing time signal, then the time
-    // as its own chip so the learner clearly sees it belongs in the answer.
-    const activeCore =
-      q.timeSignal && q.activePrompt?.endsWith(q.timeSignal)
-        ? q.activePrompt.slice(0, -q.timeSignal.length).trim()
-        : q.activePrompt;
+    // Active sentence (without time) + the time signal as its own chip, so the
+    // learner sees it belongs in the answer and decides where it goes.
     return (
       <div className="prompt">
         <span className="prompt-label">Rewrite this in the passive voice:</span>
-        <span className="chip chip-active">{activeCore}</span>
+        <span className="chip chip-active">{q.activePrompt}</span>
         {q.timeSignal && <span className="chip chip-time">{q.timeSignal}</span>}
       </div>
     );

@@ -91,9 +91,9 @@ export const VERBS: Verb[] = [
   v("sleep", "slept", "slept", "sleeping", "sleeps", {}),
   v("run", "ran", "run", "running", "runs", { object: "fast" }),
   v("swim", "swam", "swum", "swimming", "swims", { object: "well" }),
-  // stative verbs (reject -ing) - used for the trap drill; also intransitive-ish here
-  v("know", "knew", "known", "knowing", "knows", { t: 1, stative: true, object: "the answer", odd: true }),
-  v("believe", "believed", "believed", "believing", "believes", { t: 1, stative: true, object: "the story", odd: true }),
+  // stative verbs (reject -ing) - used for the stative-verb trap drill
+  v("know", "knew", "known", "knowing", "knows", { t: 1, stative: true, object: "him", odd: true }),
+  v("like", "liked", "liked", "liking", "likes", { t: 1, stative: true, object: "coffee", odd: true }),
 ];
 
 interface Opt {

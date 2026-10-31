@@ -1,17 +1,15 @@
-import {
-  ADJECTIVE_COMPLEMENTS,
-  BEHAVIORAL_ADJECTIVES,
-  COMPLEMENTS,
-} from "./data/complements";
+import { BEHAVIORAL_ADJECTIVES, COMPLEMENTS } from "./data/complements";
 import { PERSON_SUBJECTS, SUBJECTS } from "./data/subjects";
+import { TIME_SIGNALS, type TimeSignal } from "./data/timeSignals";
 import { DYNAMIC_VERBS, PASSIVE_VERBS, STATIVE_VERBS, VERBS } from "./data/verbs";
-import { TIME_SIGNALS } from "./data/timeSignals";
 import {
   conjugateNominal,
   conjugatePassive,
   conjugateVerbal,
+  type TimeOpts,
 } from "./engine";
 import {
+  PERFECT_TENSES,
   TENSE_ORDER,
   isContinuous,
   isPerfectContinuous,
@@ -39,7 +37,7 @@ export interface QuizFilter {
   tense: Tense | "all";
   mode: Mode | "all";
   form: SentenceForm | "all";
-  /** Include rarely-used forms and the stative trap drill. */
+  /** Include rarely-used forms and the stative-verb trap drill. */
   includeRare: boolean;
 }
 
@@ -54,66 +52,181 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function maybe<T>(arr: T[]): T | undefined {
-  return arr.length ? pick(arr) : undefined;
-}
-
 /** Capitalize a display chip (subjects are stored lowercase). */
 export function displayCap(s: string): string {
   return s === "i" ? "I" : s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// ---------- grammar rule tables ----------
+
+/**
+ * "When" isn't offered with these. Present/past perfect can't take "When"
+ * ("When have you seen him?" is wrong), and the perfect-continuous tenses are
+ * about duration, which "When" can't ask about.
+ */
+const NO_WHEN_TENSES: Tense[] = [
+  "presentPerfect",
+  "presentPerfectContinuous",
+  "pastPerfect",
+  "pastPerfectContinuous",
+  "futurePerfectContinuous",
+];
+
+/** Simple tenses: the only ones where nominal "What is she?" reads naturally. */
+const SIMPLE_TENSES: Tense[] = ["presentSimple", "pastSimple", "futureSimple"];
+
+/** Nominal continuous = temporary behavior: always "being + behavioral adjective". */
+const BEING_TENSES: Tense[] = ["presentContinuous", "pastContinuous"];
+
+/** Manner adverbs answer "How" (run fast -> How does he run?). */
+const MANNER_OBJECTS = new Set(["fast", "well", "hard"]);
+
+/** People-objects take "Who", not "What" (What is she helping? -> wrong). */
+const PERSON_OBJECTS = new Set([
+  "the children",
+  "a friend",
+  "the guests",
+  "the manager",
+  "the team",
+  "him",
+]);
+
+/** Verbs an animal subject can plausibly do (the dog eats breakfast). */
+const ANIMAL_VERBS = new Set(["sleep", "run", "swim", "eat", "catch", "find", "pull"]);
+
+/** Complements that fit animal / thing subjects. */
+const ANIMAL_COMPLEMENTS = new Set(["happy", "tired", "sick", "noisy", "here", "at home"]);
+const THING_COMPLEMENTS = new Set(["noisy", "here", "at home", "in the office"]);
+
 // ---------- time signals ----------
 
-function timeFor(tense: Tense, wh: WhWord | undefined): string | undefined {
-  const set = TIME_SIGNALS[tense];
-  // "When" asks for the time -> drop point signals. "How long" asks for the
-  // duration -> drop duration signals.
-  if (wh === "When") return maybe(set.duration);
-  if (wh === "How long") return maybe(set.point);
-  // ~55% of statements get a time signal, preferring point-in-time.
-  if (Math.random() < 0.55) {
-    return maybe([...set.point, ...set.duration]);
+interface PickedTime {
+  signal?: TimeSignal;
+  opts: TimeOpts;
+}
+
+/**
+ * Choose a time signal that fits the sentence form and WH word.
+ * - "When" asks for the time itself -> no time signal.
+ * - "How long" asks for the duration -> only anchors (by 2028, before ...).
+ * - Perfect-continuous tenses are about duration -> always get a duration.
+ */
+function pickTime(
+  list: TimeSignal[],
+  form: SentenceForm,
+  wh: WhWord | undefined,
+  opts: { requireDuration?: boolean; chance?: number; noMid?: boolean } = {},
+): PickedTime {
+  const none: PickedTime = { opts: {} };
+  if (wh === "When") return none;
+
+  let pool = list.filter(
+    (s) => (!s.forms || s.forms.includes(form)) && !(opts.noMid && s.pos === "mid"),
+  );
+  if (wh === "How long") {
+    pool = pool.filter((s) => s.anchor);
+    if (!pool.length) return none;
+  } else if (opts.requireDuration) {
+    pool = pool.filter((s) => s.duration);
+    if (!pool.length) return none;
+  } else {
+    if (!pool.length) return none;
+    if (Math.random() >= (opts.chance ?? 0.55)) return none;
   }
-  return undefined;
+
+  const signal = pick(pool);
+  return {
+    signal,
+    opts: signal.pos === "mid" ? { mid: signal.text } : { tail: signal.text },
+  };
 }
 
 // ---------- WH-word selection ----------
 
-function whForVerbal(verb: Verb): WhWord {
-  const options: WhWord[] = ["Why", "When"];
-  if (verb.transitive && verb.object) options.push("What"); // replaces object
-  if (verb.object === "fast" || verb.object === "well" || verb.object === "hard") {
-    options.push("How"); // manner adverbs answer "how"
+interface WhChoice {
+  wh: WhWord;
+  dropObject?: boolean;
+}
+
+function whForVerbal(tense: Tense, verb: Verb): WhChoice {
+  const options: WhChoice[] = [{ wh: "Why" }];
+  if (!NO_WHEN_TENSES.includes(tense)) options.push({ wh: "When" });
+  if (!MANNER_OBJECTS.has(verb.object)) options.push({ wh: "Where" });
+  if (verb.transitive && verb.object && !PERSON_OBJECTS.has(verb.object)) {
+    options.push({ wh: "What" }); // replaces the object
   }
+  if (MANNER_OBJECTS.has(verb.object)) {
+    options.push({ wh: "How", dropObject: true }); // replaces "fast/well/hard"
+  }
+  if (isPerfectContinuous(tense)) options.push({ wh: "How long" });
   return pick(options);
 }
 
-function whForNominal(comp: Complement): WhWord {
-  const options: WhWord[] = ["Why", "When"];
-  if (comp.kind === "noun") options.push("What"); // "What is she?" (role)
-  if (comp.kind === "adverb") options.push("Where"); // place
-  if (comp.kind === "adjective") options.push("How"); // "How is she?"
+function whForNominal(tense: Tense, comp: Complement, being: boolean): WhWord {
+  // PDF pattern for temporary behavior: "Why is he being so rude?"
+  if (being) return "Why";
+  const options: WhWord[] = ["Why"];
+  if (!NO_WHEN_TENSES.includes(tense) && comp.kind !== "noun") options.push("When");
+  if (comp.kind === "noun" && SIMPLE_TENSES.includes(tense)) options.push("What"); // What is she?
+  if (comp.kind === "adverb") options.push("Where"); // Where is he?
+  if (comp.kind === "adjective") options.push("How"); // How is she?
+  if (PERFECT_TENSES.includes(tense)) options.push("How long"); // How long has she been sick?
   return pick(options);
 }
 
-function whForPassive(): WhWord {
-  return pick<WhWord>(["Why", "When", "Where"]);
+function whForPassive(tense: Tense): WhWord {
+  const options: WhWord[] = ["Why", "Where"];
+  if (!NO_WHEN_TENSES.includes(tense)) options.push("When");
+  return pick(options);
+}
+
+// ---------- subject selection ----------
+
+/** Match the subject to the verb: no "the dog develops the app", no "the children help the children". */
+function pickSubjectFor(verb: Verb): Subject {
+  const pool = SUBJECTS.filter((s) => {
+    if (s.text === verb.object) return false;
+    if (s.entity === "person") return true;
+    if (s.entity === "animal") return ANIMAL_VERBS.has(verb.base);
+    return false; // things don't perform actions in this drill
+  });
+  return pick(pool);
+}
+
+function pickSubjectForComplement(comp: Complement, being: boolean): Subject {
+  const root = comp.text.replace(/^(a|an|the) /, "").replace(/^good /, "");
+  const pool = SUBJECTS.filter((s) => {
+    if (s.text.includes(root)) return false; // the engineer is an engineer
+    if (s.entity === "person") return true;
+    if (being) return s.entity === "animal" && comp.text === "noisy"; // the dog is being noisy
+    if (s.entity === "animal") return ANIMAL_COMPLEMENTS.has(comp.text);
+    return THING_COMPLEMENTS.has(comp.text);
+  });
+  return pick(pool.length ? pool : PERSON_SUBJECTS);
 }
 
 // ---------- builders per mode ----------
 
 function buildVerbal(tense: Tense, form: SentenceForm, allowStative: boolean): Question {
-  const pool = isContinuous(tense)
-    ? DYNAMIC_VERBS
-    : allowStative
-      ? VERBS
-      : DYNAMIC_VERBS;
+  const pool = isContinuous(tense) || !allowStative ? DYNAMIC_VERBS : VERBS;
   const verb = pick(pool);
   const subject = pickSubjectFor(verb);
-  const wh = form === "whQuestion" ? whForVerbal(verb) : undefined;
-  const time = timeFor(tense, wh);
-  const answer = conjugateVerbal(tense, subject, verb, form, { wh, tail: time });
+  const choice = form === "whQuestion" ? whForVerbal(tense, verb) : undefined;
+  const wh = choice?.wh;
+
+  // Stative verbs describe permanent states: no frequency/time signal
+  // ("She usually knows him" is wrong).
+  const time = verb.stative
+    ? { opts: {} }
+    : pickTime(TIME_SIGNALS[tense].action, form, wh, {
+        requireDuration: isPerfectContinuous(tense),
+      });
+
+  const answer = conjugateVerbal(tense, subject, verb, form, {
+    wh,
+    dropObject: choice?.dropObject,
+    ...time.opts,
+  });
   return {
     tense,
     mode: "verbal",
@@ -121,54 +234,46 @@ function buildVerbal(tense: Tense, form: SentenceForm, allowStative: boolean): Q
     subject,
     verb,
     whWord: wh,
-    timeSignal: time,
+    timeSignal: time.signal?.text,
     answer,
   };
 }
 
-/** Avoid "the dog develops the app": match subject entity to the verb. */
-function pickSubjectFor(verb: Verb): Subject {
-  // Animals/things only pair with physical, non-professional verbs.
-  const simplePhysical = new Set([
-    "sleep", "run", "swim", "eat", "drink", "play", "catch", "find",
-    "wait", "follow", "pull", "push", "watch", "hear",
-  ]);
-  let pool = SUBJECTS;
-  if (!simplePhysical.has(verb.base)) {
-    pool = SUBJECTS.filter((s) => s.entity === "person");
-  }
-  return pick(pool);
-}
-
 function buildNominal(tense: Tense, form: SentenceForm): Question {
-  const useBeing =
-    isContinuous(tense) && !isPerfectContinuous(tense) && Math.random() < 0.6;
+  const being = BEING_TENSES.includes(tense);
 
-  // choose complement pool
   let comp: Complement;
-  if (useBeing) {
+  if (being) {
     comp = pick(BEHAVIORAL_ADJECTIVES); // only behavioral adjectives take "being"
-  } else if (isContinuous(tense) && !isPerfectContinuous(tense)) {
-    comp = pick(ADJECTIVE_COMPLEMENTS); // continuous without being -> still adj
+  } else if (tense === "futureContinuous") {
+    comp = pick(COMPLEMENTS.filter((c) => c.kind !== "noun"));
   } else {
     comp = pick(COMPLEMENTS);
   }
 
-  // choose a subject that doesn't make the complement a tautology / nonsense
-  const subject = pickSubjectForComplement(comp);
-  const wh = form === "whQuestion" ? whForNominal(comp) : undefined;
-  const time = timeFor(tense, wh);
+  const subject = pickSubjectForComplement(comp, being);
+  const wh = form === "whQuestion" ? whForNominal(tense, comp, being) : undefined;
+  const signals = TIME_SIGNALS[tense];
+  // When What/Where/How replaces the complement, a mid adverb would end the
+  // sentence ("How are you often?"), so only end-position signals are used.
+  const replacesComp = wh === "What" || wh === "Where" || wh === "How";
+  const time = pickTime(comp.kind === "noun" ? signals.role : signals.state, form, wh, {
+    noMid: replacesComp,
+  });
 
   const answer = conjugateNominal(tense, subject, comp, form, {
     wh,
-    being: useBeing,
-    tail: time,
+    being,
+    ...time.opts,
   });
 
   let note: string | undefined;
   if (isPerfectContinuous(tense)) {
     note =
       "This tense has no nominal form, so it falls back to the perfect (…has/had/will have been…).";
+  } else if (tense === "futureContinuous") {
+    note =
+      "In the nominal form, Future Continuous uses will be + complement, the same shape as Future Simple.";
   }
 
   return {
@@ -178,28 +283,16 @@ function buildNominal(tense: Tense, form: SentenceForm): Question {
     subject,
     complement: comp,
     whWord: wh,
-    timeSignal: time,
+    timeSignal: time.signal?.text,
     answer,
     note,
   };
 }
 
-function pickSubjectForComplement(comp: Complement): Subject {
-  let pool = SUBJECTS;
-  // professions/roles -> people only
-  if (comp.kind === "noun") {
-    pool = SUBJECTS.filter((s) => s.entity === "person");
-  }
-  // avoid "the engineer is an engineer"
-  const root = comp.text.replace(/^(a|an|the) /, "").replace(/^good /, "");
-  pool = pool.filter((s) => !s.text.includes(root));
-  return pick(pool.length ? pool : SUBJECTS);
-}
-
 function buildPassive(tense: Tense, form: SentenceForm): Question {
   const verb = pick(PASSIVE_VERBS);
   // Active doer (agent) is a person; passive subject is the verb's object.
-  // Avoid the agent coinciding with the object (e.g. children helped children).
+  // Avoid the agent coinciding with the object (children helped by children).
   const objRoot = verb.object.replace(/^(a|an|the) /, "");
   const agentPool = PERSON_SUBJECTS.filter((s) => !s.text.includes(objRoot));
   const agent = pick(agentPool.length ? agentPool : PERSON_SUBJECTS);
@@ -208,30 +301,22 @@ function buildPassive(tense: Tense, form: SentenceForm): Question {
     person: 3 as const,
     number: verb.objectNumber,
   };
-  const wh = form === "whQuestion" ? whForPassive() : undefined;
-  const time = timeFor(tense, wh);
+  const wh = form === "whQuestion" ? whForPassive(tense) : undefined;
+  const time = pickTime(TIME_SIGNALS[tense].action, form, wh, {
+    requireDuration: isPerfectContinuous(tense),
+  });
 
-  // Active prompt shown to the learner. The time signal is part of the prompt
-  // so the learner knows it belongs in the answer too (it is scored).
-  const activePrompt = [
-    displayCap(agent.text),
-    formatActiveVerb(tense, agent, verb),
-    verb.object,
-    time,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
+  // The prompt is the active sentence WITHOUT the time signal; the time signal
+  // is shown as its own chip (so the learner knows it belongs in the answer).
+  const activePrompt = conjugateVerbal(tense, agent, verb, "positive").replace(/\.$/, "");
 
   // Name the doer with its object pronoun (by him) or noun text (by the teacher).
   const byAgent = agent.objectForm ?? agent.text;
-
-  const base = conjugatePassive(tense, passiveSubject, verb, form, {
+  const answer = conjugatePassive(tense, passiveSubject, verb, form, {
     wh,
     byAgent,
+    ...time.opts,
   });
-  const answer = time ? appendTail(base, time) : base;
 
   return {
     tense,
@@ -240,7 +325,7 @@ function buildPassive(tense: Tense, form: SentenceForm): Question {
     subject: agent,
     verb,
     whWord: wh,
-    timeSignal: time,
+    timeSignal: time.signal?.text,
     answer,
     activePrompt,
     rare: isRarePassive(tense),
@@ -250,108 +335,74 @@ function buildPassive(tense: Tense, form: SentenceForm): Question {
   };
 }
 
-/** Render the active-voice verb cluster for the passive prompt. */
-function formatActiveVerb(tense: Tense, agent: Subject, verb: Verb): string {
-  // Reuse the verbal engine to get a natural active form, then strip subject.
-  const sentence = conjugateVerbal(tense, agent, verb, "positive");
-  // sentence = "The teacher explains the lesson." -> take middle verb phrase
-  const withoutSubject = sentence.slice(displayCap(agent.text).length).trim();
-  // remove trailing object + period
-  const noPeriod = withoutSubject.replace(/\.$/, "");
-  const obj = verb.object;
-  return noPeriod.endsWith(obj) ? noPeriod.slice(0, -obj.length).trim() : noPeriod;
-}
+// ---------- stative-verb trap ----------
 
-/** Insert a time signal before the final punctuation, avoiding double periods. */
-function appendTail(sentence: string, tail: string): string {
-  const punct = sentence.slice(-1); // "." or "?"
-  const body = sentence.slice(0, -1).trimEnd();
-  const combined = `${body} ${tail}`.trimEnd();
-  // tail may itself end in an abbreviation period ("p.m.")
-  if (punct === "." && combined.endsWith(".")) return combined;
-  if (punct === "?" && combined.endsWith(".")) return combined.slice(0, -1) + "?";
-  return combined + punct;
+/** Perfect continuous -> the perfect tense a stative verb falls back to. */
+const STATIVE_FALLBACK: Record<string, { tense: Tense; label: string; tail: string }> = {
+  presentPerfectContinuous: { tense: "presentPerfect", label: "Present Perfect (have/has + V3)", tail: "for years" },
+  pastPerfectContinuous: { tense: "pastPerfect", label: "Past Perfect (had + V3)", tail: "for years" },
+  futurePerfectContinuous: { tense: "futurePerfect", label: "Future Perfect (will have + V3)", tail: "for five years by next month" },
+};
+
+/**
+ * Stative-verb trap (PDF: "I have been knowing him" is wrong -> "I have known him").
+ * The question is labeled with the perfect-continuous tense, but the correct
+ * answer falls back to the perfect.
+ */
+export function generateStativeTrap(tense: Tense = "presentPerfectContinuous"): Question {
+  const fallback = STATIVE_FALLBACK[tense] ?? STATIVE_FALLBACK.presentPerfectContinuous;
+  const labelTense = STATIVE_FALLBACK[tense] ? tense : "presentPerfectContinuous";
+  const verb = pick(STATIVE_VERBS);
+  const subject = pick(PERSON_SUBJECTS.filter((s) => s.text !== verb.object));
+  const answer = conjugateVerbal(fallback.tense, subject, verb, "positive", {
+    tail: fallback.tail,
+  });
+  return {
+    tense: labelTense,
+    mode: "verbal",
+    form: "positive",
+    subject,
+    verb,
+    timeSignal: fallback.tail,
+    answer,
+    note: `"${verb.base}" is a stative verb, so it cannot take -ing. It falls back to the ${fallback.label}.`,
+    rare: true,
+  };
 }
 
 // ---------- public generator ----------
 
-/**
- * Generate one random question honoring the filter and grammar rules.
- * Returns null-free Question. Impossible filter combos are handled by the UI
- * (it disables them), but we still guard here.
- */
+/** Generate one random question honoring the filter and grammar rules. */
 export function generateQuestion(filter: QuizFilter = DEFAULT_FILTER): Question {
   for (let attempt = 0; attempt < 80; attempt++) {
-    const tense: Tense =
-      filter.tense === "all" ? pickTense(filter) : filter.tense;
-    const mode: Mode = filter.mode === "all" ? pickMode() : filter.mode;
-    let form: SentenceForm = filter.form === "all" ? pick(FORMS) : filter.form;
+    const tense: Tense = filter.tense === "all" ? pick(TENSE_ORDER) : filter.tense;
+    const mode: Mode =
+      filter.mode === "all" ? pick<Mode>(["verbal", "nominal", "passive"]) : filter.mode;
+    const form: SentenceForm = filter.form === "all" ? pick(FORMS) : filter.form;
 
-    // Rare passive tenses excluded from the random pool unless opted in or
-    // the user explicitly selected that tense.
-    if (
-      mode === "passive" &&
-      isRarePassive(tense) &&
-      !filter.includeRare &&
-      filter.tense === "all"
-    ) {
+    // Rare passive tenses are excluded from the random pool unless opted in
+    // or the user explicitly selected that tense.
+    if (mode === "passive" && isRarePassive(tense) && !filter.includeRare && filter.tense === "all") {
       continue;
     }
 
-    // Perfect-continuous has no real nominal; only offer it when the user
-    // explicitly wants to see the fallback (tense selected) — otherwise skip
-    // to keep "All" clean of mislabeled sentences.
-    if (
-      mode === "nominal" &&
-      isPerfectContinuous(tense) &&
-      filter.tense === "all"
-    ) {
+    // Perfect-continuous has no real nominal; only shown when the tense is
+    // explicitly selected, to keep "All" free of fallback sentences.
+    if (mode === "nominal" && isPerfectContinuous(tense) && filter.tense === "all") {
       continue;
     }
 
-    const allowStative = filter.includeRare;
-
-    if (mode === "verbal") return buildVerbal(tense, form, allowStative);
+    if (mode === "verbal") {
+      // Stative-verb trap: only with the rare toggle on, perfect continuous, positive.
+      if (filter.includeRare && isPerfectContinuous(tense) && form === "positive" && Math.random() < 0.35) {
+        return generateStativeTrap(tense);
+      }
+      return buildVerbal(tense, form, filter.includeRare);
+    }
     if (mode === "nominal") return buildNominal(tense, form);
-    // passive
     return buildPassive(tense, form);
   }
 
   // Fallback: a guaranteed-valid simple question.
   return buildVerbal("presentSimple", "positive", false);
-}
-
-function pickTense(_filter: QuizFilter): Tense {
-  return pick(TENSE_ORDER);
-}
-
-function pickMode(): Mode {
-  return pick<Mode>(["verbal", "nominal", "passive"]);
-}
-
-/** Generate a stative-verb "trap" question (fallback-to-perfect drill). */
-export function generateStativeTrap(): Question {
-  const verb = pick(STATIVE_VERBS);
-  const subject = pick(PERSON_SUBJECTS);
-  // Intended tense is a continuous one; correct answer uses the perfect.
-  const correct = conjugateVerbal("presentPerfect", subject, verb, "positive", {
-    tail: "for years",
-  });
-  return {
-    tense: "presentPerfectContinuous",
-    mode: "verbal",
-    form: "positive",
-    subject,
-    verb,
-    answer: correct,
-    note: `"${verb.base}" is a stative verb, so it cannot take -ing. It falls back to the Present Perfect (have/has + V3).`,
-    rare: true,
-  };
-}
-
-/** Whether a filter combination can produce anything. */
-export function isImpossible(filter: QuizFilter): boolean {
-  // All current mode/form/tense combinations are producible.
-  void filter;
-  return false;
 }
