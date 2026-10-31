@@ -208,11 +208,22 @@ function buildPassive(tense: Tense, form: SentenceForm): Question {
     person: 3 as const,
     number: verb.objectNumber,
   };
-  // Active prompt shown to the learner: "The teacher + explain + the lesson".
-  const activePrompt = `${displayCap(agent.text)} ${formatActiveVerb(tense, agent, verb)} ${verb.object}`.trim();
-
   const wh = form === "whQuestion" ? whForPassive() : undefined;
   const time = timeFor(tense, wh);
+
+  // Active prompt shown to the learner. The time signal is part of the prompt
+  // so the learner knows it belongs in the answer too (it is scored).
+  const activePrompt = [
+    displayCap(agent.text),
+    formatActiveVerb(tense, agent, verb),
+    verb.object,
+    time,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
   // Name the doer with its object pronoun (by him) or noun text (by the teacher).
   const byAgent = agent.objectForm ?? agent.text;
 

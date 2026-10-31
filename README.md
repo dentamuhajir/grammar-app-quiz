@@ -2,9 +2,24 @@
 
 An interactive English grammar drill. The app shows a random **subject + cue**
 (e.g. `She + work`) tagged with a **tense**, **type**, and **sentence form**.
-You form the correct sentence in your head, then reveal the answer.
+You **type the full sentence**, and the app checks it word-by-word, celebrates
+correct answers, and pinpoints exactly what went wrong when you miss.
 
-Built with **React + Vite + TypeScript**. Fully static — no backend.
+Built with **React + Vite + TypeScript**. Fully static — no backend, no API
+keys. All answer checking runs locally in the browser.
+
+## Answer checking
+
+- **Type and check**: enter the full sentence; press Enter to check, Enter
+  again to advance.
+- **Tolerant matching**: capitalization, spacing, punctuation, and contractions
+  are all accepted (`don't` = `do not`, `she's been` = `she has been`).
+- **Word-level diff**: wrong answers are shown with each word colored
+  (correct / wrong / missing / extra) against the correct sentence.
+- **Targeted hints**: rule-based hints point at the real mistake ("third-person
+  singular uses *does*", "this tense needs the past participle (V3)"), derived
+  from the question context — no LLM, no network call.
+- Correct answers trigger a confetti burst (respects `prefers-reduced-motion`).
 
 ## What it covers
 
