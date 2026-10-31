@@ -79,9 +79,26 @@ body {
 }
 
 /* ---- filters ---- */
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* The collapsed summary bar is desktop-hidden; it only appears on mobile. */
+.filter-toggle {
+  display: none;
+}
+
 .filters {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.filter-body {
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
@@ -125,7 +142,6 @@ body {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  margin: -0.5rem 0 0;
   font-size: 0.83rem;
   color: var(--ink-soft);
   cursor: pointer;
@@ -550,12 +566,99 @@ kbd {
   }
 }
 
-/* ---- responsive ---- */
-@media (max-width: 520px) {
+/* ---- responsive (mobile) ---- */
+@media (max-width: 640px) {
+  .page {
+    padding: 1.75rem 0.9rem 2.5rem;
+    gap: 1.1rem;
+  }
+
+  .card {
+    padding: 1.25rem;
+  }
+
+  .chip {
+    font-size: 1.05rem;
+    padding: 0.35rem 0.7rem;
+  }
+
+  /* Collapsible filter: show the summary bar, hide the body until opened. */
+  .filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-strong);
+    background: var(--card);
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+  }
+
+  .filter-toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .filter-toggle-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  .filter-toggle-summary {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .filter-toggle-chevron {
+    flex: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--brand);
+  }
+
+  /* Body collapsed by default, revealed when the panel is open. */
+  .filter-body {
+    display: none;
+    padding: 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: #fcfbf9;
+  }
+
+  .filter-panel.open .filter-body {
+    display: flex;
+  }
+
   .filters {
     grid-template-columns: 1fr;
   }
-  .chip {
-    font-size: 1.1rem;
+
+  /* Actions: primary button full width on top, others share the next row. */
+  .actions {
+    gap: 0.6rem;
+  }
+
+  .btn-primary {
+    flex: 1 0 100%;
+    padding: 0.95rem 1rem;
+    font-size: 1rem;
+  }
+
+  .btn-ghost {
+    flex: 1 1 calc(50% - 0.3rem);
   }
 }
