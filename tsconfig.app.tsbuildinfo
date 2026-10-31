@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/grammar/engine.ts","./src/grammar/generator.ts","./src/grammar/labels.ts","./src/grammar/types.ts","./src/grammar/data/complements.ts","./src/grammar/data/subjects.ts","./src/grammar/data/verbs.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/grammar/engine.ts","./src/grammar/generator.ts","./src/grammar/labels.ts","./src/grammar/types.ts","./src/grammar/data/complements.ts","./src/grammar/data/subjects.ts","./src/grammar/data/timesignals.ts","./src/grammar/data/verbs.ts"],"version":"5.9.3"}

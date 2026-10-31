@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   DEFAULT_FILTER,
+  displayCap,
   generateQuestion,
   type QuizFilter,
 } from "./grammar/generator";
@@ -12,13 +13,40 @@ import {
 } from "./grammar/labels";
 import type { Mode, Question, SentenceForm } from "./grammar/types";
 
-/** Build the "prompt" (the puzzle) the learner tries to form in their head. */
-function promptParts(q: Question): { subject: string; cue: string } {
-  if (q.mode === "nominal") {
-    return { subject: q.subject.text, cue: q.complement?.text ?? "" };
+/** The chips shown as the puzzle prompt. */
+function PromptChips({ q }: { q: Question }) {
+  if (q.mode === "passive") {
+    // Show the full active sentence; the learner rewrites it as passive.
+    return (
+      <div className="prompt">
+        <span className="prompt-label">Make it passive:</span>
+        <span className="chip chip-active">{q.activePrompt}</span>
+      </div>
+    );
   }
-  // verbal + passive both revolve around a verb's base form
-  return { subject: q.subject.text, cue: q.verb?.base ?? "" };
+
+  const subject = displayCap(q.subject.text);
+  const cue =
+    q.mode === "nominal" ? q.complement?.text ?? "" : q.verb?.base ?? "";
+  const object = q.mode === "verbal" ? q.verb?.object : undefined;
+
+  return (
+    <div className="prompt">
+      {q.whWord && <span className="chip chip-wh">{q.whWord}</span>}
+      <span className="chip chip-subject">{subject}</span>
+      <span className="plus">+</span>
+      <span className="chip chip-cue">{cue}</span>
+      {object && (
+        <>
+          <span className="plus">+</span>
+          <span className="chip chip-object">
+            {q.whWord === "What" ? "?" : object}
+          </span>
+        </>
+      )}
+      {q.timeSignal && <span className="chip chip-time">{q.timeSignal}</span>}
+    </div>
+  );
 }
 
 export default function App() {
@@ -28,15 +56,11 @@ export default function App() {
   );
   const [revealed, setRevealed] = useState(false);
 
-  const next = useCallback(
-    (f: QuizFilter) => {
-      setQuestion(generateQuestion(f));
-      setRevealed(false);
-    },
-    [],
-  );
+  const next = useCallback((f: QuizFilter) => {
+    setQuestion(generateQuestion(f));
+    setRevealed(false);
+  }, []);
 
-  // Keyboard: Space/Enter reveals, "n" gets a new question.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLSelectElement) return;
@@ -50,8 +74,6 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [filter, next]);
-
-  const { subject, cue } = useMemo(() => promptParts(question), [question]);
 
   function updateFilter(patch: Partial<QuizFilter>) {
     const merged = { ...filter, ...patch };
@@ -128,24 +150,24 @@ export default function App() {
         </label>
       </section>
 
+      <label className="rare-toggle">
+        <input
+          type="checkbox"
+          checked={filter.includeRare}
+          onChange={(e) => updateFilter({ includeRare: e.target.checked })}
+        />
+        <span>Include rare forms &amp; stative-verb traps</span>
+      </label>
+
       <main className="card">
         <div className="tags">
           <span className="tag tag-tense">{TENSE_LABELS[question.tense]}</span>
           <span className="tag tag-mode">{MODE_LABELS[question.mode]}</span>
           <span className="tag tag-form">{FORM_LABELS[question.form]}</span>
+          {question.rare && <span className="tag tag-rare">⚠ rarely used</span>}
         </div>
 
-        <div className="prompt">
-          <span className="chip chip-subject">{subject}</span>
-          <span className="plus">+</span>
-          <span className="chip chip-cue">{cue}</span>
-          {question.whWord && (
-            <>
-              <span className="plus">·</span>
-              <span className="chip chip-wh">{question.whWord}</span>
-            </>
-          )}
-        </div>
+        <PromptChips q={question} />
 
         <div className={`answer ${revealed ? "shown" : "hidden"}`}>
           {revealed ? (
@@ -154,6 +176,10 @@ export default function App() {
             <p className="answer-placeholder">Answer hidden</p>
           )}
         </div>
+
+        {revealed && question.note && (
+          <p className="note">💡 {question.note}</p>
+        )}
 
         <div className="actions">
           <button
@@ -173,7 +199,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        Covers all 12 tenses · verbal, nominal &amp; passive · {`+ / − / ? / WH`}
+        All 12 tenses · verbal, nominal &amp; passive · {`+ / − / ? / WH`}
       </footer>
     </div>
   );

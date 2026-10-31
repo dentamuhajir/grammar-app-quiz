@@ -134,6 +134,11 @@ body {
   border-color: #e9d5ff;
   background: #faf5ff;
 }
+.tag-rare {
+  color: #b45309;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
 
 /* ---- prompt chips ---- */
 .prompt {
@@ -163,10 +168,58 @@ body {
   background: #9333ea;
 }
 
+.chip-object {
+  background: #0d9488;
+}
+
+.chip-time {
+  background: #475569;
+  font-size: 1rem;
+}
+
+.chip-active {
+  background: #0f172a;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.prompt-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  width: 100%;
+}
+
 .plus {
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--muted);
+}
+
+.note {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+.rare-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: -0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.rare-toggle input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
 }
 
 /* ---- answer ---- */

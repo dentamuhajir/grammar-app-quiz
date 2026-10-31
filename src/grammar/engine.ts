@@ -7,217 +7,216 @@ import type {
   WhWord,
 } from "./types";
 
-// ---------- small helpers ----------
+// ---------- agreement helpers ----------
 
-/** "am" / "is" / "are" for present; "was" / "were" for past. */
-function beNow(s: Subject): string {
-  if (s.person === 1 && s.number === "singular") return "am";
-  if (s.number === "singular" && s.person === 3) return "is";
+type NumberAgreement = { person: 1 | 2 | 3; number: "singular" | "plural" };
+
+function beNow(a: NumberAgreement): string {
+  if (a.person === 1 && a.number === "singular") return "am";
+  if (a.number === "singular" && a.person === 3) return "is";
   return "are";
 }
 
-function bePast(s: Subject): string {
-  if (s.number === "singular" && (s.person === 1 || s.person === 3)) return "was";
+function bePast(a: NumberAgreement): string {
+  if (a.number === "singular" && (a.person === 1 || a.person === 3)) return "was";
   return "were";
 }
 
-/** "do" vs "does" for present simple auxiliary. */
-function doNow(s: Subject): string {
-  return s.number === "singular" && s.person === 3 ? "does" : "do";
+function doNow(a: NumberAgreement): string {
+  return a.number === "singular" && a.person === 3 ? "does" : "do";
 }
 
-/** "has" vs "have" for perfect tenses. */
-function haveNow(s: Subject): string {
-  return s.number === "singular" && s.person === 3 ? "has" : "have";
+function haveNow(a: NumberAgreement): string {
+  return a.number === "singular" && a.person === 3 ? "has" : "have";
 }
 
-/** Present-simple main verb: 3rd-singular gets -s/-es. */
-function presentVerb(s: Subject, verb: Verb): string {
-  return s.number === "singular" && s.person === 3 ? verb.thirdSingular : verb.base;
+function presentVerb(a: NumberAgreement, verb: Verb): string {
+  return a.number === "singular" && a.person === 3 ? verb.thirdSingular : verb.base;
 }
 
-/** Capitalize the first letter of a finished sentence. */
+// ---------- sentence assembly ----------
+
 function cap(sentence: string): string {
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
-/** Join non-empty parts with single spaces, then finalize the sentence. */
+/** Join non-empty parts, collapse spaces, capitalize first word, add punctuation. */
 function build(parts: Array<string | undefined>, punctuation: "." | "?"): string {
-  const text = parts
+  let text = parts
     .filter((p): p is string => Boolean(p && p.trim()))
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();
+  // A trailing abbreviation like "p.m." already ends in a period; don't double it.
+  if (punctuation === "." && text.endsWith(".")) {
+    return cap(text);
+  }
+  // If a question ends on an abbreviation period, replace it with "?".
+  if (punctuation === "?" && text.endsWith(".")) {
+    text = text.slice(0, -1);
+  }
   return cap(text) + punctuation;
 }
 
-// ---------- sentence renderers ----------
-// We centralize the structural patterns (auxiliary placement across +/-/?/wh)
-// and let each tense plug in its verb/be clusters.
+/**
+ * Generic verbal/nominal renderer. The caller supplies the clusters; this
+ * applies the +/-/?/wh structure uniformly.
+ * - positiveCluster: words between subject and object in positive form
+ * - aux: auxiliary that fronts in questions and carries negation
+ * - afterAux: words after the aux (and after "not") in -/?/wh forms
+ * - tail: object/complement/time that trails the clause
+ */
+function render(
+  subject: string,
+  form: SentenceForm,
+  wh: WhWord | undefined,
+  p: { positiveCluster: string; aux: string; afterAux: string; tail?: string },
+): string {
+  switch (form) {
+    case "positive":
+      return build([subject, p.positiveCluster, p.tail], ".");
+    case "negative":
+      return build([subject, p.aux, "not", p.afterAux, p.tail], ".");
+    case "yesNoQuestion":
+      return build([p.aux, subject, p.afterAux, p.tail], "?");
+    case "whQuestion":
+      return build([wh, p.aux, subject, p.afterAux, p.tail], "?");
+  }
+}
+
+// ---------- per-tense cluster definitions ----------
+
+interface Clusters {
+  /** words between subject and the rest, positive form */
+  positiveCluster: string;
+  /** auxiliary that fronts/negates */
+  aux: string;
+  /** words after the aux in -/?/wh */
+  afterAux: string;
+}
+
+/** Verbal clusters for a given tense (main verb supplied by caller). */
+function verbalClusters(tense: Tense, a: NumberAgreement, verb: Verb): Clusters {
+  const V1 = verb.base;
+  const ING = verb.ing;
+  const V3 = verb.participle;
+  switch (tense) {
+    case "presentSimple":
+      return { positiveCluster: presentVerb(a, verb), aux: doNow(a), afterAux: V1 };
+    case "pastSimple":
+      return { positiveCluster: verb.past, aux: "did", afterAux: V1 };
+    case "futureSimple":
+      return { positiveCluster: `will ${V1}`, aux: "will", afterAux: V1 };
+    case "presentContinuous":
+      return { positiveCluster: `${beNow(a)} ${ING}`, aux: beNow(a), afterAux: ING };
+    case "pastContinuous":
+      return { positiveCluster: `${bePast(a)} ${ING}`, aux: bePast(a), afterAux: ING };
+    case "futureContinuous":
+      return { positiveCluster: `will be ${ING}`, aux: "will", afterAux: `be ${ING}` };
+    case "presentPerfect":
+      return { positiveCluster: `${haveNow(a)} ${V3}`, aux: haveNow(a), afterAux: V3 };
+    case "pastPerfect":
+      return { positiveCluster: `had ${V3}`, aux: "had", afterAux: V3 };
+    case "futurePerfect":
+      return { positiveCluster: `will have ${V3}`, aux: "will", afterAux: `have ${V3}` };
+    case "presentPerfectContinuous":
+      return { positiveCluster: `${haveNow(a)} been ${ING}`, aux: haveNow(a), afterAux: `been ${ING}` };
+    case "pastPerfectContinuous":
+      return { positiveCluster: `had been ${ING}`, aux: "had", afterAux: `been ${ING}` };
+    case "futurePerfectContinuous":
+      return { positiveCluster: `will have been ${ING}`, aux: "will", afterAux: `have been ${ING}` };
+  }
+}
 
 /**
- * Render a verbal (action) sentence. `pattern` describes how the auxiliary and
- * verb behave; this function applies the +/-/?/wh structure uniformly.
+ * Nominal clusters. `beWord` is the surface of "be" for simple tenses.
+ * For continuous nominal (temporary behavior) the caller sets `being=true`.
  */
-function renderVerbal(
-  s: Subject,
-  form: SentenceForm,
-  obj: string,
-  wh: WhWord | undefined,
-  p: {
-    // positive: subject + positiveCluster
-    positiveCluster: string;
-    // auxiliary used in negative/question forms
-    aux: string;
-    // words after aux in negative/question (e.g. the bare verb or "been working")
-    afterAux: string;
-    // negation word, usually "not"
-  },
-): string {
-  switch (form) {
-    case "positive":
-      return build([s.text, p.positiveCluster, obj], ".");
-    case "negative":
-      return build([s.text, p.aux, "not", p.afterAux, obj], ".");
-    case "yesNoQuestion":
-      return build([p.aux, s.text, p.afterAux, obj], "?");
-    case "whQuestion":
-      return build([wh, p.aux, s.text, p.afterAux, obj], "?");
+function nominalClusters(
+  tense: Tense,
+  a: NumberAgreement,
+  being: boolean,
+): Clusters {
+  switch (tense) {
+    case "presentSimple":
+      return { positiveCluster: beNow(a), aux: beNow(a), afterAux: "" };
+    case "pastSimple":
+      return { positiveCluster: bePast(a), aux: bePast(a), afterAux: "" };
+    case "futureSimple":
+      return { positiveCluster: "will be", aux: "will", afterAux: "be" };
+    case "presentContinuous": {
+      const be = beNow(a);
+      return being
+        ? { positiveCluster: `${be} being`, aux: be, afterAux: "being" }
+        : { positiveCluster: be, aux: be, afterAux: "" };
+    }
+    case "pastContinuous": {
+      const be = bePast(a);
+      return being
+        ? { positiveCluster: `${be} being`, aux: be, afterAux: "being" }
+        : { positiveCluster: be, aux: be, afterAux: "" };
+    }
+    case "futureContinuous":
+      return { positiveCluster: "will be", aux: "will", afterAux: "be" };
+    case "presentPerfect":
+      return { positiveCluster: `${haveNow(a)} been`, aux: haveNow(a), afterAux: "been" };
+    case "pastPerfect":
+      return { positiveCluster: "had been", aux: "had", afterAux: "been" };
+    case "futurePerfect":
+      return { positiveCluster: "will have been", aux: "will", afterAux: "have been" };
+    // Perfect-continuous nominal falls back to the perfect "been" form.
+    case "presentPerfectContinuous":
+      return { positiveCluster: `${haveNow(a)} been`, aux: haveNow(a), afterAux: "been" };
+    case "pastPerfectContinuous":
+      return { positiveCluster: "had been", aux: "had", afterAux: "been" };
+    case "futurePerfectContinuous":
+      return { positiveCluster: "will have been", aux: "will", afterAux: "have been" };
   }
 }
 
-/** Render a nominal (to be + complement) sentence. */
-function renderNominal(
-  s: Subject,
-  form: SentenceForm,
-  comp: string,
-  wh: WhWord | undefined,
-  p: {
-    // the be-cluster for positive, e.g. "is", "will be", "has been"
-    positiveBe: string;
-    // auxiliary that fronts in questions, e.g. "is", "will", "has", "do"/"does" (none here)
-    frontAux: string;
-    // the remainder after the fronted aux + subject, e.g. "been", "be", "" (for simple be)
-    afterAux: string;
-  },
-): string {
-  switch (form) {
-    case "positive":
-      return build([s.text, p.positiveBe, comp], ".");
-    case "negative":
-      return build([s.text, p.frontAux, "not", p.afterAux, comp], ".");
-    case "yesNoQuestion":
-      return build([p.frontAux, s.text, p.afterAux, comp], "?");
-    case "whQuestion":
-      return build([wh, p.frontAux, s.text, p.afterAux, comp], "?");
+/** Passive clusters: the be/aux chain that precedes the V3. */
+function passiveClusters(tense: Tense, a: NumberAgreement): Clusters {
+  switch (tense) {
+    case "presentSimple":
+      return { positiveCluster: beNow(a), aux: beNow(a), afterAux: "" };
+    case "pastSimple":
+      return { positiveCluster: bePast(a), aux: bePast(a), afterAux: "" };
+    case "futureSimple":
+      return { positiveCluster: "will be", aux: "will", afterAux: "be" };
+    case "presentContinuous":
+      return { positiveCluster: `${beNow(a)} being`, aux: beNow(a), afterAux: "being" };
+    case "pastContinuous":
+      return { positiveCluster: `${bePast(a)} being`, aux: bePast(a), afterAux: "being" };
+    case "futureContinuous":
+      return { positiveCluster: "will be being", aux: "will", afterAux: "be being" };
+    case "presentPerfect":
+      return { positiveCluster: `${haveNow(a)} been`, aux: haveNow(a), afterAux: "been" };
+    case "pastPerfect":
+      return { positiveCluster: "had been", aux: "had", afterAux: "been" };
+    case "futurePerfect":
+      return { positiveCluster: "will have been", aux: "will", afterAux: "have been" };
+    case "presentPerfectContinuous":
+      return { positiveCluster: `${haveNow(a)} been being`, aux: haveNow(a), afterAux: "been being" };
+    case "pastPerfectContinuous":
+      return { positiveCluster: "had been being", aux: "had", afterAux: "been being" };
+    case "futurePerfectContinuous":
+      return { positiveCluster: "will have been being", aux: "will", afterAux: "have been being" };
   }
 }
 
-/** Render a passive sentence (object as subject). Only + and - are produced. */
-function renderPassive(
-  s: Subject,
-  form: SentenceForm,
-  participle: string,
-  p: { positiveCluster: string; aux: string; afterAux: string },
-): string {
-  // Passive questions are uncommon in the source material; we only build +/-.
-  if (form === "negative") {
-    return build([s.text, p.aux, "not", p.afterAux, participle], ".");
-  }
-  return build([s.text, p.positiveCluster, participle], ".");
-}
-
-// ---------- per-tense conjugation ----------
+// ---------- public API ----------
 
 export function conjugateVerbal(
   tense: Tense,
   s: Subject,
   verb: Verb,
   form: SentenceForm,
-  wh?: WhWord,
+  opts: { wh?: WhWord; tail?: string } = {},
 ): string {
-  const obj = verb.object;
-  const V1 = verb.base;
-  const ING = verb.ing;
-  const V3 = verb.participle;
-
-  switch (tense) {
-    case "presentSimple":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: presentVerb(s, verb),
-        aux: doNow(s),
-        afterAux: V1,
-      });
-    case "pastSimple":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: verb.past,
-        aux: "did",
-        afterAux: V1,
-      });
-    case "futureSimple":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `will ${V1}`,
-        aux: "will",
-        afterAux: V1,
-      });
-
-    case "presentContinuous":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `${beNow(s)} ${ING}`,
-        aux: beNow(s),
-        afterAux: ING,
-      });
-    case "pastContinuous":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `${bePast(s)} ${ING}`,
-        aux: bePast(s),
-        afterAux: ING,
-      });
-    case "futureContinuous":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `will be ${ING}`,
-        aux: "will",
-        afterAux: `be ${ING}`,
-      });
-
-    case "presentPerfect":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `${haveNow(s)} ${V3}`,
-        aux: haveNow(s),
-        afterAux: V3,
-      });
-    case "pastPerfect":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `had ${V3}`,
-        aux: "had",
-        afterAux: V3,
-      });
-    case "futurePerfect":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `will have ${V3}`,
-        aux: "will",
-        afterAux: `have ${V3}`,
-      });
-
-    case "presentPerfectContinuous":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `${haveNow(s)} been ${ING}`,
-        aux: haveNow(s),
-        afterAux: `been ${ING}`,
-      });
-    case "pastPerfectContinuous":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `had been ${ING}`,
-        aux: "had",
-        afterAux: `been ${ING}`,
-      });
-    case "futurePerfectContinuous":
-      return renderVerbal(s, form, obj, wh, {
-        positiveCluster: `will have been ${ING}`,
-        aux: "will",
-        afterAux: `have been ${ING}`,
-      });
-  }
+  const c = verbalClusters(tense, s, verb);
+  // WH "What" replaces the object, so no object tail then.
+  const tail = opts.wh === "What" ? opts.tail : [verb.object, opts.tail].filter(Boolean).join(" ");
+  return render(s.text, form, opts.wh, { ...c, tail });
 }
 
 export function conjugateNominal(
@@ -225,175 +224,36 @@ export function conjugateNominal(
   s: Subject,
   comp: Complement,
   form: SentenceForm,
-  wh?: WhWord,
+  opts: { wh?: WhWord; being?: boolean; tail?: string } = {},
 ): string {
-  const c = comp.text;
-
-  switch (tense) {
-    case "presentSimple":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: beNow(s),
-        frontAux: beNow(s),
-        afterAux: "",
-      });
-    case "pastSimple":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: bePast(s),
-        frontAux: bePast(s),
-        afterAux: "",
-      });
-    case "futureSimple":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: "will be",
-        frontAux: "will",
-        afterAux: "be",
-      });
-
-    // Continuous nominal = temporary behavior: "being + adjective"
-    case "presentContinuous":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: `${beNow(s)} being`,
-        frontAux: beNow(s),
-        afterAux: "being",
-      });
-    case "pastContinuous":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: `${bePast(s)} being`,
-        frontAux: bePast(s),
-        afterAux: "being",
-      });
-    case "futureContinuous":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: "will be",
-        frontAux: "will",
-        afterAux: "be",
-      });
-
-    case "presentPerfect":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: `${haveNow(s)} been`,
-        frontAux: haveNow(s),
-        afterAux: "been",
-      });
-    case "pastPerfect":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: "had been",
-        frontAux: "had",
-        afterAux: "been",
-      });
-    case "futurePerfect":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: "will have been",
-        frontAux: "will",
-        afterAux: "have been",
-      });
-
-    // Perfect-continuous stative rule: nominal falls back to perfect "been".
-    case "presentPerfectContinuous":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: `${haveNow(s)} been`,
-        frontAux: haveNow(s),
-        afterAux: "been",
-      });
-    case "pastPerfectContinuous":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: "had been",
-        frontAux: "had",
-        afterAux: "been",
-      });
-    case "futurePerfectContinuous":
-      return renderNominal(s, form, c, wh, {
-        positiveBe: "will have been",
-        frontAux: "will",
-        afterAux: "have been",
-      });
-  }
+  const c = nominalClusters(tense, s, Boolean(opts.being));
+  const text =
+    s.number === "plural" && comp.kind === "noun" && comp.plural
+      ? comp.plural
+      : comp.text;
+  // WH "What/Where/How" can replace the complement.
+  const replacesComp =
+    opts.wh === "What" || opts.wh === "Where" || opts.wh === "How";
+  const tail = replacesComp
+    ? opts.tail
+    : [text, opts.tail].filter(Boolean).join(" ");
+  return render(s.text, form, opts.wh, { ...c, tail });
 }
 
+/**
+ * Passive. The passive subject (the thing acted on) is passed as `subject`;
+ * callers derive it from the active verb's object. An optional "by <agent>"
+ * phrase names the original doer.
+ */
 export function conjugatePassive(
   tense: Tense,
-  s: Subject,
+  passiveSubject: { text: string } & NumberAgreement,
   verb: Verb,
   form: SentenceForm,
+  opts: { wh?: WhWord; byAgent?: string } = {},
 ): string {
-  const V3 = verb.participle;
-
-  switch (tense) {
-    case "presentSimple":
-      return renderPassive(s, form, V3, {
-        positiveCluster: `${beNow(s)}`,
-        aux: beNow(s),
-        afterAux: "",
-      });
-    case "pastSimple":
-      return renderPassive(s, form, V3, {
-        positiveCluster: `${bePast(s)}`,
-        aux: bePast(s),
-        afterAux: "",
-      });
-    case "futureSimple":
-      return renderPassive(s, form, V3, {
-        positiveCluster: "will be",
-        aux: "will",
-        afterAux: "be",
-      });
-
-    case "presentContinuous":
-      return renderPassive(s, form, V3, {
-        positiveCluster: `${beNow(s)} being`,
-        aux: beNow(s),
-        afterAux: "being",
-      });
-    case "pastContinuous":
-      return renderPassive(s, form, V3, {
-        positiveCluster: `${bePast(s)} being`,
-        aux: bePast(s),
-        afterAux: "being",
-      });
-    case "futureContinuous":
-      return renderPassive(s, form, V3, {
-        positiveCluster: "will be being",
-        aux: "will",
-        afterAux: "be being",
-      });
-
-    case "presentPerfect":
-      return renderPassive(s, form, V3, {
-        positiveCluster: `${haveNow(s)} been`,
-        aux: haveNow(s),
-        afterAux: "been",
-      });
-    case "pastPerfect":
-      return renderPassive(s, form, V3, {
-        positiveCluster: "had been",
-        aux: "had",
-        afterAux: "been",
-      });
-    case "futurePerfect":
-      return renderPassive(s, form, V3, {
-        positiveCluster: "will have been",
-        aux: "will",
-        afterAux: "have been",
-      });
-
-    case "presentPerfectContinuous":
-      return renderPassive(s, form, V3, {
-        positiveCluster: `${haveNow(s)} been being`,
-        aux: haveNow(s),
-        afterAux: "been being",
-      });
-    case "pastPerfectContinuous":
-      return renderPassive(s, form, V3, {
-        positiveCluster: "had been being",
-        aux: "had",
-        afterAux: "been being",
-      });
-    case "futurePerfectContinuous":
-      return renderPassive(s, form, V3, {
-        positiveCluster: "will have been being",
-        aux: "will",
-        afterAux: "have been being",
-      });
-  }
+  const c = passiveClusters(tense, passiveSubject);
+  const by = opts.byAgent ? `by ${opts.byAgent}` : undefined;
+  const tail = [verb.participle, by].filter(Boolean).join(" ");
+  return render(passiveSubject.text, form, opts.wh, { ...c, tail });
 }
-

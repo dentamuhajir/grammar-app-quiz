@@ -16,9 +16,20 @@ Built with **React + Vite + TypeScript**. Fully static — no backend.
 
 Grammar rules enforced by the engine:
 
-- Passive requires a **transitive** verb and produces only + / − forms
-- **Continuous** tenses exclude **stative** verbs (no `-ing`)
-- Perfect-continuous **nominal** falls back to the perfect `been` form
+- **Passive** is built from the active sentence: the object becomes the subject
+  and the doer moves to a `by ...` phrase (*The teacher explains the lesson* →
+  *The lesson is explained by the teacher*). Supports + / − / ? / WH.
+- **Continuous** tenses exclude **stative** verbs (no `-ing`).
+- The "being" nominal form (temporary behavior) is used only with **behavioral
+  adjectives** (rude, careful), never state adjectives (happy, tired).
+- Perfect-continuous has **no true nominal**; it falls back to the perfect
+  `been` form, with an on-screen note explaining the shift.
+- Subjects are matched to verbs/complements by **entity** (a dog never becomes
+  a teacher) and plural subjects get plural nouns (*they are doctors*).
+- **Time signals** per tense (yesterday, for 2 hours, by 2028, ...) keep
+  otherwise-identical tenses distinguishable.
+- Rare-but-valid forms (e.g. `will be being`, perfect-continuous passive) and
+  stative-verb traps are hidden from the random pool behind a toggle.
 
 ## Develop
 

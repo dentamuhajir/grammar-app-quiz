@@ -25,16 +25,20 @@ export type SentenceForm =
 /** Verbal (action verb) vs nominal (to be + complement) vs passive voice. */
 export type Mode = "verbal" | "nominal" | "passive";
 
+/** What kind of real-world thing a subject is, used to avoid nonsense pairings. */
+export type Entity = "person" | "animal" | "thing";
+
 /** Grammatical person + number drives subject-verb agreement. */
 export interface Subject {
-  /** Display text, e.g. "He", "The students", "A pilot". */
+  /** Display text. Stored lowercase except proper words like "I". */
   text: string;
   /** 1 = I/we, 2 = you, 3 = he/she/it/they/nouns. */
   person: 1 | 2 | 3;
   number: "singular" | "plural";
+  entity: Entity;
   /**
-   * Object pronoun used when this subject becomes the agent in a passive
-   * "by ..." phrase. Optional; only used for pronoun subjects.
+   * Object pronoun for the passive "by ..." phrase (pronoun subjects only).
+   * e.g. He -> "him". Noun subjects reuse their own text.
    */
   objectForm?: string;
 }
@@ -54,18 +58,39 @@ export interface Verb {
   transitive: boolean;
   /** Stative verbs reject -ing (continuous) forms. */
   stative: boolean;
-  /** A natural object phrase used to complete verbal/passive sentences. */
+  /** Direct object phrase (empty for intransitive verbs). */
   object: string;
+  /**
+   * Agreement data for the object when it becomes a passive subject.
+   * Only meaningful for transitive verbs.
+   */
+  objectNumber: "singular" | "plural";
+  /**
+   * Some transitive verbs sound odd in the passive with these objects
+   * (e.g. "take the bus" -> "the bus is taken"). Excluded from passive.
+   */
+  oddPassive: boolean;
 }
+
+export type ComplementKind = "noun" | "adjective" | "adverb";
 
 export interface Complement {
-  /** e.g. "a doctor", "happy", "busy", "at home". */
+  /** Singular display text, e.g. "a doctor", "happy", "at home". */
   text: string;
-  /** adjective complements can use the "being" temporary-behavior form. */
-  kind: "adjective" | "noun" | "adverb";
+  kind: ComplementKind;
+  /**
+   * Plural form for plural subjects (nouns only), e.g. "doctors".
+   * Non-noun complements leave this undefined.
+   */
+  plural?: string;
+  /**
+   * Adjectives only: behavioral adjectives (rude, careful) work with the
+   * continuous "being" form; state adjectives (happy, tired) do not.
+   */
+  behavioral?: boolean;
 }
 
-export type WhWord = "What" | "Where" | "When" | "Why" | "How";
+export type WhWord = "What" | "Where" | "When" | "Why" | "How" | "How long";
 
 /** A single generated quiz question. */
 export interface Question {
@@ -76,6 +101,19 @@ export interface Question {
   verb?: Verb;
   complement?: Complement;
   whWord?: WhWord;
-  /** The correct, fully conjugated sentence (the "hint"/answer). */
+  /** Optional time expression shown with the sentence, e.g. "yesterday". */
+  timeSignal?: string;
+  /** The correct, fully conjugated sentence (the answer). */
   answer: string;
+  /**
+   * For passive questions: the equivalent active sentence shown as the prompt
+   * so the learner practices the active -> passive transformation.
+   */
+  activePrompt?: string;
+  /**
+   * An explanatory note, e.g. the stative fallback rule or a rare-form warning.
+   */
+  note?: string;
+  /** True for grammatically valid but rarely-used forms (hidden from "All"). */
+  rare?: boolean;
 }
