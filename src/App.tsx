@@ -67,6 +67,16 @@ const PRAISE = [
   "Excellent!",
 ];
 
+/** Short readable summary of the active filter, for the collapsed mobile bar. */
+function filterSummary(f: QuizFilter): string {
+  const parts = [
+    f.tense === "all" ? "All tenses" : TENSE_LABELS[f.tense],
+    f.mode === "all" ? "All types" : MODE_LABELS[f.mode].replace(/\s*\(.*\)/, ""),
+    f.form === "all" ? "All forms" : FORM_LABELS[f.form].replace(/\s*\(.*\)/, ""),
+  ];
+  return parts.join(" · ");
+}
+
 export default function App() {
   const [filter, setFilter] = useState<QuizFilter>(DEFAULT_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
@@ -77,6 +87,8 @@ export default function App() {
   const [revealed, setRevealed] = useState(false);
   const [confetti, setConfetti] = useState(0);
   const [praise, setPraise] = useState("");
+  // Mobile-only: collapse the filters so the question card stays the focus.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const next = useCallback((f: QuizFilter) => {
@@ -122,80 +134,103 @@ export default function App() {
       <Confetti fire={confetti} />
 
       <header className="header">
-        <h1>Grammar App Quiz</h1>
+        <h1 className="brand">
+          Grammar <span className="brand-accent">Drill</span>
+        </h1>
         <p className="subtitle">
           Build the sentence, type it, and check your answer.
         </p>
       </header>
 
-      <section className="filters" aria-label="Filters">
-        <label>
-          <span>Tense</span>
-          <select
-            value={filter.tense}
-            onChange={(e) =>
-              updateFilter({ tense: e.target.value as QuizFilter["tense"] })
-            }
-          >
-            <option value="all">All tenses</option>
-            {TENSE_ORDER.map((t) => (
-              <option key={t} value={t}>
-                {TENSE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-        </label>
+      <section className={`filter-panel ${filtersOpen ? "open" : ""}`}>
+        {/* Collapsed summary bar — only shown on mobile */}
+        <button
+          type="button"
+          className="filter-toggle"
+          aria-expanded={filtersOpen}
+          aria-controls="filter-body"
+          onClick={() => setFiltersOpen((o) => !o)}
+        >
+          <span className="filter-toggle-text">
+            <span className="filter-toggle-label">Filters</span>
+            <span className="filter-toggle-summary">{filterSummary(filter)}</span>
+          </span>
+          <span className="filter-toggle-chevron" aria-hidden="true">
+            {filtersOpen ? "✕" : "Edit"}
+          </span>
+        </button>
 
-        <label>
-          <span>Type</span>
-          <select
-            value={filter.mode}
-            onChange={(e) =>
-              updateFilter({ mode: e.target.value as QuizFilter["mode"] })
-            }
-          >
-            <option value="all">All types</option>
-            {(["verbal", "nominal", "passive"] as Mode[]).map((m) => (
-              <option key={m} value={m}>
-                {MODE_LABELS[m]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="filter-body" id="filter-body">
+          <div className="filters" aria-label="Filters">
+            <label>
+              <span>Tense</span>
+              <select
+                value={filter.tense}
+                onChange={(e) =>
+                  updateFilter({ tense: e.target.value as QuizFilter["tense"] })
+                }
+              >
+                <option value="all">All tenses</option>
+                {TENSE_ORDER.map((t) => (
+                  <option key={t} value={t}>
+                    {TENSE_LABELS[t]}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        <label>
-          <span>Form</span>
-          <select
-            value={filter.form}
-            onChange={(e) =>
-              updateFilter({ form: e.target.value as QuizFilter["form"] })
-            }
-          >
-            <option value="all">All forms</option>
-            {(
-              [
-                "positive",
-                "negative",
-                "yesNoQuestion",
-                "whQuestion",
-              ] as SentenceForm[]
-            ).map((f) => (
-              <option key={f} value={f}>
-                {FORM_LABELS[f]}
-              </option>
-            ))}
-          </select>
-        </label>
+            <label>
+              <span>Type</span>
+              <select
+                value={filter.mode}
+                onChange={(e) =>
+                  updateFilter({ mode: e.target.value as QuizFilter["mode"] })
+                }
+              >
+                <option value="all">All types</option>
+                {(["verbal", "nominal", "passive"] as Mode[]).map((m) => (
+                  <option key={m} value={m}>
+                    {MODE_LABELS[m]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Form</span>
+              <select
+                value={filter.form}
+                onChange={(e) =>
+                  updateFilter({ form: e.target.value as QuizFilter["form"] })
+                }
+              >
+                <option value="all">All forms</option>
+                {(
+                  [
+                    "positive",
+                    "negative",
+                    "yesNoQuestion",
+                    "whQuestion",
+                  ] as SentenceForm[]
+                ).map((f) => (
+                  <option key={f} value={f}>
+                    {FORM_LABELS[f]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label className="rare-toggle">
+            <input
+              type="checkbox"
+              checked={filter.includeRare}
+              onChange={(e) => updateFilter({ includeRare: e.target.checked })}
+            />
+            <span>Include rare forms &amp; stative-verb traps</span>
+          </label>
+        </div>
       </section>
-
-      <label className="rare-toggle">
-        <input
-          type="checkbox"
-          checked={filter.includeRare}
-          onChange={(e) => updateFilter({ includeRare: e.target.checked })}
-        />
-        <span>Include rare forms &amp; stative-verb traps</span>
-      </label>
 
       <main className="card">
         <div className="tags">
@@ -277,7 +312,7 @@ export default function App() {
             </button>
           )}
           <button className="btn btn-ghost" onClick={() => next(filter)}>
-            Skip / shuffle
+            New sentence
           </button>
         </div>
 
