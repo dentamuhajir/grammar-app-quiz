@@ -14,17 +14,19 @@ import {
 } from "../grammar/labels";
 import type { Mode, Question, SentenceForm } from "../grammar/types";
 import { SentenceExplanation } from "./SentenceExplanation";
+import { BottomSheet } from "./BottomSheet";
+import { useSwipeCard } from "./useSwipeCard";
 import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
   if (q.mode === "passive") {
-    // Active sentence (without time) + the time signal as its own chip, so the
-    // learner sees it belongs in the answer and decides where it goes.
     return (
       <div className="prompt">
-        <span className="prompt-label">Ubah kalimat ini menjadi passive voice:</span>
+        <span className="prompt-label">
+          Ubah kalimat ini menjadi passive voice:
+        </span>
         <span className="chip chip-active">{q.activePrompt}</span>
         {q.timeSignal && <span className="chip chip-time">{q.timeSignal}</span>}
       </div>
@@ -63,12 +65,15 @@ function PromptChips({ q }: { q: Question }) {
 
 const PRAISE = ["Benar!", "Tepat!", "Jawabanmu sesuai!"];
 
-/** Short readable summary of the active filter, for the collapsed mobile bar. */
 function filterSummary(f: QuizFilter): string {
   const parts = [
     f.tense === "all" ? "Semua tense" : TENSE_LABELS[f.tense],
-    f.mode === "all" ? "Semua jenis" : MODE_LABELS[f.mode].replace(/\s*\(.*\)/, ""),
-    f.form === "all" ? "Semua bentuk" : FORM_LABELS[f.form].replace(/\s*\(.*\)/, ""),
+    f.mode === "all"
+      ? "Semua jenis"
+      : MODE_LABELS[f.mode].replace(/\s*\(.*\)/, ""),
+    f.form === "all"
+      ? "Semua bentuk"
+      : FORM_LABELS[f.form].replace(/\s*\(.*\)/, ""),
   ];
   return parts.join(" · ");
 }
@@ -83,8 +88,8 @@ export function SentencePractice() {
   const [revealed, setRevealed] = useState(false);
   const [confetti, setConfetti] = useState(0);
   const [praise, setPraise] = useState("");
-  // Mobile-only: collapse the filters so the question card stays the focus.
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const next = useCallback((f: QuizFilter) => {
     setQuestion(generateQuestion(f));
@@ -92,11 +97,13 @@ export function SentencePractice() {
     setResult(null);
     setRevealed(false);
     setPraise("");
+    setGuideOpen(false);
   }, []);
 
+  const solved = revealed || result?.correct === true;
+
   const check = useCallback(() => {
-    // If already answered correctly, Enter advances to the next question.
-    if (result?.correct) {
+    if (solved) {
       next(filter);
       return;
     }
@@ -110,7 +117,7 @@ export function SentencePractice() {
       setPraise(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
       setConfetti((c) => c + 1);
     }
-  }, [filter, input, next, question, result]);
+  }, [filter, input, next, question, solved]);
 
   function updateFilter(patch: Partial<QuizFilter>) {
     const merged = { ...filter, ...patch };
@@ -118,108 +125,39 @@ export function SentencePractice() {
     next(merged);
   }
 
+  const { swipeHandlers, cardStyle, cardClass } = useSwipeCard({
+    onSwipeLeft: () => next(filter),
+    onSwipeRight: () => setGuideOpen(true),
+  });
+
   return (
     <>
       <Confetti fire={confetti} />
 
+      <button
+        type="button"
+        className="filter-pill-bar"
+        onClick={() => setFiltersOpen(true)}
+      >
+        <span className="filter-toggle-text">
+          <span className="filter-toggle-label">Filter Latihan</span>
+          <span className="filter-toggle-summary">{filterSummary(filter)}</span>
+        </span>
+        <span className="filter-pill-action">⚙ Ubah</span>
+      </button>
 
-
-      <section className={`filter-panel ${filtersOpen ? "open" : ""}`}>
-        {/* Collapsed summary bar — only shown on mobile */}
-        <button
-          type="button"
-          className="filter-toggle"
-          aria-expanded={filtersOpen}
-          aria-controls="filter-body"
-          onClick={() => setFiltersOpen((o) => !o)}
-        >
-          <span className="filter-toggle-text">
-            <span className="filter-toggle-label">Filter</span>
-            <span className="filter-toggle-summary">{filterSummary(filter)}</span>
-          </span>
-          <span className="filter-toggle-chevron" aria-hidden="true">
-            {filtersOpen ? "✕" : "Edit"}
-          </span>
-        </button>
-
-        <div className="filter-body" id="filter-body">
-          <div className="filters" aria-label="Filters">
-            <label>
-              <span>Tense</span>
-              <select
-                value={filter.tense}
-                onChange={(e) =>
-                  updateFilter({ tense: e.target.value as QuizFilter["tense"] })
-                }
-              >
-                <option value="all">Semua tense</option>
-                {TENSE_ORDER.map((t) => (
-                  <option key={t} value={t}>
-                    {TENSE_LABELS[t]}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span>Jenis</span>
-              <select
-                value={filter.mode}
-                onChange={(e) =>
-                  updateFilter({ mode: e.target.value as QuizFilter["mode"] })
-                }
-              >
-                <option value="all">Semua jenis</option>
-                {(["verbal", "nominal", "passive"] as Mode[]).map((m) => (
-                  <option key={m} value={m}>
-                    {MODE_LABELS[m]}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span>Bentuk</span>
-              <select
-                value={filter.form}
-                onChange={(e) =>
-                  updateFilter({ form: e.target.value as QuizFilter["form"] })
-                }
-              >
-                <option value="all">Semua bentuk</option>
-                {(
-                  [
-                    "positive",
-                    "negative",
-                    "yesNoQuestion",
-                    "whQuestion",
-                  ] as SentenceForm[]
-                ).map((f) => (
-                  <option key={f} value={f}>
-                    {FORM_LABELS[f]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <label className="rare-toggle">
-            <input
-              type="checkbox"
-              checked={filter.includeRare}
-              onChange={(e) => updateFilter({ includeRare: e.target.checked })}
-            />
-            <span>Sertakan bentuk langka &amp; latihan kata kerja keadaan</span>
-          </label>
-        </div>
-      </section>
-
-      <main className="card">
+      <main
+        className={`card ${cardClass}`}
+        style={cardStyle}
+        {...swipeHandlers}
+      >
         <div className="tags">
           <span className="tag tag-tense">{TENSE_LABELS[question.tense]}</span>
           <span className="tag tag-mode">{MODE_LABELS[question.mode]}</span>
           <span className="tag tag-form">{FORM_LABELS[question.form]}</span>
-          {question.rare && <span className="tag tag-rare">⚠ jarang digunakan</span>}
+          {question.rare && (
+            <span className="tag tag-rare">⚠ jarang digunakan</span>
+          )}
         </div>
 
         <PromptChips q={question} />
@@ -235,11 +173,7 @@ export function SentencePractice() {
             autoComplete="off"
             autoCapitalize="off"
             className={
-              result && !result.empty
-                ? result.correct
-                  ? "ok"
-                  : "bad"
-                : ""
+              result && !result.empty ? (result.correct ? "ok" : "bad") : ""
             }
             onChange={(e) => {
               setInput(e.target.value);
@@ -259,7 +193,19 @@ export function SentencePractice() {
           <div className="feedback feedback-ok" role="status">
             <span className="feedback-title">🎉 {praise}</span>
             <span className="feedback-answer">{question.answer}</span>
-            {result.alternativeOrder && <p className="basics-explanation">Letak keterangan waktu di awal kalimat juga diterima. Di atas adalah susunan acuan.</p>}
+            {result.alternativeOrder && (
+              <p className="basics-explanation">
+                Letak keterangan waktu di awal kalimat juga diterima. Di atas
+                adalah susunan acuan.
+              </p>
+            )}
+            <button
+              type="button"
+              className="inline-popup-link"
+              onClick={() => setGuideOpen(true)}
+            >
+              📖 Lihat analisis &amp; bagian kalimat →
+            </button>
           </div>
         )}
 
@@ -271,42 +217,137 @@ export function SentencePractice() {
         )}
 
         {result?.empty && (
-          <p className="hint hint-plain">Tulis kalimatmu terlebih dahulu, lalu periksa jawabannya.</p>
+          <p className="hint hint-plain">
+            Tulis kalimatmu terlebih dahulu, lalu periksa jawabannya.
+          </p>
         )}
 
         {revealed && !result?.correct && (
           <div className="feedback feedback-reveal">
             <span className="feedback-answer">{question.answer}</span>
+            <button
+              type="button"
+              className="inline-popup-link"
+              onClick={() => setGuideOpen(true)}
+            >
+              📖 Lihat mengapa bentuknya begitu →
+            </button>
           </div>
         )}
 
-        <SentenceExplanation key={question.answer} question={question} solved={revealed || result?.correct === true} />
-
         <div className="actions">
           <button className="btn btn-primary" onClick={check}>
-            {result?.correct ? "Soal berikutnya →" : "Periksa jawaban"}
+            {solved ? "Soal berikutnya →" : "Periksa jawaban"}
           </button>
-          {!result?.correct && (
+          {!solved && (
             <button
               className="btn btn-ghost"
-              onClick={() => setRevealed((r) => !r)}
+              onClick={() => setRevealed(true)}
             >
-              {revealed ? "Sembunyikan jawaban" : "Lihat jawaban"}
+              Lihat jawaban
             </button>
           )}
-          <button className="btn btn-ghost" onClick={() => next(filter)}>
-            Kalimat baru
-          </button>
         </div>
 
-        <p className="hotkeys">
-          <kbd>Enter</kbd> periksa / berikutnya
+        <p className="swipe-hint">
+          ← Geser kiri: soal baru · Geser kanan: rumus →
         </p>
       </main>
 
-      <footer className="footer">
-        12 tense · verbal, nominal &amp; passive · {`+ / − / ? / WH`}
-      </footer>
+      <BottomSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title="Filter Sentence Practice"
+      >
+        <div className="sheet-form">
+          <label>
+            <span>Tense</span>
+            <select
+              value={filter.tense}
+              onChange={(e) =>
+                updateFilter({ tense: e.target.value as QuizFilter["tense"] })
+              }
+            >
+              <option value="all">Semua tense</option>
+              {TENSE_ORDER.map((t) => (
+                <option key={t} value={t}>
+                  {TENSE_LABELS[t]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Jenis Kalimat</span>
+            <select
+              value={filter.mode}
+              onChange={(e) =>
+                updateFilter({ mode: e.target.value as QuizFilter["mode"] })
+              }
+            >
+              <option value="all">Semua jenis</option>
+              {(["verbal", "nominal", "passive"] as Mode[]).map((m) => (
+                <option key={m} value={m}>
+                  {MODE_LABELS[m]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Bentuk Kalimat</span>
+            <select
+              value={filter.form}
+              onChange={(e) =>
+                updateFilter({ form: e.target.value as QuizFilter["form"] })
+              }
+            >
+              <option value="all">Semua bentuk</option>
+              {(
+                [
+                  "positive",
+                  "negative",
+                  "yesNoQuestion",
+                  "whQuestion",
+                ] as SentenceForm[]
+              ).map((f) => (
+                <option key={f} value={f}>
+                  {FORM_LABELS[f]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="rare-toggle">
+            <input
+              type="checkbox"
+              checked={filter.includeRare}
+              onChange={(e) => updateFilter({ includeRare: e.target.checked })}
+            />
+            <span>Sertakan bentuk langka &amp; kata kerja keadaan</span>
+          </label>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setFiltersOpen(false)}
+          >
+            Terapkan Filter
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        title={solved ? "Rumus & Penjelasan Jawaban" : "Rumus & Pola Kalimat"}
+      >
+        <SentenceExplanation
+          key={question.answer}
+          question={question}
+          solved={solved}
+        />
+      </BottomSheet>
     </>
   );
 }
