@@ -1,5 +1,21 @@
 import type { Mode, SentenceForm, Tense } from "./types";
 
+export const PRACTICE_LABELS = {
+  sentences: "Sentence Practice",
+  basics: "Grammar Basics",
+  qa: "Question & Answer",
+};
+
+export const BASICS_LABELS = {
+  articles: "Articles",
+  prepositions: "Prepositions",
+  plurals: "Singular & Plural",
+  gerunds: "Gerund & Infinitive",
+  relatives: "Relative Pronouns",
+  modals: "Modals",
+  conjunctions: "Conjunctions",
+};
+
 export const TENSE_LABELS: Record<Tense, string> = {
   presentSimple: "Present Simple",
   presentContinuous: "Present Continuous",

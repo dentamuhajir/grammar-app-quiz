@@ -1,3 +1,4 @@
+import { sentenceVariants } from "./variants";
 import type { Question } from "../types";
 import { diffTokens, isPerfect, type DiffToken } from "./diff";
 import { buildHint } from "./hints";
@@ -7,6 +8,8 @@ export type { DiffToken } from "./diff";
 
 export interface CheckResult {
   correct: boolean;
+  /** A supported placement of the time phrase differs from the reference. */
+  alternativeOrder?: boolean;
   /** token-level diff of the chosen variant against the answer */
   diff: DiffToken[];
   /** a single targeted hint (empty when correct) */
@@ -36,22 +39,35 @@ export function checkAnswer(q: Question, raw: string): CheckResult {
     return {
       correct: false,
       diff: correctTokens.map((t, i) => ({ op: "missing", correct: t, correctIndex: i })),
-      hint: "Type your sentence, then check it.",
+      hint: "Tulis kalimatmu terlebih dahulu, lalu periksa jawabannya.",
       normalizedAnswer: normalize(q.answer),
       empty: true,
     };
   }
 
-  // Evaluate every normalized variant of the user's input; keep the best.
+  const userVariants = expandVariants(trimmed);
+  const acceptedVariants = sentenceVariants(q);
   let best: DiffToken[] | null = null;
-  let bestScore = -1;
-  for (const variant of expandVariants(trimmed)) {
-    const userTokens = tokenize(variant);
-    const d = diffTokens(userTokens, correctTokens);
-    const score = matchScore(d) - (userTokens.length - matchScore(d)) * 0.01;
-    if (score > bestScore) {
-      bestScore = score;
-      best = d;
+  let bestScore = -Infinity;
+  let bestAccepted = acceptedVariants[0];
+  for (const accepted of acceptedVariants) {
+    const expectedTokens = tokenize(accepted);
+    for (const variant of userVariants) {
+      const userTokens = tokenize(variant);
+      const d = diffTokens(userTokens, expectedTokens);
+      const score = matchScore(d) - (userTokens.length - matchScore(d)) * 0.01;
+      if (score > bestScore) {
+        bestScore = score;
+        bestAccepted = accepted;
+        // Hints use roles from the reference sentence. Preserve those indices
+        // even when the displayed diff uses a fronted time phrase.
+        const timeLength = accepted !== acceptedVariants[0] ? tokenize(normalize(q.timeSignal!)).length : 0;
+        best = d.map(token => ({ ...token, correctIndex: token.correctIndex === undefined ? undefined
+          : timeLength ? token.correctIndex < timeLength
+            ? correctTokens.length - timeLength + token.correctIndex
+            : token.correctIndex - timeLength
+          : token.correctIndex }));
+      }
     }
   }
 
@@ -60,9 +76,10 @@ export function checkAnswer(q: Question, raw: string): CheckResult {
 
   return {
     correct,
+    alternativeOrder: correct && bestAccepted !== acceptedVariants[0] || undefined,
     diff,
     hint: correct ? "" : buildHint(q, diff),
-    normalizedAnswer: normalize(q.answer),
+    normalizedAnswer: bestAccepted,
     empty: false,
   };
 }

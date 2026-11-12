@@ -12,9 +12,9 @@ export function DiffView({ diff }: { diff: DiffToken[] }) {
   return (
     <div className="diff">
       <div className="diff-row">
-        <span className="diff-label">You wrote</span>
+        <span className="diff-label">Jawabanmu</span>
         <span className="diff-words">
-          {userRow.length === 0 && <em className="diff-empty">(empty)</em>}
+          {userRow.length === 0 && <em className="diff-empty">(kosong)</em>}
           {userRow.map((d, i) => (
             <span key={i} className={`dw dw-${d.op}`}>
               {d.user}
@@ -23,7 +23,7 @@ export function DiffView({ diff }: { diff: DiffToken[] }) {
         </span>
       </div>
       <div className="diff-row">
-        <span className="diff-label">Correct</span>
+        <span className="diff-label">Acuan</span>
         <span className="diff-words">
           {correctRow.map((d, i) => (
             <span

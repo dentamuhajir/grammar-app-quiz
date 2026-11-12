@@ -267,15 +267,6 @@ function buildNominal(tense: Tense, form: SentenceForm): Question {
     ...time.opts,
   });
 
-  let note: string | undefined;
-  if (isPerfectContinuous(tense)) {
-    note =
-      "This tense has no nominal form, so it falls back to the perfect (…has/had/will have been…).";
-  } else if (tense === "futureContinuous") {
-    note =
-      "In the nominal form, Future Continuous uses will be + complement, the same shape as Future Simple.";
-  }
-
   return {
     tense,
     mode: "nominal",
@@ -285,7 +276,6 @@ function buildNominal(tense: Tense, form: SentenceForm): Question {
     whWord: wh,
     timeSignal: time.signal?.text,
     answer,
-    note,
   };
 }
 
@@ -329,9 +319,6 @@ function buildPassive(tense: Tense, form: SentenceForm): Question {
     answer,
     activePrompt,
     rare: isRarePassive(tense),
-    note: isRarePassive(tense)
-      ? "Grammatically valid but rarely used by native speakers."
-      : undefined,
   };
 }
 
@@ -365,7 +352,6 @@ export function generateStativeTrap(tense: Tense = "presentPerfectContinuous"): 
     verb,
     timeSignal: fallback.tail,
     answer,
-    note: `"${verb.base}" is a stative verb, so it cannot take -ing. It falls back to the ${fallback.label}.`,
     rare: true,
   };
 }

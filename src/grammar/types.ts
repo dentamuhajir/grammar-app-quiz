@@ -110,10 +110,6 @@ export interface Question {
    * so the learner practices the active -> passive transformation.
    */
   activePrompt?: string;
-  /**
-   * An explanatory note, e.g. the stative fallback rule or a rare-form warning.
-   */
-  note?: string;
   /** True for grammatically valid but rarely-used forms (hidden from "All"). */
   rare?: boolean;
 }

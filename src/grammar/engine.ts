@@ -124,7 +124,7 @@ interface Clusters {
 }
 
 /** Verbal clusters for a given tense (main verb supplied by caller). */
-function verbalClusters(tense: Tense, a: NumberAgreement, verb: Verb): Clusters {
+export function verbalClusters(tense: Tense, a: NumberAgreement, verb: Verb): Clusters {
   const V1 = verb.base;
   const ING = verb.ing;
   const V3 = verb.participle;
@@ -160,7 +160,7 @@ function verbalClusters(tense: Tense, a: NumberAgreement, verb: Verb): Clusters 
  * Nominal clusters. `beWord` is the surface of "be" for simple tenses.
  * For continuous nominal (temporary behavior) the caller sets `being=true`.
  */
-function nominalClusters(
+export function nominalClusters(
   tense: Tense,
   a: NumberAgreement,
   being: boolean,
@@ -203,7 +203,7 @@ function nominalClusters(
 }
 
 /** Passive clusters: the be/aux chain that precedes the V3. */
-function passiveClusters(tense: Tense, a: NumberAgreement): Clusters {
+export function passiveClusters(tense: Tense, a: NumberAgreement): Clusters {
   switch (tense) {
     case "presentSimple":
       return { positiveCluster: beNow(a), aux: beNow(a), afterAux: "" };

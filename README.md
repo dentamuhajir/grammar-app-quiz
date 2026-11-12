@@ -87,3 +87,86 @@ src/
   App.tsx               UI
   index.css             styles
 ```
+
+## Grammar Basics
+
+Switch between **Sentence Practice** (the original full-sentence drill) and
+**Grammar Basics** using the buttons below the title.
+
+Grammar Basics combines curated patterns with compatible vocabulary:
+
+- **Articles**: a/an by sound, the for an identified referent, and no article
+  for general languages or plural nouns. Context is supplied where needed.
+- **Prepositions**: in/on/at for time and explicit spatial contexts, plus
+  expressions such as “next Monday” that need no preposition.
+- **Verb Agreement**: present-simple positive, negative, and question patterns
+  with varied subjects and verbs, including has, studies, and goes.
+- **Singular & Plural**: counts, regular endings, and irregular/unchanged plurals.
+
+Choose a topic or a mixed deck. Each generated variation appears once per cycle;
+changing topics starts a fresh deck. Articles and prepositions use radio options
+(including **∅ Tanpa kata**, an explicit no-word answer). Other topics accept a
+single typed word. Feedback explains the rule in Indonesian. Revealing an answer
+also shows its explanation and lets you move to the next question.
+
+The patterns, vocabulary, and explanations live in
+`src/grammar/basics/engine.ts`; topic names live in `src/grammar/labels.ts`.
+New combinations should carry enough context to give an unambiguous answer.
+
+Run `npm test` for generated-question invariants, deck coverage, targeted grammar
+cases, answer normalization, and a regression check of the original sentence
+checker. Run `npm run build` for TypeScript validation and the production build.
+
+## Question & Answer
+
+The third practice mode has two stages:
+
+1. **Pahami pertanyaan**: identify the requested information and tense/function.
+2. **Latih jawaban**: respond with a short yes/no answer or a complete positive
+   sentence using the verb in the question. The answer content is your choice.
+
+The initial generator includes 105 combinations: present simple, present
+continuous, and past simple; yes/no, where, when, why, what, who (with whom), and
+how (transport); and five speaker/subject perspectives. Present continuous can
+also describe an arranged future activity. Filters start a fresh deck; each
+question appears once per cycle. Moving from comprehension to answering keeps
+the same question.
+
+The checker in `src/grammar/qa/engine.ts` separately reports **core pattern** and
+**response relevance**. It accepts recognized phrase families rather than one
+exact answer: for “Where did she work?”, both “She worked at a restaurant” and
+“She worked in Jakarta” pass. “She worked yesterday” has the expected core
+pattern but does not supply a place. Yes/no answers must use the correct speaker
+perspective, auxiliary, and polarity.
+
+This is deliberately a bounded rule-based exercise, not a general English
+proofreader. Unrecognized locations, clauses, alternative structures, or extra
+sentences receive **not fully verified**, never an automatic success. A natural
+fragment such as “At home” is recognized as relevant but prompts the learner to
+practice a full sentence. Unknown grammar is not asserted to be wrong. Examples
+are explicitly labeled as one possible answer. No user text is sent to an API.
+
+`npm test` also checks every generated Q&A example, variable answers, malformed
+patterns, ambiguous/unsupported replies, contractions, perspective, relevance,
+and deck coverage.
+
+## Sentence Practice explanations
+
+Sentence Practice now includes Indonesian instructions, targeted feedback, and
+an optional **Lihat pola & bantuan** panel. The formula uses the same auxiliary
+clusters as the sentence engine, accounting for tense, positive/negative/question
+form, verbal/nominal/passive mode, and the actual subject (the receiver in passive
+sentences). V1/V2/V3/-ing terminology is explained in the panel.
+
+After a correct or revealed answer, **Mengapa bentuknya begitu?** explains the
+selected forms. An expandable table labels the reference sentence's subject,
+auxiliaries, verb, object/complement, time phrase, and passive agent. Nominal and
+stative fallback exercises explicitly explain the effective tense instead of
+presenting a misleading continuous formula.
+
+Hints use the affected grammatical slot: an object or time-expression error no
+longer automatically triggers a generic tense or question-order hint. Supported
+complete time phrases can move from the end to the beginning of statements
+(e.g. “Yesterday, she worked …”). This is limited variation, not arbitrary word
+reordering; duration phrases and mid-position adverbs are not freely moved.
+Corrections also work when the learner uses a supported fronted time phrase.

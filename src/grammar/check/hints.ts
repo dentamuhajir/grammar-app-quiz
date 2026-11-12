@@ -1,196 +1,70 @@
-import { isContinuous, isPerfect as isPerfectTense } from "../labels";
+import { effectiveTense, sentenceGuide } from "../explanations";
 import type { Question } from "../types";
 import type { DiffToken } from "./diff";
+import { normalize, tokenize } from "./normalize";
 
-/**
- * Produce a single, targeted hint from the question context and the first
- * meaningful difference. Rules mirror the PDF material. We intentionally return
- * ONE focused hint (the most relevant) rather than a wall of text.
- */
+const AUX = new Set(["do", "does", "did", "am", "is", "are", "was", "were", "be", "being", "been", "have", "has", "had", "will"]);
+const MID = new Set(["usually", "often", "always", "already", "just", "never", "sometimes"]);
+const ARTICLES = new Set(["a", "an", "the"]);
 
-const DO_AUX = new Set(["do", "does", "did"]);
-const BE_AUX = new Set(["am", "is", "are", "was", "were", "be", "being", "been"]);
-const HAVE_AUX = new Set(["have", "has", "had"]);
-const MODAL = new Set(["will"]);
-
-function firstIssue(diff: DiffToken[]): DiffToken | undefined {
-  return diff.find((d) => d.op !== "match");
-}
-
-function classifyWord(w: string): "do" | "be" | "have" | "modal" | "not" | "other" {
-  if (DO_AUX.has(w)) return "do";
-  if (BE_AUX.has(w)) return "be";
-  if (HAVE_AUX.has(w)) return "have";
-  if (MODAL.has(w)) return "modal";
-  if (w === "not") return "not";
-  return "other";
-}
-
-/**
- * Returns a human-friendly hint string, or a generic nudge if nothing specific
- * applies. `diff` is user-vs-correct at the token level.
- */
-/** Adverbs that sit before the main verb (after the first auxiliary or "be"). */
-const MID_ADVERBS = new Set(["usually", "often", "always", "already", "just", "never", "sometimes"]);
-
-/**
- * A word the user typed, but in the wrong place: it shows up both as
- * "missing" (where it should be) and as "extra"/"wrong" (where the user put it).
- */
-function movedWord(diff: DiffToken[]): string | undefined {
-  const expected = new Set(
-    diff.filter((d) => d.op === "missing" || d.op === "wrong").map((d) => d.correct),
-  );
-  const typed = diff
-    .filter((d) => d.op === "extra" || d.op === "wrong")
-    .map((d) => d.user);
-  return typed.find((w) => w !== undefined && expected.has(w));
-}
-
+/** Explain the actual mismatched slot, rather than guessing from the tense alone. */
 export function buildHint(q: Question, diff: DiffToken[]): string {
-  const issue = firstIssue(diff);
-  if (!issue) return "Looks right.";
-
-  // --- stative-verb trap: "have been knowing" -> "have known" ---
-  if (q.verb?.stative && isContinuous(q.tense)) {
-    return `"${q.verb.base}" is a stative verb, so it can't take -ing. Use the perfect instead: have/has/had/will have + V3 ("${q.verb.participle}").`;
+  const issues = diff.filter(d => d.op !== "match");
+  const issue = issues[0];
+  if (!issue) return "Jawaban sudah sesuai.";
+  const expected = issue.correct ?? "";
+  const typed = issue.user ?? "";
+  const tense = effectiveTense(q);
+  if (q.verb?.stative && issues.some(d => d.user === q.verb?.ing)) {
+    return `Kata kerja “${q.verb.base}” menyatakan keadaan (stative verb) sehingga tidak memakai bentuk -ing. Gunakan bentuk perfect dengan V3: “${q.verb.participle}”.`;
   }
-
-  // --- word order: the right word in the wrong place ---
-  const moved = movedWord(diff);
+  if (expected === "yet" && typed === "already") {
+    return "Gunakan “yet” di akhir kalimat negatif atau tanya; “already” umumnya dipakai pada kalimat positif.";
+  }
+  const roles = sentenceGuide(q).parts.flatMap(part => tokenize(normalize(part.text)).map(() => part.role));
+  const role = issue.correctIndex === undefined ? "" : roles[issue.correctIndex];
+  const missing = new Set(issues.filter(d => d.correct).map(d => d.correct));
+  const moved = issues.map(d => d.user).find(word => word && missing.has(word));
   if (moved) {
-    if (MID_ADVERBS.has(moved)) {
-      return `"${moved}" is in the wrong place. Adverbs like "${moved}" go before the main verb, after the auxiliary or "to be" (Do you usually…? / She has just… / He is always…).`;
-    }
-    if (q.form === "yesNoQuestion" || q.form === "whQuestion") {
-      // Whether the user moved the auxiliary or the subject, the rule is the same.
-      const aux = diff
-        .map((d) => d.correct)
-        .find((w) => w !== undefined && (DO_AUX.has(w) || BE_AUX.has(w) || HAVE_AUX.has(w) || MODAL.has(w)));
-      if (aux) {
-        return `In questions, the auxiliary "${aux}" comes before the subject.`;
-      }
-    }
-    return `"${moved}" is in the wrong position. Check the word order.`;
+    if (MID.has(moved)) return `Posisi “${moved}” belum sesuai. Pada pola latihan ini, kata tersebut berada sebelum kata kerja utama tanpa kata bantu, atau setelah kata bantu pertama / be.`;
+    if (AUX.has(moved) && (q.form === "whQuestion" || q.form === "yesNoQuestion")) return `Pada pertanyaan ini, kata bantu “${moved}” berada sebelum subjek${q.whWord ? ` dan setelah ${q.whWord}` : ""}.`;
+    return `Kata “${moved}” sudah ada, tetapi posisinya belum sesuai pola soal. Bandingkan urutannya dengan kalimat acuan.`;
   }
-
-  const correctWord = issue.correct ?? "";
-  const userWord = issue.user ?? "";
-  const kind = classifyWord(correctWord || userWord);
-
-  // --- already vs yet ---
-  if (correctWord === "yet" && userWord === "already") {
-    return 'Use "yet" (at the end) in negatives and questions; "already" is for positive sentences.';
+  if (ARTICLES.has(expected) || ARTICLES.has(typed)) {
+    return `Periksa artikel pada frasa ini: ${expected ? `soal memerlukan “${expected}”` : `“${typed}” tidak diperlukan di posisi ini`}. A/an mengikuti bunyi awal kata berikutnya; the menunjuk sesuatu yang dapat diidentifikasi. Pertahankan frasa yang diberikan soal.`;
   }
-
-  // --- auxiliary agreement (do/does/did) ---
-  if (DO_AUX.has(correctWord) || DO_AUX.has(userWord)) {
-    if (correctWord === "does") {
-      return 'Third-person singular (he/she/it) uses "does" in the present simple.';
-    }
-    if (correctWord === "do") {
-      return 'Use "do" with I/you/we/they in the present simple.';
-    }
-    if (correctWord === "did") {
-      return 'The past simple question/negative uses "did" — and the main verb goes back to its base form (V1).';
-    }
+  if (role === "Keterangan waktu / frekuensi") {
+    return `Periksa keterangan “${q.timeSignal}”. ${expected ? `Bagian yang diharapkan di sini adalah “${expected}”.` : "Gunakan keterangan yang diberikan soal."} Kesalahan ini ada pada keterangan, bukan otomatis pada rumus tense.`;
   }
-
-  // --- present simple -s/-es on the main verb ---
-  if (
-    q.tense === "presentSimple" &&
-    q.form === "positive" &&
-    q.subject.number === "singular" &&
-    q.subject.person === 3 &&
-    q.verb &&
-    (correctWord === q.verb.thirdSingular || userWord === q.verb.base)
-  ) {
-    return `Third-person singular adds -s/-es: "${q.verb.thirdSingular}", not "${q.verb.base}".`;
+  if (role === "Kata kerja utama" || role === "Kata kerja V3") {
+    const v = q.verb!;
+    if (q.mode === "passive") return `Passive memakai V3 setelah rangkaian be: gunakan “${v.participle}”. Walaupun bentuk V2 dan V3 bisa sama, fungsi kata ini adalah V3.`;
+    if (["presentSimple", "pastSimple"].includes(tense) && q.form !== "positive") return `Setelah do/does/did, kata kerja utama kembali ke V1: “${v.base}”. Jangan memakai “${typed || "bentuk lain"}” di posisi ini; penanda waktu atau subjek sudah ada pada kata bantu.`;
+    if (tense === "presentSimple") return q.subject.person === 3 && q.subject.number === "singular"
+      ? `Subjek “${q.subject.text}” adalah orang ketiga tunggal. Gunakan “${v.thirdSingular}” pada kalimat positif (umumnya -s/-es; have menjadi has).`
+      : `Dengan subjek “${q.subject.text}”, gunakan bentuk dasar “${v.base}”, tanpa tambahan -s/-es.`;
+    if (tense === "pastSimple") return `Kalimat positif Past Simple memakai V2: ${v.base} → ${v.past}.`;
+    if (expected === v.ing) return `Pola continuous ini memakai bentuk -ing: “${v.ing}”, setelah rangkaian kata bantu yang sesuai.`;
+    if (expected === v.participle) return `Pola perfect ini memakai V3: “${v.participle}”.${tense !== q.tense ? " Kata kerja keadaan pada soal ini memakai bentuk perfect, bukan perfect continuous." : ""}`;
+    if (expected === v.base) return `Setelah will, gunakan V1: “${v.base}”.`;
+    return `Gunakan bentuk kata kerja “${expected}” sesuai pola soal.`;
   }
-
-  // --- be agreement (am/is/are/was/were) ---
-  if (BE_AUX.has(correctWord)) {
-    if (["am", "is", "are"].includes(correctWord)) {
-      return `Check the "to be" form. For this subject it should be "${correctWord}".`;
-    }
-    if (["was", "were"].includes(correctWord)) {
-      return `Past "to be": use "${correctWord}" with this subject.`;
-    }
-    if (correctWord === "been") {
-      return 'Perfect tenses use "been" (the V3 of "be") after have/has/had.';
-    }
-    if (correctWord === "being") {
-      return 'Continuous passive / temporary behavior uses "being".';
-    }
-    if (correctWord === "be") {
-      return 'After a modal like "will", use the bare "be".';
-    }
+  if (role === "Penyangkalan" || typed === "not") return "Letakkan not tepat setelah kata bantu pertama. Pada pertanyaan negatif pun, posisi not perlu mengikuti pola yang diminta soal.";
+  if (role === "Kata bantu" || role === "Bentuk be / penghubung") {
+    const subject = q.mode === "passive" ? q.verb?.object : q.subject.text;
+    if (["do", "does", "did"].includes(expected)) return `Gunakan “${expected}” sebagai kata bantu untuk subjek “${subject}” dan tense ini. Kata kerja setelahnya tetap V1.`;
+    if (["am", "is", "are", "was", "were"].includes(expected)) return `Bentuk be untuk subjek “${subject}” pada soal ini adalah “${expected}”.${q.mode === "passive" ? " Dalam passive, kesesuaian mengikuti penerima tindakan, bukan pelakunya." : ""}`;
+    if (["have", "has", "had"].includes(expected)) return `Gunakan “${expected}” pada rangkaian perfect ini. Has mengikuti orang ketiga tunggal; had dipakai untuk past perfect; setelah will gunakan have.`;
+    if (expected === "been") return "Gunakan been, bentuk V3 dari be, pada rangkaian perfect ini.";
+    if (expected === "being") return "Gunakan being untuk continuous passive atau perilaku sementara dengan be.";
+    if (expected === "be") return "Setelah will, bentuk dasar be tetap be; jangan menggantinya dengan is/are.";
+    if (expected === "will") return "Pola future pada soal ini memakai will sebagai kata bantu pertama.";
   }
-
-  // --- have/has in perfect ---
-  if (HAVE_AUX.has(correctWord)) {
-    if (correctWord === "has") return 'Third-person singular uses "has" in the perfect.';
-    if (correctWord === "have") return 'Use "have" with I/you/we/they in the perfect.';
-    if (correctWord === "had") return 'The past perfect uses "had" for every subject.';
-  }
-
-  // --- verb form (V1 / V2 / V3 / -ing) ---
-  // When the issue is on the main verb, explain the form the TENSE expects.
-  // We use the tense (not just string identity) because for regular verbs
-  // V2 and V3 are spelled the same ("cooked").
-  if (q.verb) {
-    const { base, past, participle, ing } = q.verb;
-    const forms = new Set([base, past, participle, ing]);
-    const onMainVerb = forms.has(correctWord) || forms.has(userWord);
-    if (onMainVerb && correctWord !== userWord) {
-      if (correctWord === ing) {
-        return `Continuous tenses use the -ing form: "${ing}".`;
-      }
-      if (isPerfectTense(q.tense) && correctWord === participle) {
-        return `This tense needs the past participle (V3): "${participle}".`;
-      }
-      if (q.tense === "pastSimple" && q.form === "positive" && correctWord === past) {
-        return `Past simple positive uses V2: "${past}".`;
-      }
-      if (correctWord === participle) {
-        return `This tense needs the past participle (V3): "${participle}".`;
-      }
-      if (correctWord === past) {
-        return `This form uses V2: "${past}".`;
-      }
-      if (correctWord === base) {
-        return `After the auxiliary, the main verb returns to its base form (V1): "${base}".`;
-      }
-    }
-  }
-
-  // --- negation placement ---
-  if (kind === "not" || correctWord === "not" || userWord === "not") {
-    return 'Place "not" right after the (first) auxiliary.';
-  }
-
-  // --- word order for questions ---
-  if (q.form === "yesNoQuestion" || q.form === "whQuestion") {
-    if (issue.op === "wrong" || issue.op === "missing") {
-      return "In questions, the auxiliary comes before the subject.";
-    }
-  }
-
-  // --- missing / extra words ---
-  if (issue.op === "missing") {
-    return `You're missing a word: "${issue.correct}".`;
-  }
-  if (issue.op === "extra") {
-    return `Remove the extra word: "${issue.user}".`;
-  }
-
-  // --- tense-family fallbacks ---
-  if (isContinuous(q.tense)) {
-    return "Remember the continuous pattern: be + verb-ing.";
-  }
-  if (isPerfectTense(q.tense)) {
-    return "Remember the perfect pattern: have/has/had + V3.";
-  }
-
-  return `Check this word: you wrote "${userWord || "—"}", expected "${correctWord || "—"}".`;
+  if (role === "Pelengkap" && q.complement?.kind === "noun" && q.subject.number === "plural") return `Subjek jamak memerlukan pelengkap jamak pada soal ini: “${q.complement.plural}”.`;
+  if (role === "Subjek" || role === "Subjek penerima tindakan") return `Periksa subjek: gunakan “${q.mode === "passive" ? q.verb?.object : q.subject.text}”.${q.mode === "passive" ? " Objek kalimat aktif menjadi subjek kalimat passive." : ""}`;
+  if (role === "Kata tanya") return `Gunakan kata tanya “${q.whWord}” sesuai petunjuk soal.`;
+  if (role === "Pelaku tindakan") return `Pelaku dalam passive ditulis setelah by: “by ${q.subject.objectForm ?? q.subject.text}”. Gunakan bentuk objek seperti him/her/them bila pelakunya kata ganti.`;
+  if (issue.op === "missing") return `Ada kata yang belum ditulis: “${expected}”. Periksa frasa yang diberikan soal.`;
+  if (issue.op === "extra") return `Kata “${typed}” tidak diperlukan pada posisi ini dalam pola soal.`;
+  return `Periksa ${role === "Objek / pelengkap" || role === "Pelengkap" ? "objek atau pelengkap" : "kata ini"}: kamu menulis “${typed || "—"}”, sedangkan soal menggunakan “${expected || "—"}”. Ini belum tentu kesalahan tense.`;
 }
