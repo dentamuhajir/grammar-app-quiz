@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { BASICS_LABELS } from "../grammar/labels";
 import {
   checkBasicsAnswer,
@@ -19,13 +19,8 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
     "empty" | "correct" | "incorrect" | "revealed" | null
   >(null);
   const [showHint, setShowHint] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const question = deck[index];
   const finished = status === "correct" || status === "revealed";
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   function next() {
     if (index + 1 < deck.length) setIndex(index + 1);
@@ -36,7 +31,6 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
     setInput("");
     setStatus(null);
     setShowHint(false);
-    requestAnimationFrame(() => inputRef.current?.focus());
   }
 
   function change(value: string) {
@@ -73,7 +67,6 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
         <div className="answer-input">
           <input
             id="basics-answer"
-            ref={inputRef}
             value={input}
             readOnly={finished}
             aria-label="Jawaban"

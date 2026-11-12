@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   checkQA,
   INTENT_LABELS,
@@ -27,12 +27,7 @@ function QASession({ filter }: { filter: QAFilter }) {
   const [input, setInput] = useState("");
   const [result, setResult] = useState<QAResult | null>(null);
   const [showExample, setShowExample] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const q = deck[index];
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   function next() {
     if (index + 1 < deck.length) setIndex(index + 1);
@@ -43,7 +38,6 @@ function QASession({ filter }: { filter: QAFilter }) {
     setInput("");
     setResult(null);
     setShowExample(false);
-    requestAnimationFrame(() => inputRef.current?.focus());
   }
 
   return (
@@ -70,7 +64,6 @@ function QASession({ filter }: { filter: QAFilter }) {
         <div className="answer-input">
           <input
             id="qa-answer"
-            ref={inputRef}
             value={input}
             autoComplete="off"
             autoCapitalize="off"

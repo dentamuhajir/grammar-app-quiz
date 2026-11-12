@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { checkAnswer, type CheckResult } from "../grammar/check";
 import {
   DEFAULT_FILTER,
@@ -85,7 +85,6 @@ export function SentencePractice() {
   const [praise, setPraise] = useState("");
   // Mobile-only: collapse the filters so the question card stays the focus.
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const next = useCallback((f: QuizFilter) => {
     setQuestion(generateQuestion(f));
@@ -93,8 +92,6 @@ export function SentencePractice() {
     setResult(null);
     setRevealed(false);
     setPraise("");
-    // focus the input for fast keyboard flow
-    requestAnimationFrame(() => inputRef.current?.focus());
   }, []);
 
   const check = useCallback(() => {
@@ -114,10 +111,6 @@ export function SentencePractice() {
       setConfetti((c) => c + 1);
     }
   }, [filter, input, next, question, result]);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   function updateFilter(patch: Partial<QuizFilter>) {
     const merged = { ...filter, ...patch };
@@ -233,7 +226,6 @@ export function SentencePractice() {
 
         <div className="answer-input">
           <input
-            ref={inputRef}
             type="text"
             value={input}
             id="sentence-answer"
