@@ -3,6 +3,7 @@ import { PRACTICE_LABELS } from "./grammar/labels";
 import { QAPractice } from "./ui/QAPractice";
 import { BasicsPractice } from "./ui/BasicsPractice";
 import { SentencePractice } from "./ui/SentencePractice";
+import { InstallPrompt } from "./ui/InstallPrompt";
 
 export default function App() {
   const [practice, setPractice] = useState<keyof typeof PRACTICE_LABELS>("sentences");
@@ -10,6 +11,7 @@ export default function App() {
     <div className="page">
       <header className="header">
         <h1 className="brand">Grammar <span className="brand-accent">Drill</span></h1>
+        <InstallPrompt />
       </header>
       <nav className="practice-switch" aria-label="Mode latihan">
         {(Object.keys(PRACTICE_LABELS) as Array<keyof typeof PRACTICE_LABELS>).map((mode) => (

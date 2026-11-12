@@ -78,6 +78,64 @@ body {
   font-size: 0.95rem;
 }
 
+.pwa-bar {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.pwa-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pwa-install-btn {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border: 1px solid #c9ccf7;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.pwa-install-btn:hover {
+  background: #e0e4fc;
+  border-color: var(--brand);
+}
+
+.pwa-guide {
+  max-width: 520px;
+  text-align: left;
+  padding: 0.85rem 1rem;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+.pwa-guide p {
+  margin: 0 0 0.45rem;
+}
+
+.pwa-guide ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.pwa-guide li + li {
+  margin-top: 0.3rem;
+}
+
 /* ---- filters ---- */
 .filter-panel {
   display: flex;
