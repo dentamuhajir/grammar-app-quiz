@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BottomSheet } from "./BottomSheet";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -53,7 +54,7 @@ export function InstallPrompt() {
       }
       return;
     }
-    setShowGuide((v) => !v);
+    setShowGuide(true);
   }
 
   if (installed && !offline) return null;
@@ -89,30 +90,39 @@ export function InstallPrompt() {
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
             <span>
-              {deferredPrompt ? "Install Aplikasi Offline" : "Install / Pakai Offline"}
+              {deferredPrompt
+                ? "Install Aplikasi Offline"
+                : "Install / Pakai Offline"}
             </span>
           </button>
         )}
       </div>
-      {showGuide && !installed && (
-        <div className="pwa-guide" role="region" aria-label="Panduan instalasi offline">
+
+      <BottomSheet
+        open={showGuide && !installed}
+        onClose={() => setShowGuide(false)}
+        title="Install Aplikasi Offline"
+      >
+        <div className="pwa-guide">
           <p>
-            <strong>Siap digunakan offline!</strong> Seluruh materi sudah tersimpan otomatis di browser ini. Untuk memasangnya sebagai aplikasi di layar utama:
+            <strong>Siap digunakan 100% offline!</strong> Seluruh soal dan
+            materi sudah tersimpan otomatis di perangkat ini. Untuk memasangnya
+            seperti aplikasi di layar utama:
           </p>
           <ul>
             <li>
               <strong>Android / Laptop (Chrome &amp; Edge):</strong> Klik ikon{" "}
-              <strong>Install (⊕)</strong> di kolom alamat atas atau menu{" "}
+              <strong>Install (⊕)</strong> di kolom alamat atas atau buka menu{" "}
               <strong>⋮ → Install app / Tambahkan ke Layar Utama</strong>.
             </li>
             <li>
               <strong>iPhone / iPad (Safari):</strong> Ketuk tombol{" "}
-              <strong>Share</strong> lalu pilih{" "}
+              <strong>Share</strong> di bawah lalu pilih{" "}
               <strong>Add to Home Screen</strong>.
             </li>
           </ul>
         </div>
-      )}
+      </BottomSheet>
     </div>
   );
 }
