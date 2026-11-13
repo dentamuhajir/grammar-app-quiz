@@ -11,6 +11,7 @@ import {
   type BasicsTopic,
 } from "../grammar/basics/engine";
 import { BottomSheet } from "./BottomSheet";
+import { SuccessBadge } from "./FeedbackIcons";
 import { useSwipeCard } from "./useSwipeCard";
 
 function BasicsSession({ filter }: { filter: BasicsFilter }) {
@@ -54,9 +55,6 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
       >
         <div className="tags">
           <span className="tag tag-tense">{BASICS_LABELS[question.topic]}</span>
-          <span className="basics-progress">
-            Soal {index + 1} / {deck.length}
-          </span>
         </div>
 
         {question.context && (
@@ -119,9 +117,14 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
                   status === "correct" ? "feedback-ok" : "feedback-reveal"
                 }`}
               >
-                <strong>
-                  {status === "correct" ? "Benar!" : "Jawaban dan penjelasan"}
-                </strong>
+                {status === "correct" ? (
+                  <span className="feedback-title">
+                    <SuccessBadge />
+                    <span>Benar!</span>
+                  </span>
+                ) : (
+                  <strong>Jawaban dan penjelasan</strong>
+                )}
                 <span className="feedback-answer">
                   {completedSentence(question)}
                 </span>
