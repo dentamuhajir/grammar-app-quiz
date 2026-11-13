@@ -1,6 +1,72 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#4f46e5"/>
-  <rect x="96" y="88" width="320" height="336" rx="36" fill="#ffffff"/>
-  <path d="M160 176h192M160 240h128" stroke="#4f46e5" stroke-width="32" stroke-linecap="round"/>
-  <path d="M208 328l40 40 88-88" fill="none" stroke="#15803d" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="dGrad" x1="276" y1="126" x2="432" y2="314" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4f3fe3"/>
+      <stop offset="55%" stop-color="#8e46aa"/>
+      <stop offset="100%" stop-color="#6c3ce9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer 3D Tile: Orange Bottom Lip + Sunny Yellow Face + Black Border -->
+  <rect x="20" y="36" width="472" height="456" rx="108" fill="#f27d16" stroke="#141414" stroke-width="16"/>
+  <rect x="20" y="18" width="472" height="446" rx="108" fill="#fde48c" stroke="#141414" stroke-width="16"/>
+
+  <!-- Inner Cream Card Stage with 3D Black Shadow -->
+  <rect x="52" y="60" width="408" height="368" rx="76" fill="#141414"/>
+  <rect x="52" y="50" width="408" height="366" rx="76" fill="#fbf6ea" stroke="#141414" stroke-width="12"/>
+
+  <!-- 3D Extrusion Shadow for "G" (Sky Blue) -->
+  <path
+    transform="translate(8, 10)"
+    fill="#35a7f4"
+    stroke="#141414"
+    stroke-width="12"
+    stroke-linejoin="round"
+    d="M160 126C108.1 126 66 168.1 66 220C66 271.9 108.1 314 160 314C211.9 314 254 271.9 254 220V198H160V238H207.8C199.9 257.4 181.5 271 160 271C131.8 271 109 248.2 109 220C109 191.8 131.8 169 160 169C176.8 169 191.7 177.1 201 189.6L235.5 164.5C218.4 141.1 191 126 160 126Z"
+  />
+
+  <!-- Main Letter "G" (Deep Navy with Thick Black Outline) -->
+  <path
+    fill="#212a55"
+    stroke="#141414"
+    stroke-width="12"
+    stroke-linejoin="round"
+    d="M160 126C108.1 126 66 168.1 66 220C66 271.9 108.1 314 160 314C211.9 314 254 271.9 254 220V198H160V238H207.8C199.9 257.4 181.5 271 160 271C131.8 271 109 248.2 109 220C109 191.8 131.8 169 160 169C176.8 169 191.7 177.1 201 189.6L235.5 164.5C218.4 141.1 191 126 160 126Z"
+  />
+
+  <!-- 3D Extrusion Shadow for "D" (Lavender) -->
+  <path
+    transform="translate(8, 10)"
+    fill="#cbb2ff"
+    stroke="#141414"
+    stroke-width="12"
+    stroke-linejoin="round"
+    fill-rule="evenodd"
+    d="M276 142C276 133.2 283.2 126 292 126H338C389.9 126 432 168.1 432 220C432 271.9 389.9 314 338 314H292C283.2 314 276 306.8 276 298V142ZM319 169V271H338C366.2 271 389 248.2 389 220C389 191.8 366.2 169 338 169H319Z"
+  />
+
+  <!-- Main Letter "D" (Purple-Magenta Gradient with Thick Black Outline) -->
+  <path
+    fill="url(#dGrad)"
+    stroke="#141414"
+    stroke-width="12"
+    stroke-linejoin="round"
+    fill-rule="evenodd"
+    d="M276 142C276 133.2 283.2 126 292 126H338C389.9 126 432 168.1 432 220C432 271.9 389.9 314 338 314H292C283.2 314 276 306.8 276 298V142ZM319 169V271H338C366.2 271 389 248.2 389 220C389 191.8 366.2 169 338 169H319Z"
+  />
+
+  <!-- Signature 3D Orange Dot (from the "i" of Drill) at Top-Right of D -->
+  <circle cx="413" cy="116" r="26" fill="#141414"/>
+  <circle cx="408" cy="110" r="25" fill="#f27d16" stroke="#141414" stroke-width="11"/>
+  <circle cx="400" cy="102" r="5.5" fill="#ffffff"/>
+
+  <!-- Bottom 3D Tag Pills (Purple, Mint Green, Bubblegum Pink) -->
+  <rect x="92" y="356" width="98" height="32" rx="16" fill="#6833d4" stroke="#141414" stroke-width="9"/>
+  <rect x="92" y="348" width="98" height="32" rx="16" fill="#8c52ff" stroke="#141414" stroke-width="9"/>
+
+  <rect x="207" y="356" width="98" height="32" rx="16" fill="#38a86d" stroke="#141414" stroke-width="9"/>
+  <rect x="207" y="348" width="98" height="32" rx="16" fill="#5ad494" stroke="#141414" stroke-width="9"/>
+
+  <rect x="322" y="356" width="98" height="32" rx="16" fill="#d6539c" stroke="#141414" stroke-width="9"/>
+  <rect x="322" y="348" width="98" height="32" rx="16" fill="#fb85c6" stroke="#141414" stroke-width="9"/>
 </svg>
