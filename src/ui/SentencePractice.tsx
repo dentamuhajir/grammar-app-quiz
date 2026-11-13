@@ -19,6 +19,7 @@ import { useSwipeCard } from "./useSwipeCard";
 import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
+import { SpokenSentence } from "./SpokenSentence";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
@@ -200,7 +201,7 @@ export function SentencePractice() {
               <SuccessBadge />
               <span>{praise}</span>
             </span>
-            <span className="feedback-answer">{question.answer}</span>
+            <SpokenSentence text={question.answer} />
             {result.alternativeOrder && (
               <p className="basics-explanation">
                 Letak keterangan waktu di awal kalimat juga diterima. Di atas
@@ -233,7 +234,7 @@ export function SentencePractice() {
 
         {revealed && !result?.correct && (
           <div className="feedback feedback-reveal">
-            <span className="feedback-answer">{question.answer}</span>
+            <SpokenSentence text={question.answer} />
             <button
               type="button"
               className="inline-popup-link"

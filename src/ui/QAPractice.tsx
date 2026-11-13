@@ -12,6 +12,7 @@ import {
 } from "../grammar/qa/engine";
 import { BottomSheet } from "./BottomSheet";
 import { SuccessBadge } from "./FeedbackIcons";
+import { SpokenSentence } from "./SpokenSentence";
 import { useSwipeCard } from "./useSwipeCard";
 
 const INTENTS = Object.keys(INTENT_LABELS) as Intent[];
@@ -127,10 +128,13 @@ function QASession({ filter }: { filter: QAFilter }) {
                 }`}
               >
                 {result.status === "correct" ? (
-                  <span className="feedback-title">
-                    <SuccessBadge />
-                    <span>Benar!</span>
-                  </span>
+                  <>
+                    <span className="feedback-title">
+                      <SuccessBadge />
+                      <span>Benar!</span>
+                    </span>
+                    <SpokenSentence text={input.trim() || q.sample} />
+                  </>
                 ) : (
                   <strong>
                     {result.status === "incorrect"
@@ -166,7 +170,7 @@ function QASession({ filter }: { filter: QAFilter }) {
             {revealed && result?.status !== "correct" && (
               <div className="feedback feedback-reveal basics-feedback">
                 <strong>Contoh jawaban &amp; penjelasan</strong>
-                <span className="feedback-answer">{q.sample}</span>
+                <SpokenSentence text={q.sample} />
                 <p className="basics-explanation">{q.explanation}</p>
               </div>
             )}
@@ -206,7 +210,7 @@ function QASession({ filter }: { filter: QAFilter }) {
           </p>
           <div className="feedback feedback-reveal">
             <strong>Contoh jawaban yang diterima</strong>
-            <span className="feedback-answer">{q.sample}</span>
+            <SpokenSentence text={q.sample} />
             <p className="basics-explanation">{q.explanation}</p>
           </div>
         </div>

@@ -487,6 +487,98 @@ body {
   font-size: 1.22rem;
   font-weight: 800;
   color: var(--ink);
+  line-height: 1.55;
+}
+
+.spoken-sentence-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.spoken-word {
+  display: inline-block;
+  padding: 0.04rem 0.18rem;
+  margin: 0 -0.18rem;
+  border-radius: 6px;
+  transition: background-color 0.1s ease, transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+.spoken-word-active {
+  background-color: #fde047;
+  color: var(--ink);
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 2px var(--ink), 0 3px 0 1px var(--ink);
+}
+
+.speech-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.1rem;
+}
+
+.speech-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+  padding: 0.36rem 0.88rem;
+  margin-bottom: 3px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+}
+
+.speech-pill-normal {
+  background: #85dffc;
+  box-shadow: 0 4px 0 -2px #4cb8de, 0 4px 0 0 var(--ink);
+}
+
+.speech-pill-normal:hover {
+  background: #9ee7fd;
+}
+
+.speech-pill-slow {
+  background: #a5f3cc;
+  box-shadow: 0 4px 0 -2px #68d19c, 0 4px 0 0 var(--ink);
+}
+
+.speech-pill-slow:hover {
+  background: #bcf7d9;
+}
+
+.speech-pill:active,
+.speech-pill.active {
+  background: #fde047;
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 0 var(--ink);
+}
+
+.speech-btn-icon {
+  flex: none;
+}
+
+.speech-btn-icon.speaking {
+  animation: pulseSpeaker 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes pulseSpeaker {
+  from {
+    transform: scale(0.94);
+  }
+  to {
+    transform: scale(1.1);
+  }
 }
 
 .feedback-bad {

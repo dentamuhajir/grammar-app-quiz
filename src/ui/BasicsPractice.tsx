@@ -12,6 +12,7 @@ import {
 } from "../grammar/basics/engine";
 import { BottomSheet } from "./BottomSheet";
 import { SuccessBadge } from "./FeedbackIcons";
+import { SpokenSentence } from "./SpokenSentence";
 import { useSwipeCard } from "./useSwipeCard";
 
 function BasicsSession({ filter }: { filter: BasicsFilter }) {
@@ -125,9 +126,7 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
                 ) : (
                   <strong>Jawaban dan penjelasan</strong>
                 )}
-                <span className="feedback-answer">
-                  {completedSentence(question)}
-                </span>
+                <SpokenSentence text={completedSentence(question)} />
                 {question.answer === NO_WORD && (
                   <span>Tanpa kata tambahan (ketik -).</span>
                 )}
