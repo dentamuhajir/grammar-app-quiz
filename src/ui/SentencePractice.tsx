@@ -18,6 +18,7 @@ import { BottomSheet } from "./BottomSheet";
 import { useSwipeCard } from "./useSwipeCard";
 import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
+import { BookIcon, SuccessBadge } from "./FeedbackIcons";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
@@ -153,8 +154,12 @@ export function SentencePractice() {
       >
         <div className="tags">
           <span className="tag tag-tense">{TENSE_LABELS[question.tense]}</span>
-          <span className="tag tag-mode">{MODE_LABELS[question.mode]}</span>
-          <span className="tag tag-form">{FORM_LABELS[question.form]}</span>
+          <span className="tag tag-mode">
+            {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
+          </span>
+          <span className="tag tag-form">
+            {FORM_LABELS[question.form].replace(/\s*\(.*\)/, "")}
+          </span>
           {question.rare && (
             <span className="tag tag-rare">⚠ jarang digunakan</span>
           )}
@@ -191,7 +196,10 @@ export function SentencePractice() {
 
         {result?.correct && (
           <div className="feedback feedback-ok" role="status">
-            <span className="feedback-title">🎉 {praise}</span>
+            <span className="feedback-title">
+              <SuccessBadge />
+              <span>{praise}</span>
+            </span>
             <span className="feedback-answer">{question.answer}</span>
             {result.alternativeOrder && (
               <p className="basics-explanation">
@@ -204,7 +212,8 @@ export function SentencePractice() {
               className="inline-popup-link"
               onClick={() => setGuideOpen(true)}
             >
-              📖 Lihat analisis &amp; bagian kalimat →
+              <BookIcon />
+              <span>Lihat analisis &amp; bagian kalimat →</span>
             </button>
           </div>
         )}
@@ -230,7 +239,8 @@ export function SentencePractice() {
               className="inline-popup-link"
               onClick={() => setGuideOpen(true)}
             >
-              📖 Lihat mengapa bentuknya begitu →
+              <BookIcon />
+              <span>Lihat mengapa bentuknya begitu →</span>
             </button>
           </div>
         )}

@@ -11,6 +11,7 @@ import {
   type QATense,
 } from "../grammar/qa/engine";
 import { BottomSheet } from "./BottomSheet";
+import { SuccessBadge } from "./FeedbackIcons";
 import { useSwipeCard } from "./useSwipeCard";
 
 const INTENTS = Object.keys(INTENT_LABELS) as Intent[];
@@ -72,9 +73,6 @@ function QASession({ filter }: { filter: QAFilter }) {
         <div className="tags">
           <span className="tag tag-tense">{QA_TENSE_LABELS[q.tense]}</span>
           <span className="tag tag-form">{intentOptionLabel(q.intent)}</span>
-          <span className="basics-progress">
-            Soal {index + 1} / {deck.length}
-          </span>
         </div>
 
         <div className="qa-dialogue">
@@ -128,15 +126,20 @@ function QASession({ filter }: { filter: QAFilter }) {
                       : "qa-feedback-partial"
                 }`}
               >
-                <strong>
-                  {result.status === "correct"
-                    ? "Benar!"
-                    : result.status === "incorrect"
+                {result.status === "correct" ? (
+                  <span className="feedback-title">
+                    <SuccessBadge />
+                    <span>Benar!</span>
+                  </span>
+                ) : (
+                  <strong>
+                    {result.status === "incorrect"
                       ? "Perlu diperbaiki"
                       : result.status === "empty"
                         ? "Jawaban masih kosong"
                         : "Belum terverifikasi sepenuhnya"}
-                </strong>
+                  </strong>
+                )}
                 {result.status !== "empty" && (
                   <div className="qa-checks">
                     <span>
