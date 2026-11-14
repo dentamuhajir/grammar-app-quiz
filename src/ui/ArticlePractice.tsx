@@ -2,16 +2,17 @@ import { useState } from "react";
 import {
   ARTICLE_MODE_LABELS,
   ARTICLE_TITLES,
-  checkBreakdownAnswer,
   checkFindFixCorrection,
+  checkParagraphBreakdown,
   createArticleDeck,
   findFixMistakeHint,
   findFixSpanFeedback,
-  spotTapFeedback,
   type ArticleFilter,
   type ArticleId,
   type ArticleMode,
   type ArticleQuestion,
+  type BreakdownQuestion,
+  type ParagraphBreakdownResult,
 } from "../grammar/articles/engine";
 import { BottomSheet } from "./BottomSheet";
 import { SuccessBadge } from "./FeedbackIcons";
@@ -32,9 +33,7 @@ function filterSummary(filter: ArticleFilter): string {
 }
 
 function kindLabel(q: ArticleQuestion): string {
-  if (q.kind === "diagnose") return "Identifikasi Struktur";
-  if (q.kind === "spot") return "Cari di Artikel";
-  return "Cari & Perbaiki";
+  return q.kind === "breakdown" ? "Bedah Kalimat (Tag)" : "Cari & Perbaiki";
 }
 
 function ArticleSession({ filter }: { filter: ArticleFilter }) {
@@ -42,7 +41,15 @@ function ArticleSession({ filter }: { filter: ArticleFilter }) {
     createArticleDeck(filter),
   );
   const [index, setIndex] = useState(0);
-  const [chosenOption, setChosenOption] = useState<string | null>(null);
+
+  // Breakdown state
+  const [activeSentenceId, setActiveSentenceId] = useState<string>("s1");
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [bdResult, setBdResult] = useState<ParagraphBreakdownResult | null>(
+    null,
+  );
+
+  // Find & Fix state
   const [tappedSpanId, setTappedSpanId] = useState<string | null>(null);
   const [errorLocated, setErrorLocated] = useState(false);
   const [input, setInput] = useState("");
@@ -60,7 +67,9 @@ function ArticleSession({ filter }: { filter: ArticleFilter }) {
       setDeck(createArticleDeck(filter, q.id));
       setIndex(0);
     }
-    setChosenOption(null);
+    setActiveSentenceId("s1");
+    setSelections({});
+    setBdResult(null);
     setTappedSpanId(null);
     setErrorLocated(false);
     setInput("");
@@ -68,28 +77,86 @@ function ArticleSession({ filter }: { filter: ArticleFilter }) {
     setHintOpen(false);
   }
 
-  function handleOptionClick(option: string) {
-    if (finished || q.kind !== "diagnose") return;
-    setChosenOption(option);
-    setStatus(checkBreakdownAnswer(q, option));
+  function toggleTagForSentence(
+    question: BreakdownQuestion,
+    sentenceId: string,
+    tag: string,
+  ) {
+    if (finished) return;
+    const targetSentence =
+      question.sentences.find((s) => s.id === sentenceId) ??
+      question.sentences[0];
+    const current = selections[targetSentence.id] ?? [];
+    const maxSlots = targetSentence.expectedTags.length;
+
+    let updated: string[];
+    if (current.includes(tag)) {
+      updated = current.filter((t) => t !== tag);
+    } else if (current.length < maxSlots) {
+      updated = [...current, tag];
+    } else {
+      updated = [...current.slice(0, maxSlots - 1), tag];
+    }
+
+    const nextSelections = {
+      ...selections,
+      [targetSentence.id]: updated,
+    };
+    setSelections(nextSelections);
+    setBdResult(null);
+    setStatus(null);
+
+    // Auto-advance to the next sentence that still has an empty slot
+    if (updated.length === maxSlots && !current.includes(tag)) {
+      const nextIncomplete = question.sentences.find(
+        (s) =>
+          s.id !== targetSentence.id &&
+          (nextSelections[s.id]?.length ?? 0) < s.expectedTags.length,
+      );
+      if (nextIncomplete) {
+        setActiveSentenceId(nextIncomplete.id);
+      }
+    }
+  }
+
+  function removeTagFromSentence(sentenceId: string, tag: string) {
+    if (finished) return;
+    const current = selections[sentenceId] ?? [];
+    setSelections({
+      ...selections,
+      [sentenceId]: current.filter((t) => t !== tag),
+    });
+    setActiveSentenceId(sentenceId);
+    setBdResult(null);
+    setStatus(null);
+  }
+
+  function submitBreakdown(question: BreakdownQuestion) {
+    if (finished) {
+      next();
+      return;
+    }
+    const res = checkParagraphBreakdown(question, selections);
+    setBdResult(res);
+    if (res.status === "correct") {
+      setStatus("correct");
+    } else if (res.status === "incorrect") {
+      setStatus("incorrect");
+      const firstWrong = question.sentences.find(
+        (s) => !res.perSentence[s.id]?.correct,
+      );
+      if (firstWrong) setActiveSentenceId(firstWrong.id);
+    }
   }
 
   function handleSpanTap(spanId: string) {
-    if (finished) return;
+    if (finished || q.kind !== "findFix") return;
     setTappedSpanId(spanId);
-
-    if (q.kind === "spot") {
-      setStatus(checkBreakdownAnswer(q, spanId));
-      return;
-    }
-
-    if (q.kind === "findFix") {
-      if (spanId === q.errorSpanId) {
-        setErrorLocated(true);
-        setStatus(null);
-      } else {
-        setStatus("incorrect");
-      }
+    if (spanId === q.errorSpanId) {
+      setErrorLocated(true);
+      setStatus(null);
+    } else {
+      setStatus("incorrect");
     }
   }
 
@@ -98,8 +165,13 @@ function ArticleSession({ filter }: { filter: ArticleFilter }) {
     onSwipeRight: () => setHintOpen(true),
   });
 
-  const acceptedSpots =
-    q.kind === "spot" ? (q.acceptedSpanIds ?? [q.targetSpanId]) : [];
+  const activeIndex =
+    q.kind === "breakdown"
+      ? Math.max(
+          0,
+          q.sentences.findIndex((s) => s.id === activeSentenceId),
+        )
+      : 0;
 
   return (
     <>
@@ -113,149 +185,238 @@ function ArticleSession({ filter }: { filter: ArticleFilter }) {
           <span className="tag tag-form">{kindLabel(q)}</span>
         </div>
 
-        <div className="article-passage" lang="en">
-          <p className="article-passage-meta">{q.category}</p>
-          <p className="article-passage-text">
-            {q.segments.map((seg, idx) => {
-              if (!seg.spanId) {
-                return <span key={idx}>{seg.text}</span>;
-              }
-
-              if (q.kind === "diagnose") {
-                const isTarget = seg.spanId === q.targetSpanId;
-                return isTarget ? (
-                  <mark key={idx} className="article-highlight">
-                    {seg.text}
-                  </mark>
-                ) : (
-                  <span key={idx}>{seg.text}</span>
-                );
-              }
-
-              const isSpotTarget =
-                q.kind === "spot" && acceptedSpots.includes(seg.spanId);
-              const isErrorSpan =
-                q.kind === "findFix" && seg.spanId === q.errorSpanId;
-              const isTapped = tappedSpanId === seg.spanId;
-
-              let spanClass = "article-phrase-btn";
-              if (finished && (isSpotTarget || isErrorSpan)) {
-                spanClass += " ok";
-              } else if (
-                q.kind === "findFix" &&
-                errorLocated &&
-                isErrorSpan
-              ) {
-                spanClass += " selected";
-              } else if (isTapped && status === "incorrect") {
-                spanClass += " bad";
-              }
-
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  className={spanClass}
-                  disabled={finished || (q.kind === "findFix" && errorLocated)}
-                  onClick={() => handleSpanTap(seg.spanId!)}
-                >
-                  {seg.text}
-                </button>
-              );
-            })}
-          </p>
-        </div>
-
-        {q.kind === "diagnose" && (
+        {q.kind === "breakdown" ? (
           <>
-            <p className="article-question">{q.prompt}</p>
-            <div className="article-options-grid">
-              {q.options?.map((option) => {
-                const isChosen = chosenOption === option;
-                const isAnswer = option === q.answer;
-                let cls = "article-option-btn";
-                if (finished && isAnswer) cls += " ok";
-                else if (isChosen && status === "incorrect") cls += " bad";
+            <p className="article-question">
+              Baca setiap kalimat, lalu pilih tag struktur grammar yang terdapat
+              di dalamnya:
+            </p>
+
+            <div className="breakdown-sentences-stack">
+              {q.sentences.map((sentence, sIdx) => {
+                const chosen = selections[sentence.id] ?? [];
+                const isActive =
+                  !finished && sentence.id === q.sentences[activeIndex]?.id;
+                const check = bdResult?.perSentence[sentence.id];
+                const slotCount = sentence.expectedTags.length;
+
+                let cardStateClass = "";
+                if (finished) cardStateClass = "ok";
+                else if (check && !check.correct && bdResult?.status === "incorrect")
+                  cardStateClass = "bad";
+                else if (isActive) cardStateClass = "active";
+
                 return (
-                  <button
-                    key={option}
-                    type="button"
-                    className={cls}
-                    disabled={finished}
-                    onClick={() => handleOptionClick(option)}
+                  <div
+                    key={sentence.id}
+                    className={`breakdown-sentence-card ${cardStateClass}`}
+                    onClick={() => {
+                      if (!finished) setActiveSentenceId(sentence.id);
+                    }}
                   >
-                    {option}
-                  </button>
+                    <div className="breakdown-sentence-header">
+                      <span className="breakdown-sentence-num">
+                        Kalimat {sIdx + 1}
+                      </span>
+                      <span className="breakdown-sentence-req">
+                        {finished
+                          ? "✓ Terbedah"
+                          : `${chosen.length}/${slotCount} struktur`}
+                      </span>
+                    </div>
+
+                    <p className="breakdown-sentence-text" lang="en">
+                      {sentence.text}
+                    </p>
+
+                    {!finished ? (
+                      <div className="breakdown-slots">
+                        {chosen.map((tag) => {
+                          const isWrong =
+                            bdResult?.status === "incorrect" &&
+                            check?.wrongTags.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              className={`breakdown-slot-pill filled ${
+                                isWrong ? "bad" : ""
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeTagFromSentence(sentence.id, tag);
+                              }}
+                              title="Ketuk untuk melepas tag"
+                            >
+                              <span>{tag}</span>
+                              <span aria-hidden="true">✕</span>
+                            </button>
+                          );
+                        })}
+                        {Array.from({
+                          length: Math.max(0, slotCount - chosen.length),
+                        }).map((_, emptyIdx) => (
+                          <span
+                            key={emptyIdx}
+                            className="breakdown-slot-pill empty"
+                          >
+                            + Pilih tag struktur
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="breakdown-evidence-list">
+                        {sentence.evidence.map((ev, evIdx) => (
+                          <span key={evIdx} className="breakdown-evidence-chip">
+                            <strong lang="en">“{ev.phrase}”</strong> → {ev.tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
-          </>
-        )}
 
-        {q.kind === "spot" && (
-          <p className="article-question">{q.prompt}</p>
-        )}
-
-        {q.kind === "findFix" && (
-          <div className="article-findfix-area">
-            {!errorLocated && !finished ? (
-              <p className="article-question">
-                Langkah 1: Ketuk bagian di paragraf yang mengandung kesalahan grammar.
-              </p>
-            ) : (
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (finished) next();
-                  else setStatus(checkFindFixCorrection(q, input));
-                }}
-              >
-                <p className="article-question">
-                  Langkah 2: Perbaiki frasa{" "}
-                  <mark className="article-error-pill">{q.wrongText}</mark>{" "}
-                  menjadi bentuk yang benar:
+            {!finished && (
+              <div className="breakdown-bank-box">
+                <p className="breakdown-bank-label">
+                  Bank Tag Struktur (dipasang ke{" "}
+                  <strong>Kalimat {activeIndex + 1}</strong>):
                 </p>
-                <div className="answer-input">
-                  <input
-                    id="article-fix-answer"
-                    value={input}
-                    readOnly={finished}
-                    aria-label="Perbaikan frasa"
-                    placeholder="Ketik perbaikan yang tepat…"
-                    autoComplete="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    onChange={(event) => {
-                      setInput(event.target.value);
-                      setStatus(null);
-                    }}
-                    className={
-                      status === "correct"
-                        ? "ok"
-                        : status === "incorrect"
-                          ? "bad"
-                          : ""
-                    }
-                    aria-invalid={status === "incorrect"}
-                  />
+                <div className="breakdown-tag-bank">
+                  {q.tagBank.map((tag) => {
+                    const activeId = q.sentences[activeIndex]?.id ?? "s1";
+                    const inActive = (selections[activeId] ?? []).includes(tag);
+                    const usedInIdx = q.sentences.findIndex((s) =>
+                      (selections[s.id] ?? []).includes(tag),
+                    );
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        className={`breakdown-bank-btn ${
+                          inActive
+                            ? "active"
+                            : usedInIdx !== -1
+                              ? "used"
+                              : ""
+                        }`}
+                        onClick={() =>
+                          toggleTagForSentence(q, activeId, tag)
+                        }
+                      >
+                        <span>{tag}</span>
+                        {usedInIdx !== -1 && (
+                          <span className="breakdown-bank-badge">
+                            K{usedInIdx + 1}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-                {!finished && (
-                  <div className="actions basics-actions">
-                    <button className="btn btn-primary" type="submit">
-                      Periksa perbaikan
-                    </button>
-                    <button
-                      className="btn btn-ghost"
-                      type="button"
-                      onClick={() => setStatus("revealed")}
-                    >
-                      Lihat jawaban
-                    </button>
-                  </div>
-                )}
-              </form>
+              </div>
             )}
-          </div>
+          </>
+        ) : (
+          <>
+            <div className="article-passage" lang="en">
+              <p className="article-passage-meta">{q.category}</p>
+              <p className="article-passage-text">
+                {q.segments.map((seg, idx) => {
+                  if (!seg.spanId) {
+                    return <span key={idx}>{seg.text}</span>;
+                  }
+
+                  const isErrorSpan = seg.spanId === q.errorSpanId;
+                  const isTapped = tappedSpanId === seg.spanId;
+
+                  let spanClass = "article-phrase-btn";
+                  if (finished && isErrorSpan) {
+                    spanClass += " ok";
+                  } else if (errorLocated && isErrorSpan) {
+                    spanClass += " selected";
+                  } else if (isTapped && status === "incorrect") {
+                    spanClass += " bad";
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={spanClass}
+                      disabled={finished || errorLocated}
+                      onClick={() => handleSpanTap(seg.spanId!)}
+                    >
+                      {seg.text}
+                    </button>
+                  );
+                })}
+              </p>
+            </div>
+
+            <div className="article-findfix-area">
+              {!errorLocated && !finished ? (
+                <p className="article-question">
+                  Langkah 1: Ketuk bagian di paragraf yang mengandung kesalahan
+                  grammar.
+                </p>
+              ) : (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (finished) next();
+                    else setStatus(checkFindFixCorrection(q, input));
+                  }}
+                >
+                  <p className="article-question">
+                    Langkah 2: Perbaiki frasa{" "}
+                    <mark className="article-error-pill">{q.wrongText}</mark>{" "}
+                    menjadi bentuk yang benar:
+                  </p>
+                  <div className="answer-input">
+                    <input
+                      id="article-fix-answer"
+                      value={input}
+                      readOnly={finished}
+                      aria-label="Perbaikan frasa"
+                      placeholder="Ketik perbaikan yang tepat…"
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      onChange={(event) => {
+                        setInput(event.target.value);
+                        setStatus(null);
+                      }}
+                      className={
+                        status === "correct"
+                          ? "ok"
+                          : status === "incorrect"
+                            ? "bad"
+                            : ""
+                      }
+                      aria-invalid={status === "incorrect"}
+                    />
+                  </div>
+                  {!finished && (
+                    <div className="actions basics-actions">
+                      <button className="btn btn-primary" type="submit">
+                        Periksa perbaikan
+                      </button>
+                      <button
+                        className="btn btn-ghost"
+                        type="button"
+                        onClick={() => setStatus("revealed")}
+                      >
+                        Lihat jawaban
+                      </button>
+                    </div>
+                  )}
+                </form>
+              )}
+            </div>
+          </>
         )}
 
         <div aria-live="polite" aria-atomic="true">
@@ -265,19 +426,21 @@ function ArticleSession({ filter }: { filter: ArticleFilter }) {
             </p>
           )}
 
+          {q.kind === "breakdown" && bdResult?.status === "incomplete" && (
+            <p className="hint hint-plain basics-feedback">
+              {bdResult.message}
+            </p>
+          )}
+
           {status === "incorrect" && (
             <div className="feedback feedback-bad basics-feedback">
               <strong>Belum tepat — coba lagi.</strong>
               <p className="hint">
-                {q.kind === "diagnose"
-                  ? q.hint
-                  : q.kind === "spot" && tappedSpanId
-                    ? spotTapFeedback(q, tappedSpanId)
-                    : q.kind === "findFix" && !errorLocated && tappedSpanId
-                      ? findFixSpanFeedback(q, tappedSpanId)
-                      : q.kind === "findFix"
-                        ? findFixMistakeHint(q, input)
-                        : q.hint}
+                {q.kind === "breakdown"
+                  ? bdResult?.message ?? q.hint
+                  : !errorLocated && tappedSpanId
+                    ? findFixSpanFeedback(q, tappedSpanId)
+                    : findFixMistakeHint(q, input)}
               </p>
             </div>
           )}
@@ -295,8 +458,9 @@ function ArticleSession({ filter }: { filter: ArticleFilter }) {
                 </span>
               ) : (
                 <strong>
-                  Jawaban:{" "}
-                  {q.kind === "findFix" ? q.correction : q.answer}
+                  {q.kind === "findFix"
+                    ? `Jawaban: ${q.correction}`
+                    : "Hasil Bedah Kalimat"}
                 </strong>
               )}
               <SpokenSentence text={q.spokenSentence} />
@@ -307,15 +471,28 @@ function ArticleSession({ filter }: { filter: ArticleFilter }) {
 
         <div className="actions basics-actions">
           {finished ? (
-            <button
-              className="btn btn-primary"
-              type="button"
-              onClick={next}
-            >
+            <button className="btn btn-primary" type="button" onClick={next}>
               Soal berikutnya →
             </button>
+          ) : q.kind === "breakdown" ? (
+            <>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={() => submitBreakdown(q)}
+              >
+                Periksa Bedah Kalimat
+              </button>
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={() => setStatus("revealed")}
+              >
+                Lihat jawaban
+              </button>
+            </>
           ) : (
-            (q.kind !== "findFix" || !errorLocated) && (
+            !errorLocated && (
               <button
                 className="btn btn-ghost"
                 type="button"
@@ -396,7 +573,9 @@ export function ArticlePractice() {
                 })
               }
             >
-              <option value="all">Semua mode (Bedah + Cari &amp; Perbaiki)</option>
+              <option value="all">
+                Semua mode (Bedah Kalimat + Cari &amp; Perbaiki)
+              </option>
               {ARTICLE_MODES.map((mode) => (
                 <option value={mode} key={mode}>
                   {ARTICLE_MODE_LABELS[mode]}
@@ -416,7 +595,9 @@ export function ArticlePractice() {
                 })
               }
             >
-              <option value="all">Semua artikel (5 artikel)</option>
+              <option value="all">
+                Semua artikel ({ARTICLE_IDS.length} artikel)
+              </option>
               {ARTICLE_IDS.map((id) => (
                 <option value={id} key={id}>
                   {ARTICLE_TITLES[id]}
@@ -436,4 +617,3 @@ export function ArticlePractice() {
     </>
   );
 }
-
