@@ -1,0 +1,48 @@
+[
+  {
+    "id": "interview",
+    "title": "Wawancara Kerja Pertama (First Job Interview)",
+    "level": "master",
+    "scenarioPrompt": "Ceritakan pengalaman menegangkan saat menghadiri wawancara kerja atau ujian lisan pertama Anda.",
+    "contextHint": "Bayangkan persiapan malam sebelumnya, pertanyaan yang ditanyakan di ruangan, dan evaluasi diri Anda setelah selesai.",
+    "keywords": ["interview", "company", "question", "nervous", "resume", "office"],
+    "verbHelpers": [
+      { "base": "prepare", "past": "prepared", "participle": "prepared", "meaning": "menyiapkan" },
+      { "base": "ask", "past": "asked", "participle": "asked", "meaning": "bertanya / ditanyakan" },
+      { "base": "print", "past": "printed", "participle": "printed", "meaning": "mencetak" },
+      { "base": "practice", "past": "practiced", "participle": "practiced", "meaning": "berlatih" }
+    ],
+    "missions": [
+      {
+        "id": "m1",
+        "ruleId": "pastPerfect",
+        "color": "blue",
+        "label": "1 kalimat memakai Past Perfect (had + V3)",
+        "formula": "Subject + had + V3 (Past Participle)",
+        "example": "I had printed my resume before I went to the office.",
+        "tip": "Gunakan untuk persiapan yang sudah selesai sebelum wawancara dimulai."
+      },
+      {
+        "id": "m2",
+        "ruleId": "pastPassive",
+        "color": "green",
+        "label": "1 kalimat memakai Passive Voice - Past (was/were + V3)",
+        "formula": "Object + was/were + V3 (+ by ...)",
+        "example": "Several difficult questions were asked by the manager.",
+        "tip": "Fokus pada objeknya, misalnya pertanyaan yang ditanyakan (were asked) atau dokumen yang diperiksa (was checked)."
+      },
+      {
+        "id": "m3",
+        "ruleId": "modalRegret",
+        "color": "purple",
+        "label": "1 kalimat memakai Modal of Regret (should have + V3)",
+        "formula": "Subject + should have + V3",
+        "example": "I should have practiced my English answers more calmly.",
+        "tip": "Gunakan untuk hal yang seharusnya Anda lakukan lebih baik saat itu."
+      }
+    ],
+    "sampleStory": "I arrived at the office thirty minutes early because I had printed my resume the night before. During the session, several difficult questions were asked by the senior manager. I answered honestly, but I should have practiced my speaking speed more calmly.",
+    "sampleTranslation": "Saya tiba di kantor tiga puluh menit lebih awal karena saya sudah mencetak CV saya malam sebelumnya. Selama sesi berlangsung, beberapa pertanyaan sulit ditanyakan oleh manajer senior. Saya menjawab dengan jujur, tetapi seharusnya saya melatih kecepatan bicara saya dengan lebih tenang."
+  }
+]
+

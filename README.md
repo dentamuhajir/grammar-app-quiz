@@ -166,6 +166,24 @@ New articles can be added without modifying any TypeScript/React code via
 `src/grammar/articles/custom-articles.json` and `scripts/add-article.mjs`.
 See [PANDUAN_ARTICLE_LAB.md](./PANDUAN_ARTICLE_LAB.md) for the complete guide.
 
+## Story Challenge
+
+**Story Challenge** (`src/grammar/story/engine.ts` and `src/ui/StoryChallengePractice.tsx`)
+is a guided free-writing mode accessible from the third bottom-navigation button
+(**Pilih Mode Latihan**):
+
+- **Skenario & Ide Kata Konteks**: each challenge presents a real-life topic
+  ( across *Starter*, *Intermediate*, and *Master* levels) along with clickable
+  context keywords and an optional V1–V2–V3 verb helper drawer.
+- **Misi Grammar (Checklist Wajib)**: 3 required grammar structures per scenario,
+  color-coded in **Blue**, **Green**, and **Purple**.
+- **Bedah Paragraf Visual (Color-Coded Highlighting)**: evaluates user-written
+  paragraphs offline using morphological and structural pattern matching,
+  highlighting matched phrases in their corresponding mission color and giving
+  targeted near-miss coaching (such as converting active clauses to passive or
+  fixing V1/V2 after `had` / `should have`).
+- Custom scenarios can be added via `src/grammar/story/custom-stories.json`.
+
 ## Sentence Practice explanations
 
 Sentence Practice now includes Indonesian instructions, targeted feedback, and

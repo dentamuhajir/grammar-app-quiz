@@ -4,6 +4,7 @@ export const PRACTICE_LABELS = {
   sentences: "Sentence Practice",
   basics: "Grammar Basics",
   articles: "Article Lab",
+  story: "Story Challenge",
   qa: "Question & Answer",
 };
 
