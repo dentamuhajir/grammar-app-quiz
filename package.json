@@ -8,7 +8,10 @@
     "build": "tsc -b && vite build && node scripts/generate-pwa.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test": "node tests/run.mjs"
+    "test": "node tests/run.mjs",
+    "article:prompt": "node scripts/add-article.mjs --prompt",
+    "article:import": "node scripts/add-article.mjs --import",
+    "article:validate": "node scripts/add-article.mjs --validate"
   },
   "dependencies": {
     "react": "^18.3.1",

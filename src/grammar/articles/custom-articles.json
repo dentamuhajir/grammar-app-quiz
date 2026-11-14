@@ -1,0 +1,113 @@
+[
+  {
+    "articleId": "project",
+    "articleTitle": "Launching a Tech Project",
+    "category": "Teknologi & Karier",
+    "breakdowns": [
+      {
+        "id": "project-bd-1",
+        "sentences": [
+          {
+            "id": "s1",
+            "text": "Before the app launched in May, the engineers had been testing the payment system for three months.",
+            "expectedTags": ["Past Perfect Continuous"],
+            "evidence": [
+              { "phrase": "had been testing", "tag": "Past Perfect Continuous" }
+            ],
+            "trapHints": {
+              "Past Continuous": "Ada durasi “for three months” sebelum kejadian lampau lain (“launched”): gunakan Past Perfect Continuous (had been + V-ing)."
+            }
+          },
+          {
+            "id": "s2",
+            "text": "At ten o'clock tomorrow morning, the team will be presenting the new features to investors.",
+            "expectedTags": ["Future Continuous"],
+            "evidence": [
+              { "phrase": "will be presenting", "tag": "Future Continuous" }
+            ],
+            "trapHints": {
+              "Future Simple Passive": "Setelah “will be” adalah V-ing aktif (“presenting”), bukan V3 pasif."
+            }
+          },
+          {
+            "id": "s3",
+            "text": "By the end of this year, they will have completed the mobile version and will have been working together for two years.",
+            "expectedTags": ["Future Perfect", "Future Perfect Continuous"],
+            "evidence": [
+              { "phrase": "will have completed", "tag": "Future Perfect" },
+              { "phrase": "will have been working", "tag": "Future Perfect Continuous" }
+            ]
+          }
+        ],
+        "tagBank": [
+          "Past Perfect Continuous",
+          "Future Continuous",
+          "Future Perfect",
+          "Future Perfect Continuous",
+          "Past Continuous",
+          "Future Simple Passive",
+          "Present Perfect Continuous"
+        ],
+        "spokenSentence": "Before the app launched in May, the engineers had been testing the payment system for three months. At ten o'clock tomorrow morning, the team will be presenting the new features to investors. By the end of this year, they will have completed the mobile version and will have been working together for two years.",
+        "hint": "Cermati “had been + V-ing” di Kalimat 1, “will be + V-ing” di Kalimat 2, serta “will have + V3” dan “will have been + V-ing” di Kalimat 3.",
+        "explanation": "Kalimat 1 memakai Past Perfect Continuous (“had been testing”). Kalimat 2 memakai Future Continuous (“will be presenting”). Kalimat 3 memakai Future Perfect (“will have completed”) dan Future Perfect Continuous (“will have been working”)."
+      }
+    ],
+    "findFixParagraphs": [
+      {
+        "parts": [
+          { "text": "Our team leader is " },
+          {
+            "text": "an honest person",
+            "spanId": "s1",
+            "structure": "Article (an + bunyi vokal)",
+            "mutation": {
+              "id": "project-ff-article",
+              "rule": "Article A vs An (silent h)",
+              "wrongText": "a honest person",
+              "correction": "an honest person",
+              "spokenSentence": "Our team leader is an honest person who always listens to feedback.",
+              "hint": "Huruf “h” pada kata “honest” tidak dibunyikan (silent h), sehingga diawali bunyi vokal.",
+              "explanation": "Karena “honest” diawali bunyi vokal /ɒ/, gunakan artikel “an”: “an honest person”."
+            }
+          },
+          { "text": " who fixed the main server " },
+          {
+            "text": "by himself",
+            "spanId": "s2",
+            "structure": "Reflexive Pronoun",
+            "mutation": {
+              "id": "project-ff-reflexive",
+              "rule": "Reflexive Pronoun (himself)",
+              "wrongText": "by hisself",
+              "correction": "by himself",
+              "acceptedCorrections": ["by himself", "himself"],
+              "spokenSentence": "He fixed the main server by himself late last night.",
+              "hint": "Dalam bahasa Inggris tidak ada kata “hisself”; gunakan bentuk reflexive pronoun yang baku untuk “he”.",
+              "explanation": "Bentuk reflexive pronoun untuk “he” adalah “himself” (bukan “hisself”)."
+            }
+          },
+          { "text": ". Their office is on the third floor, while " },
+          {
+            "text": "ours",
+            "spanId": "s3",
+            "structure": "Possessive Pronoun",
+            "mutation": {
+              "id": "project-ff-possessive",
+              "rule": "Possessive Pronoun Mandiri (ours vs our)",
+              "wrongText": "our",
+              "correction": "ours",
+              "spokenSentence": "Their office is on the third floor, while ours is on the fifth floor.",
+              "hint": "Tidak ada kata benda “office” lagi tepat setelah bagian ini, jadi gunakan possessive pronoun yang bisa berdiri sendiri.",
+              "explanation": "Tanpa kata benda sesudahnya, gunakan possessive pronoun mandiri “ours” (menggantikan “our office”)."
+            }
+          },
+          { "text": " is on " },
+          { "text": "the fifth floor", "spanId": "s4", "structure": "Article + Ordinal" },
+          { "text": "." }
+        ]
+      }
+    ]
+  }
+]
+

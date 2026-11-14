@@ -150,6 +150,22 @@ are explicitly labeled as one possible answer. No user text is sent to an API.
 patterns, ambiguous/unsupported replies, contractions, perspective, relevance,
 and deck coverage.
 
+## Article Lab
+
+**Article Lab** (`src/grammar/articles/engine.ts` and `src/ui/ArticlePractice.tsx`)
+trains grammar recognition and proofreading inside multi-sentence paragraphs:
+
+- **Bedah Kalimat (Tag)**: dissect each sentence in a paragraph by assigning
+  grammar structure tags from a shuffled tag bank (with distractors and
+  trap-specific feedback).
+- **Cari & Perbaiki (Find & Fix)**: spot the erroneous phrase in context and
+  type its correction. Dynamic error rotation mutates one target span per card
+  while keeping the remaining spans clean.
+
+New articles can be added without modifying any TypeScript/React code via
+`src/grammar/articles/custom-articles.json` and `scripts/add-article.mjs`.
+See [PANDUAN_ARTICLE_LAB.md](./PANDUAN_ARTICLE_LAB.md) for the complete guide.
+
 ## Sentence Practice explanations
 
 Sentence Practice now includes Indonesian instructions, targeted feedback, and
