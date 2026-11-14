@@ -211,32 +211,38 @@ function StorySession({ filter }: { filter: StoryFilter }) {
             </div>
           </div>
 
-          <textarea
-            id="story-textarea"
-            className="answer-input story-textarea"
-            rows={4}
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              if (evaluation) setEvaluation(null);
-            }}
-            placeholder="Contoh: I ran fast to the station, but the train had left before I arrived..."
-            autoCapitalize="sentences"
-            spellCheck={true}
-          />
+          <div className="answer-input">
+            <textarea
+              id="story-textarea"
+              className="story-textarea"
+              rows={4}
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                if (evaluation) setEvaluation(null);
+              }}
+              placeholder="Contoh: I ran fast to the station, but the train had left before I arrived..."
+              autoCapitalize="sentences"
+              spellCheck={true}
+            />
+          </div>
 
           <div className="actions">
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn btn-primary">
               Periksa Jawaban
             </button>
             <button
               type="button"
-              className="btn-ghost"
+              className="btn btn-ghost"
               onClick={handleTrySample}
             >
               Isi Contoh
             </button>
-            <button type="button" className="btn-ghost" onClick={nextScenario}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={nextScenario}
+            >
               Berikutnya →
             </button>
           </div>
@@ -416,85 +422,85 @@ export function StoryChallengePractice() {
 
   return (
     <>
-      <div className="filter-bar">
-        <button
-          type="button"
-          className="filter-trigger"
-          onClick={() => setSheetOpen(true)}
-        >
-          <span className="filter-trigger-text">
-            <span className="filter-trigger-label">Skenario Story</span>
-            <span className="filter-trigger-value">{filterSummary(filter)}</span>
-          </span>
-          <span className="filter-trigger-Action">Pilih ▾</span>
-        </button>
-      </div>
+      <button
+        type="button"
+        className="filter-pill-bar"
+        onClick={() => setSheetOpen(true)}
+      >
+        <span className="filter-toggle-text">
+          <span className="filter-toggle-label">Skenario Story</span>
+          <span className="filter-toggle-summary">{filterSummary(filter)}</span>
+        </span>
+        <span className="filter-pill-action">⚙ Pilih</span>
+      </button>
 
       <StorySession key={filterKey} filter={filter} />
 
       <BottomSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        title="Pilih Level & Topik Story Challenge"
+        title="Filter Story Challenge"
       >
-        <div className="filter-sheet">
-          <div className="filter-group">
-            <span className="filter-group-label">Tingkat Kesulitan</span>
-            <div className="topic-grid">
-              <button
-                type="button"
-                className={`topic-chip ${
-                  filter.level === "all" && filter.scenarioId === "all"
-                    ? "active"
-                    : ""
-                }`}
-                onClick={() => {
-                  setFilter({ level: "all", scenarioId: "all" });
-                  setSheetOpen(false);
-                }}
-              >
-                Semua Level ({ALL_STORY_SCENARIOS.length})
-              </button>
+        <div className="sheet-form">
+          <label htmlFor="story-level-filter">
+            <span>Tingkat Kesulitan</span>
+            <select
+              id="story-level-filter"
+              value={filter.level}
+              onChange={(e) =>
+                setFilter({
+                  level: e.target.value as StoryFilter["level"],
+                  scenarioId: "all",
+                })
+              }
+            >
+              <option value="all">
+                Semua Level ({ALL_STORY_SCENARIOS.length} skenario)
+              </option>
               {STORY_LEVELS.map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  className={`topic-chip ${
-                    filter.level === lvl && filter.scenarioId === "all"
-                      ? "active"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    setFilter({ level: lvl, scenarioId: "all" });
-                    setSheetOpen(false);
-                  }}
-                >
+                <option key={lvl} value={lvl}>
                   {STORY_LEVEL_LABELS[lvl]}
-                </button>
+                </option>
               ))}
-            </div>
-          </div>
+            </select>
+          </label>
 
-          <div className="filter-group">
-            <span className="filter-group-label">Pilih Topik Langsung</span>
-            <div className="topic-grid">
+          <label htmlFor="story-topic-filter">
+            <span>Pilih Topik Cerita</span>
+            <select
+              id="story-topic-filter"
+              value={filter.scenarioId}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "all") {
+                  setFilter({ ...filter, scenarioId: "all" });
+                } else {
+                  const found = ALL_STORY_SCENARIOS.find((s) => s.id === val);
+                  setFilter({
+                    level: found ? found.level : filter.level,
+                    scenarioId: val,
+                  });
+                }
+              }}
+            >
+              <option value="all">
+                Semua Skenario ({ALL_STORY_SCENARIOS.length} topik)
+              </option>
               {ALL_STORY_SCENARIOS.map((sc) => (
-                <button
-                  key={sc.id}
-                  type="button"
-                  className={`topic-chip ${
-                    filter.scenarioId === sc.id ? "active" : ""
-                  }`}
-                  onClick={() => {
-                    setFilter({ level: sc.level, scenarioId: sc.id });
-                    setSheetOpen(false);
-                  }}
-                >
-                  {LEVEL_BADGE_EMOJI[sc.level]} · {sc.title}
-                </button>
+                <option key={sc.id} value={sc.id}>
+                  {LEVEL_BADGE_EMOJI[sc.level]} — {sc.title}
+                </option>
               ))}
-            </div>
-          </div>
+            </select>
+          </label>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setSheetOpen(false)}
+          >
+            Terapkan Filter
+          </button>
         </div>
       </BottomSheet>
     </>
