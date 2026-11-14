@@ -5,10 +5,11 @@ import { BottomSheet } from "./ui/BottomSheet";
 import { QAPractice } from "./ui/QAPractice";
 import { BasicsPractice } from "./ui/BasicsPractice";
 import { SentencePractice } from "./ui/SentencePractice";
+import { StoryChallengePractice } from "./ui/StoryChallengePractice";
 import { InstallPrompt } from "./ui/InstallPrompt";
 
 type PracticeMode = keyof typeof PRACTICE_LABELS;
-type ExtraPracticeMode = "articles" | "qa";
+type ExtraPracticeMode = "articles" | "story" | "qa";
 
 function ModeIcon({ mode }: { mode: PracticeMode }) {
   if (mode === "sentences") {
@@ -102,6 +103,26 @@ function ModeIcon({ mode }: { mode: PracticeMode }) {
       </svg>
     );
   }
+  if (mode === "story") {
+    return (
+      <svg
+        width="26"
+        height="26"
+        viewBox="0 0 28 28"
+        fill="none"
+        stroke="#141414"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="4" y="3.5" width="20" height="21" rx="4" fill="#c084fc" />
+        <rect x="7.5" y="7" width="13" height="14" rx="2" fill="#ffffff" />
+        <path d="M10.5 11L12 12.5L15 9.5" stroke="#16a34a" strokeWidth="2.2" />
+        <path d="M10.5 16H17.5" />
+      </svg>
+    );
+  }
   return (
     <svg
       width="26"
@@ -141,6 +162,11 @@ const EXTRA_MODES: Array<{
       "Bedah tenses, passive, modal, dan cari kesalahan grammar di dalam artikel nyata.",
   },
   {
+    mode: "story",
+    description:
+      "Rangkai cerita bebas sesuai topik & checklist misi grammar dengan bedah paragraf warna-warni.",
+  },
+  {
     mode: "qa",
     description:
       "Latihan merespons pertanyaan percakapan (Yes/No & WH-Questions).",
@@ -152,7 +178,8 @@ export default function App() {
   const [extraMode, setExtraMode] = useState<ExtraPracticeMode>("articles");
   const [extraOpen, setExtraOpen] = useState(false);
 
-  const isExtraActive = practice === "articles" || practice === "qa";
+  const isExtraActive =
+    practice === "articles" || practice === "story" || practice === "qa";
 
   function handleExtraNavClick() {
     if (isExtraActive) {
@@ -185,6 +212,8 @@ export default function App() {
         <BasicsPractice />
       ) : practice === "articles" ? (
         <ArticlePractice />
+      ) : practice === "story" ? (
+        <StoryChallengePractice />
       ) : (
         <QAPractice />
       )}

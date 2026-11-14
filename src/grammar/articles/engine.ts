@@ -1,17 +1,24 @@
+import customArticles from "./custom-articles.json";
+
 export type ArticleMode = "breakdown" | "findFix";
-export type ArticleId =
-  | "bali"
-  | "remote"
-  | "morning"
-  | "bandung"
-  | "bike"
-  | "kuliner"
-  | "interview"
-  | "shopping"
-  | "bromo"
-  | "finance"
-  | "ev"
-  | "language";
+export type ArticleId = string;
+
+export interface CustomArticleDatasetEntry {
+  articleId: string;
+  articleTitle: string;
+  category: string;
+  breakdowns?: Array<{
+    id: string;
+    sentences: BreakdownSentence[];
+    tagBank: string[];
+    spokenSentence: string;
+    hint: string;
+    explanation: string;
+  }>;
+  findFixParagraphs?: Array<{
+    parts: DynamicPart[];
+  }>;
+}
 
 export interface ArticleFilter {
   mode: ArticleMode | "all";
@@ -83,7 +90,7 @@ export interface ParagraphBreakdownResult {
   message: string;
 }
 
-export const ARTICLE_TITLES: Record<ArticleId, string> = {
+const CORE_ARTICLE_TITLES: Record<string, string> = {
   bali: "Bali: Island of the Gods",
   remote: "Remote Work & Cafes",
   morning: "Morning Habits for Focus",
@@ -96,6 +103,15 @@ export const ARTICLE_TITLES: Record<ArticleId, string> = {
   finance: "Managing Personal Finances",
   ev: "Electric Vehicles in Big Cities",
   language: "Learning a Foreign Language",
+};
+
+const CUSTOM_DATASET = customArticles as CustomArticleDatasetEntry[];
+
+export const ARTICLE_TITLES: Record<ArticleId, string> = {
+  ...CORE_ARTICLE_TITLES,
+  ...Object.fromEntries(
+    CUSTOM_DATASET.map((entry) => [entry.articleId, entry.articleTitle]),
+  ),
 };
 
 export const ARTICLE_MODE_LABELS: Record<ArticleMode, string> = {
@@ -1809,6 +1825,31 @@ export function buildArticlePool(): ArticleQuestion[] {
       { text: "." },
     ]),
   );
+
+  // =========================================================================
+  // AUTO-LOAD CUSTOM ARTICLES FROM src/grammar/articles/custom-articles.json
+  // =========================================================================
+  for (const entry of CUSTOM_DATASET) {
+    for (const bd of entry.breakdowns ?? []) {
+      pool.push({
+        kind: "breakdown",
+        id: bd.id,
+        articleId: entry.articleId,
+        articleTitle: entry.articleTitle,
+        category: entry.category,
+        sentences: bd.sentences,
+        tagBank: bd.tagBank,
+        spokenSentence: bd.spokenSentence,
+        hint: bd.hint,
+        explanation: bd.explanation,
+      });
+    }
+    for (const ff of entry.findFixParagraphs ?? []) {
+      pool.push(
+        ...expandFindFixParagraph(entry.articleId, entry.category, ff.parts),
+      );
+    }
+  }
 
   return pool;
 }
