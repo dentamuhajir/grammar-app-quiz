@@ -1,5 +1,6 @@
 import { sentenceGuide } from "../grammar/explanations";
 import type { Question } from "../grammar/types";
+import { TensesExplorer } from "./TensesExplorer";
 
 export function SentenceExplanation({
   question,
@@ -27,40 +28,55 @@ export function SentenceExplanation({
       </div>
 
       {solved && (
-        <section
-          className="sentence-explanation"
-          aria-label="Penjelasan jawaban"
-        >
-          <h3>Mengapa bentuknya begitu?</h3>
-          <ul>
-            {guide.reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-          <div className="sentence-table-wrap">
-            <table className="sentence-table">
-              <thead>
-                <tr>
-                  <th scope="col">Bagian kalimat</th>
-                  <th scope="col">Fungsi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {guide.parts.map((part, i) => (
-                  <tr key={i}>
-                    <td lang="en">{part.text}</td>
-                    <td>{part.role}</td>
+        <>
+          <section
+            className="sentence-explanation"
+            aria-label="Penjelasan jawaban"
+          >
+            <h3>Mengapa bentuknya begitu?</h3>
+            <ul>
+              {guide.reasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+            <div className="sentence-table-wrap">
+              <table className="sentence-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Bagian kalimat</th>
+                    <th scope="col">Fungsi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {guide.notes.map((note) => (
-            <p className="note" key={note}>
-              💡 {note}
-            </p>
-          ))}
-        </section>
+                </thead>
+                <tbody>
+                  {guide.parts.map((part, i) => (
+                    <tr key={i}>
+                      <td lang="en">{part.text}</td>
+                      <td>{part.role}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {guide.notes.map((note) => (
+              <p className="note" key={note}>
+                💡 {note}
+              </p>
+            ))}
+          </section>
+
+          <section
+            className="sentence-explorer-section"
+            aria-label="Visualisasi 12 Tenses"
+          >
+            <h3 className="sentence-explorer-heading">
+              🧭 Tenses Explorer &amp; Garis Waktu
+            </h3>
+            <TensesExplorer
+              initialTense={question.tense}
+              initialSubject={question.subject.text}
+            />
+          </section>
+        </>
       )}
     </div>
   );

@@ -2422,5 +2422,287 @@ button:focus-visible {
   color: var(--ink);
 }
 
+/* ---- Tenses Explorer ---- */
+.sentence-explorer-section {
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 2px dashed var(--line);
+}
+
+.sentence-explorer-heading {
+  margin: 0 0 0.7rem;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.tenses-explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.tenses-explorer-intro {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.tenses-explorer-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: 14px;
+  border: 2px solid var(--ink);
+  background: #ffffff;
+  box-shadow: 0 3px 0 0 var(--ink);
+}
+
+.tenses-control-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 560px) {
+  .tenses-control-split {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.tenses-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+}
+
+.tenses-control-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.tenses-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.tenses-option-pill {
+  padding: 0.38rem 0.72rem;
+  border-radius: 10px;
+  border: 2px solid var(--ink);
+  background: var(--beige-pill);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 0 0 var(--ink);
+  transition: transform 0.08s ease, background 0.12s ease;
+}
+
+.tenses-option-pill:hover {
+  background: var(--yellow-card);
+}
+
+.tenses-option-pill.active {
+  background: #5ad494;
+  color: var(--ink);
+  box-shadow: 0 3px 0 0 var(--ink);
+}
+
+.tenses-sentence-card {
+  padding: 0.95rem;
+  border-radius: 14px;
+  border: 2px solid var(--ink);
+  background: #ffffff;
+  box-shadow: 0 3px 0 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.tenses-sentence-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tenses-copy-btn {
+  padding: 0.34rem 0.7rem;
+  border-radius: 9px;
+  border: 1.8px solid var(--ink);
+  background: var(--yellow-card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 0 0 var(--ink);
+}
+
+.tenses-copy-btn:hover {
+  background: #fde047;
+}
+
+.tenses-main-sentence {
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.tenses-translation {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.tenses-info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+
+@media (min-width: 560px) {
+  .tenses-info-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.tenses-info-box {
+  padding: 0.68rem 0.8rem;
+  border-radius: 10px;
+  border: 1.8px solid var(--ink);
+  background: var(--beige-pill);
+}
+
+.tenses-info-box strong {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  margin-bottom: 0.22rem;
+}
+
+.tenses-info-box p {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.tenses-timeline-card {
+  padding: 0.9rem;
+  border-radius: 14px;
+  border: 2px solid var(--ink);
+  background: #ffffff;
+  box-shadow: 0 3px 0 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tenses-timeline-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.tenses-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.tenses-legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1.5px solid var(--ink);
+  vertical-align: middle;
+  margin-right: 0.35rem;
+}
+
+.tenses-timeline-note {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.tenses-comparison-card {
+  padding: 0.9rem;
+  border-radius: 14px;
+  border: 2px solid var(--ink);
+  background: #ffffff;
+  box-shadow: 0 3px 0 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.tenses-comparison-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+
+.tenses-comparison-row {
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.72rem;
+  border-radius: 10px;
+  border: 1.8px solid var(--ink);
+  background: var(--beige-pill);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  transition: background 0.12s ease, transform 0.08s ease;
+}
+
+.tenses-comparison-row:hover {
+  background: var(--yellow-card);
+}
+
+.tenses-comparison-row.selected {
+  background: #d1fae5;
+  box-shadow: 0 2px 0 0 var(--ink);
+}
+
+.tenses-comp-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.tenses-comp-sentence {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+
 
 
