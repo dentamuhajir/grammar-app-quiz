@@ -21,6 +21,7 @@ import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
 import { SpokenSentence } from "./SpokenSentence";
+import { VoiceInputBar } from "./VoiceInputBar";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
@@ -195,7 +196,7 @@ export function SentencePractice() {
             value={input}
             id="sentence-answer"
             aria-label="Jawabanmu"
-            placeholder="Tulis kalimat lengkap dalam bahasa Inggris…"
+            placeholder="Tulis atau ucapkan kalimat lengkap dalam bahasa Inggris…"
             spellCheck={false}
             autoComplete="off"
             autoCapitalize="off"
@@ -212,6 +213,15 @@ export function SentencePractice() {
                 e.preventDefault();
                 check();
               }
+            }}
+          />
+          <VoiceInputBar
+            value={input}
+            disabled={solved}
+            onChange={(nextVal) => {
+              setInput(nextVal);
+              if (result) setResult(null);
+              setPraise("");
             }}
           />
         </div>
