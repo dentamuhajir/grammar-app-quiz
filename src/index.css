@@ -297,6 +297,36 @@ body {
   box-shadow: 0 5px 0 -2px #ca8a04, 0 5px 0 0 var(--ink);
 }
 
+.tag-implicit-toggle {
+  font-family: inherit;
+  cursor: pointer;
+  background: #ffffff;
+  color: var(--ink);
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+
+.tag-implicit-toggle:hover {
+  background: var(--yellow-card);
+}
+
+.tag-implicit-toggle.active {
+  background: #fde047;
+  color: var(--ink);
+  box-shadow: 0 5px 0 -2px #ca8a04, 0 5px 0 0 var(--ink);
+}
+
+.implicit-context-box {
+  margin: 0;
+  padding: 0.72rem 0.95rem;
+  border-radius: 12px;
+  border: 2px solid var(--ink);
+  background: var(--yellow-card);
+  box-shadow: 0 3px 0 0 var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
 /* ---- prompt chips ---- */
 .prompt {
   display: flex;

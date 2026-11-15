@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { conjugateNominal, conjugatePassive, conjugateVerbal } from "../src/grammar/engine";
-import { sentenceGuide } from "../src/grammar/explanations";
+import { implicitContextCue, sentenceGuide } from "../src/grammar/explanations";
 import { checkAnswer } from "../src/grammar/check";
 import { VERBS } from "../src/grammar/data/verbs";
 import { DEFAULT_FILTER, generateQuestion, generateStativeTrap } from "../src/grammar/generator";
-import { TENSE_ORDER } from "../src/grammar/labels";
+import { TENSE_LABELS, TENSE_ORDER } from "../src/grammar/labels";
 import type { Mode, Question, SentenceForm, Subject, Tense } from "../src/grammar/types";
 
 const she: Subject = { text: "she", person: 3, number: "singular", entity: "person", objectForm: "her" };
@@ -98,4 +98,13 @@ test("fallback exercises explain the effective tense and main verb forms", () =>
     answer: conjugateVerbal("presentPerfect", she, work, "negative", { tail: "yet" }),
   };
   assert.match(checkAnswer(yetQ, "She has not worked already.").hint, /yet/);
+});
+
+test("implicitContextCue provides situational context without leaking the tense label", () => {
+  for (const tense of TENSE_ORDER) {
+    const q = verbal(tense, "positive");
+    const cue = implicitContextCue(q);
+    assert.ok(cue.startsWith("Situasi:"), cue);
+    assert.ok(!cue.includes(TENSE_LABELS[tense]), `Cue leaked tense label for ${tense}: ${cue}`);
+  }
 });
