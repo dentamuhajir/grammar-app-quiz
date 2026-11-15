@@ -2312,4 +2312,115 @@ button:focus-visible {
   color: #b91c1c;
 }
 
+/* ---- Clickable Topic Badge & Topic Guide Sheet ---- */
+.tag-clickable {
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  transition: transform 0.08s ease, filter 0.12s ease;
+}
+
+.tag-clickable:hover {
+  filter: brightness(1.06);
+}
+
+.tag-clickable:active {
+  transform: translateY(2px);
+}
+
+.tag-info-icon {
+  font-size: 0.85rem;
+  opacity: 0.92;
+}
+
+.tag-hint-btn {
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--yellow-card);
+  color: var(--ink);
+  transition: transform 0.08s ease, background 0.12s ease;
+}
+
+.tag-hint-btn:hover {
+  background: #fde047;
+}
+
+.tag-hint-btn:active {
+  transform: translateY(2px);
+}
+
+.topic-guide-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.topic-guide-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.topic-guide-heading {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.topic-guide-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.topic-guide-rule-card {
+  padding: 0.68rem 0.85rem;
+  border-radius: 12px;
+  border: 2px solid var(--ink);
+  background: #ffffff;
+  box-shadow: 0 3px 0 0 var(--ink);
+}
+
+.topic-guide-rule-card strong {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 0.18rem;
+}
+
+.topic-guide-rule-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.topic-guide-examples {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.topic-guide-example-item {
+  padding: 0.62rem 0.85rem;
+  border-radius: 10px;
+  border: 1.8px solid var(--ink);
+  background: var(--beige-pill);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+
 

@@ -58,9 +58,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
         id: `article-role-${name}-${role.noun}`,
         topic: "articles",
         rule: "A / an · bunyi awal",
-        context: "Perkenalkan profesi atau identitas orang ini untuk pertama kali.",
         prompt: `${name} is ___ ${role.noun}.`,
-        hint: articleHint,
+        hint: `Perkenalkan profesi atau identitas orang ini untuk pertama kali. ${articleHint}`,
         answer: role.article,
         explanation: `Gunakan ${role.article} untuk menyebut satu ${role.noun} secara umum. A/an mengikuti bunyi awal: ${
           role.noun === "university student"
@@ -95,9 +94,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `article-unique-${unique.key}`,
       topic: "articles",
       rule: "The · satu-satunya (unik)",
-      context: "Benda ini hanya ada satu di dunia atau lingkungan kita.",
       prompt: unique.prompt,
-      hint: articleHint,
+      hint: `Benda ini hanya ada satu di dunia atau lingkungan kita. ${articleHint}`,
       answer: "the",
       explanation: `Gunakan “the” untuk objek yang unik atau satu-satunya seperti ${unique.label}.`,
     });
@@ -107,9 +105,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `article-language-${language}`,
       topic: "articles",
       rule: "Tanpa artikel · bahasa",
-      context: "Nama bahasa digunakan secara umum.",
       prompt: `We speak ___ ${language} at home.`,
-      hint: articleHint,
+      hint: `Nama bahasa digunakan secara umum. ${articleHint}`,
       answer: NO_WORD,
       explanation: `Nama bahasa ${language} dalam penggunaan umum tidak memerlukan a, an, atau the (ketik -).`,
     });
@@ -119,9 +116,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `article-general-${noun}`,
       topic: "articles",
       rule: "Tanpa artikel · jamak umum",
-      context: "Pernyataan ini membahas jenis hewan secara umum, bukan kelompok tertentu.",
       prompt: `___ ${noun.toLowerCase()} need water.`,
-      hint: articleHint,
+      hint: `Pernyataan ini membahas jenis hewan secara umum, bukan kelompok tertentu. ${articleHint}`,
       answer: NO_WORD,
       explanation: "Kata benda jamak yang membahas suatu jenis secara umum tidak memerlukan artikel (ketik -).",
     });
@@ -154,9 +150,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `prep-inside-${place}`,
       topic: "prepositions",
       rule: "Tempat · di dalam",
-      context: `Kunci berada di bagian dalam ${place}, bukan di permukaannya.`,
       prompt: `The keys are ___ the ${place}.`,
-      hint: prepHint,
+      hint: `Kunci berada di bagian dalam ${place}, bukan di permukaannya. ${prepHint}`,
       answer: "in",
       explanation: "Gunakan in untuk posisi di dalam suatu ruang atau wadah.",
     });
@@ -166,9 +161,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `prep-surface-${place}`,
       topic: "prepositions",
       rule: "Tempat · permukaan",
-      context: `Buku terletak menyentuh permukaan atas ${place}.`,
       prompt: `The book is ___ the ${place}.`,
-      hint: prepHint,
+      hint: `Buku terletak menyentuh permukaan atas ${place}. ${prepHint}`,
       answer: "on",
       explanation: "Gunakan on untuk benda yang berada di atas dan menyentuh permukaan.",
     });
@@ -183,9 +177,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `prep-point-${point.key}`,
       topic: "prepositions",
       rule: "Tempat · titik lokasi (at)",
-      context: `Menunjuk ${point.label}.`,
       prompt: point.prompt,
-      hint: prepHint,
+      hint: `Menunjuk ${point.label}. ${prepHint}`,
       answer: "at",
       explanation: `Gunakan “at” untuk titik lokasi spesifik atau ungkapan lokasi seperti ${point.label}.`,
     });
@@ -193,7 +186,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
   const advancedPreps: Array<{
     key: string;
     rule: string;
-    context?: string;
+    hintDetail?: string;
     cue: string;
     prompt: string;
     answer: string;
@@ -282,7 +275,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "used-to-past",
       rule: "Kebiasaan masa lalu · used to + V1",
-      context: "Kebiasaan di masa lalu yang sekarang sudah tidak dilakukan lagi (diikuti V1).",
+      hintDetail: "Kebiasaan di masa lalu yang sekarang sudah tidak dilakukan lagi (diikuti V1).",
       cue: "used to / am used to",
       prompt: "I ___ wake up late, but now I wake up at 5 a.m.",
       answer: "used to",
@@ -291,7 +284,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "be-used-to-ing",
       rule: "Terbiasa dengan · be used to + V-ing",
-      context: "Sudah terbiasa dengan kondisi saat ini (perhatikan kata kerja sesudahnya berbentuk V-ing).",
+      hintDetail: "Sudah terbiasa dengan kondisi saat ini (perhatikan kata kerja sesudahnya berbentuk V-ing).",
       cue: "used to / am used to",
       prompt: "After living here for two years, I ___ driving in heavy traffic.",
       answer: "am used to",
@@ -303,10 +296,9 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `prep-${item.key}`,
       topic: "prepositions",
       rule: item.rule,
-      context: item.context,
       cue: item.cue,
       prompt: item.prompt,
-      hint: "Perhatikan pasangan preposisi: for (durasi) vs since (titik awal), to (arah) vs for (manfaat), interested in, good at, atau used to + V1 vs be used to + V-ing.",
+      hint: `${item.hintDetail ? `${item.hintDetail} ` : ""}Perhatikan pasangan preposisi: for (durasi) vs since (titik awal), to (arah) vs for (manfaat), interested in, good at, atau used to + V1 vs be used to + V-ing.`,
       answer: item.answer,
       explanation: item.explanation,
     });
@@ -516,11 +508,11 @@ export function buildQuestionPool(): BasicsQuestion[] {
   }
 
   // 5. Quantifiers (much / many / some / any / a few / a little)
-  const quantifierHint = "Perhatikan apakah kata benda setelah bagian kosong dapat dihitung (countable jamak: many / a few) atau tidak dapat dihitung (uncountable: much / a little), serta apakah kalimatnya positif (some) atau negatif/tanya (any).";
+  const quantifierHint = "Perhatikan apakah kata benda setelah bagian kosong dapat dihitung (countable jamak: many / a few) atau tidak dapat dihitung (uncountable: much / a little), serta apakah kalimatnya positif/tawaran (some) atau negatif/tanya (any).";
   const quantifierItems: Array<{
     key: string;
     rule: string;
-    context: string;
+    cue: string;
     prompt: string;
     answer: string;
     accepted?: string[];
@@ -529,7 +521,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "much-water",
       rule: "Much vs Many · uncountable",
-      context: "Pilih antara much atau many.",
+      cue: "much / many",
       prompt: "How ___ water do you drink every day?",
       answer: "much",
       explanation: "“Water” adalah uncountable noun (tidak dapat dihitung satuan), jadi gunakan “much”.",
@@ -537,7 +529,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "much-time",
       rule: "Much vs Many · uncountable",
-      context: "Pilih antara much atau many.",
+      cue: "much / many",
       prompt: "Hurry up! We don't have ___ time before the train leaves.",
       answer: "much",
       explanation: "“Time” (waktu) tidak dapat dihitung secara langsung, sehingga memakai “much”.",
@@ -545,7 +537,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "much-sugar",
       rule: "Much vs Many · uncountable",
-      context: "Pilih antara much atau many.",
+      cue: "much / many",
       prompt: "She doesn't put ___ sugar in her coffee.",
       answer: "much",
       explanation: "“Sugar” adalah uncountable noun, jadi gunakan “much” pada kalimat negatif ini.",
@@ -553,7 +545,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "much-money",
       rule: "Much vs Many · uncountable",
-      context: "Pilih antara much atau many.",
+      cue: "much / many",
       prompt: "How ___ money did you spend on the tickets?",
       answer: "much",
       explanation: "Kata “money” termasuk uncountable noun dalam bahasa Inggris, jadi wajib memakai “much”.",
@@ -561,7 +553,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "many-books",
       rule: "Much vs Many · countable jamak",
-      context: "Pilih antara much atau many.",
+      cue: "much / many",
       prompt: "How ___ books did you borrow from the library?",
       answer: "many",
       explanation: "“Books” adalah kata benda jamak yang dapat dihitung (countable), jadi gunakan “many”.",
@@ -569,7 +561,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "many-chairs",
       rule: "Much vs Many · countable jamak",
-      context: "Pilih antara much atau many.",
+      cue: "much / many",
       prompt: "There aren't ___ chairs in the meeting room.",
       answer: "many",
       explanation: "“Chairs” dapat dihitung dan berbentuk jamak, sehingga memakai “many”.",
@@ -577,7 +569,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "many-emails",
       rule: "Much vs Many · countable jamak",
-      context: "Pilih antara much atau many.",
+      cue: "much / many",
       prompt: "How ___ emails do you receive every morning?",
       answer: "many",
       explanation: "“Emails” adalah countable noun jamak, jadi gunakan “many”.",
@@ -585,7 +577,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "many-people",
       rule: "Much vs Many · countable jamak",
-      context: "Pilih antara much atau many.",
+      cue: "much / many",
       prompt: "Were there ___ people at the concert last night?",
       answer: "many",
       explanation: "“People” adalah bentuk jamak dari person (dapat dihitung), jadi gunakan “many”.",
@@ -593,7 +585,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "some-milk",
       rule: "Some vs Any · kalimat positif",
-      context: "Pilih antara some atau any.",
+      cue: "some / any",
       prompt: "There is ___ fresh milk in the refrigerator.",
       answer: "some",
       explanation: "Gunakan “some” pada kalimat berita positif.",
@@ -601,7 +593,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "some-friends",
       rule: "Some vs Any · kalimat positif",
-      context: "Pilih antara some atau any.",
+      cue: "some / any",
       prompt: "I met ___ old friends at the bookstore yesterday.",
       answer: "some",
       explanation: "Kalimat ini berbentuk positif (+), jadi gunakan “some”.",
@@ -609,7 +601,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "some-offer",
       rule: "Some vs Any · tawaran sopan",
-      context: "Pilih antara some atau any (kalimat menawarkan sesuatu).",
+      cue: "some / any",
       prompt: "Would you like ___ hot tea or coffee?",
       answer: "some",
       explanation: "Meskipun berbentuk kalimat tanya, untuk menawarkan sesuatu (Would you like…?) gunakan “some”.",
@@ -617,7 +609,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "any-bread",
       rule: "Some vs Any · kalimat negatif",
-      context: "Pilih antara some atau any.",
+      cue: "some / any",
       prompt: "We don't have ___ bread left for breakfast.",
       answer: "any",
       explanation: "Pada kalimat negatif (don't have), gunakan “any” (bukan “some”).",
@@ -625,7 +617,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "any-questions",
       rule: "Some vs Any · kalimat negatif",
-      context: "Pilih antara some atau any.",
+      cue: "some / any",
       prompt: "He didn't ask ___ questions during the presentation.",
       answer: "any",
       explanation: "Gunakan “any” setelah kata kerja negatif (didn't ask).",
@@ -633,7 +625,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "any-stamps",
       rule: "Some vs Any · kalimat tanya",
-      context: "Pilih antara some atau any.",
+      cue: "some / any",
       prompt: "Do you have ___ envelopes in your desk drawer?",
       answer: "any",
       explanation: "Untuk pertanyaan umum yang menanyakan ketersediaan, gunakan “any”.",
@@ -641,7 +633,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "afew-minutes",
       rule: "A few vs A little · countable jamak",
-      context: "Pilih antara a few atau a little.",
+      cue: "a few / a little",
       prompt: "Please wait here; I only need ___ minutes to get ready.",
       answer: "a few",
       accepted: ["a few", "few"],
@@ -650,7 +642,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "afew-mistakes",
       rule: "A few vs A little · countable jamak",
-      context: "Pilih antara a few atau a little.",
+      cue: "a few / a little",
       prompt: "She made only ___ mistakes on the grammar test.",
       answer: "a few",
       accepted: ["a few", "few"],
@@ -659,7 +651,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "afew-days",
       rule: "A few vs A little · countable jamak",
-      context: "Pilih antara a few atau a little.",
+      cue: "a few / a little",
       prompt: "We are going to stay in Yogyakarta for ___ days.",
       answer: "a few",
       explanation: "“Days” dapat dihitung dan berbentuk jamak, jadi gunakan “a few”.",
@@ -667,7 +659,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "alittle-salt",
       rule: "A few vs A little · uncountable",
-      context: "Pilih antara a few atau a little.",
+      cue: "a few / a little",
       prompt: "This soup needs ___ salt to taste better.",
       answer: "a little",
       accepted: ["a little", "little"],
@@ -676,7 +668,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "alittle-rest",
       rule: "A few vs A little · uncountable",
-      context: "Pilih antara a few atau a little.",
+      cue: "a few / a little",
       prompt: "You look pale. You should get ___ rest before driving.",
       answer: "a little",
       accepted: ["a little", "little"],
@@ -685,7 +677,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "alittle-patience",
       rule: "A few vs A little · uncountable",
-      context: "Pilih antara a few atau a little.",
+      cue: "a few / a little",
       prompt: "Learning a new skill takes ___ patience and practice.",
       answer: "a little",
       accepted: ["a little", "little"],
@@ -697,7 +689,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `quant-${item.key}`,
       topic: "quantifiers",
       rule: item.rule,
-      context: item.context,
+      cue: item.cue,
       prompt: item.prompt,
       hint: quantifierHint,
       answer: item.answer,
@@ -1290,7 +1282,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
   const modalItems: Array<{
     key: string;
     rule: string;
-    context: string;
+    hintDetail: string;
+    cue: string;
     prompt: string;
     answer: string;
     accepted?: string[];
@@ -1299,7 +1292,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "ability-now-swim",
       rule: "Kemampuan sekarang · can",
-      context: "Menyatakan kemampuan saat ini.",
+      hintDetail: "Menyatakan kemampuan saat ini.",
+      cue: "can / should / must",
       prompt: "She ___ speak three languages fluently.",
       answer: "can",
       explanation: "Gunakan “can” + V1 untuk menyatakan kemampuan di masa sekarang.",
@@ -1307,7 +1301,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "ability-now-drive",
       rule: "Kemampuan sekarang · can",
-      context: "Menyatakan kemampuan saat ini.",
+      hintDetail: "Menyatakan kemampuan saat ini.",
+      cue: "can / must / should",
       prompt: "I ___ drive a manual car.",
       answer: "can",
       explanation: "Gunakan “can” + V1 untuk menyatakan kemampuan saat ini.",
@@ -1315,7 +1310,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "ability-neg-now",
       rule: "Ketidakmampuan sekarang · cannot",
-      context: "Menyatakan ketidakmampuan/tidak bisa hadir malam ini.",
+      hintDetail: "Menyatakan ketidakmampuan/tidak bisa hadir malam ini.",
+      cue: "cannot / must / should",
       prompt: "I'm sorry, I ___ come to the dinner tonight.",
       answer: "cannot",
       accepted: ["cannot", "can't", "can not"],
@@ -1324,7 +1320,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "ability-past-run",
       rule: "Kemampuan masa lalu · could",
-      context: "Menyatakan kemampuan umum di masa lalu (when he was young).",
+      hintDetail: "Menyatakan kemampuan umum di masa lalu (when he was young).",
+      cue: "can / could / should",
       prompt: "When he was young, he ___ run very fast.",
       answer: "could",
       explanation: "Gunakan “could” (bentuk lampau dari can) untuk kemampuan di masa lalu.",
@@ -1332,7 +1329,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "ability-past-read",
       rule: "Kemampuan masa lalu · could",
-      context: "Menyatakan kemampuan di masa lalu (at the age of four).",
+      hintDetail: "Menyatakan kemampuan di masa lalu (before she started school).",
+      cue: "can / could / must",
       prompt: "She ___ read before she started school.",
       answer: "could",
       explanation: "Karena klausa berikutnya berbentuk lampau (started), gunakan “could”.",
@@ -1340,7 +1338,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "advice-rest",
       rule: "Saran · should",
-      context: "Memberikan saran atau anjuran yang baik.",
+      hintDetail: "Memberikan saran atau anjuran yang baik.",
+      cue: "should / can / might",
       prompt: "You look very tired. You ___ take a rest.",
       answer: "should",
       explanation: "Gunakan “should” + V1 untuk memberikan saran atau nasihat.",
@@ -1348,7 +1347,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "advice-doctor",
       rule: "Saran · should",
-      context: "Memberikan saran kepada orang yang sedang sakit.",
+      hintDetail: "Memberikan saran kepada orang yang sedang sakit.",
+      cue: "should / could / might",
       prompt: "He has a high fever. He ___ see a doctor.",
       answer: "should",
       explanation: "Gunakan “should” untuk menyarankan tindakan yang sebaiknya dilakukan.",
@@ -1356,7 +1356,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "advice-neg-late",
       rule: "Saran negatif · should not",
-      context: "Memberikan saran agar tidak begadang sebelum ujian.",
+      hintDetail: "Memberikan saran agar tidak begadang sebelum ujian.",
+      cue: "should not / can / might",
       prompt: "You ___ stay up too late before the exam.",
       answer: "should not",
       accepted: ["should not", "shouldn't"],
@@ -1365,7 +1366,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "advice-neg-skip",
       rule: "Saran negatif · should not",
-      context: "Saran kesehatan agar tidak melewatkan sarapan.",
+      hintDetail: "Saran kesehatan agar tidak melewatkan sarapan.",
+      cue: "should not / can / might",
       prompt: "Children ___ skip breakfast before going to school.",
       answer: "should not",
       accepted: ["should not", "shouldn't"],
@@ -1374,7 +1376,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "obligation-seatbelt",
       rule: "Kewajiban · must",
-      context: "Aturan wajib demi keselamatan.",
+      hintDetail: "Aturan wajib demi keselamatan.",
+      cue: "must / can / might",
       prompt: "All passengers ___ wear a seatbelt during the flight.",
       answer: "must",
       explanation: "Gunakan “must” untuk kewajiban kuat atau peraturan resmi.",
@@ -1382,7 +1385,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "obligation-passport",
       rule: "Kewajiban · must",
-      context: "Syarat wajib perjalanan internasional.",
+      hintDetail: "Syarat wajib perjalanan internasional.",
+      cue: "must / could / might",
       prompt: "You ___ show your passport at the immigration counter.",
       answer: "must",
       explanation: "Gunakan “must” untuk menyatakan keharusan atau aturan wajib.",
@@ -1390,7 +1394,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "obligation-helmet",
       rule: "Kewajiban · must",
-      context: "Aturan wajib keselamatan lalu lintas.",
+      hintDetail: "Aturan wajib keselamatan lalu lintas.",
+      cue: "must / can / might",
       prompt: "Motorcycle riders ___ wear a helmet on the road.",
       answer: "must",
       explanation: "Gunakan “must” untuk menyatakan kewajiban sesuai aturan keselamatan.",
@@ -1398,7 +1403,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "prohibition-smoke",
       rule: "Larangan · must not / cannot",
-      context: "Larangan keras di area rumah sakit.",
+      hintDetail: "Larangan keras di area rumah sakit.",
+      cue: "must not / should / might",
       prompt: "Visitors ___ smoke inside the hospital.",
       answer: "must not",
       accepted: ["must not", "mustn't", "cannot", "can't", "can not"],
@@ -1407,7 +1413,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "prohibition-park",
       rule: "Larangan · must not / cannot",
-      context: "Larangan memarkir kendaraan di depan pintu darurat.",
+      hintDetail: "Larangan memarkir kendaraan di depan pintu darurat.",
+      cue: "must not / could / might",
       prompt: "Drivers ___ park in front of the emergency exit.",
       answer: "must not",
       accepted: ["must not", "mustn't", "cannot", "can't", "can not"],
@@ -1416,7 +1423,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "possibility-rain",
       rule: "Kemungkinan · might / may",
-      context: "Kemungkinan yang belum pasti terjadi.",
+      hintDetail: "Kemungkinan yang belum pasti terjadi.",
+      cue: "might / must / should",
       prompt: "Take an umbrella with you. It ___ rain later this evening.",
       answer: "might",
       accepted: ["might", "may"],
@@ -1425,7 +1433,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "possibility-late",
       rule: "Kemungkinan · might / may",
-      context: "Kemungkinan karena jalanan macet (belum pasti).",
+      hintDetail: "Kemungkinan karena jalanan macet (belum pasti).",
+      cue: "might / must / should",
       prompt: "The traffic is heavy, so I ___ arrive a little late.",
       answer: "might",
       accepted: ["might", "may"],
@@ -1434,7 +1443,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "possibility-asleep",
       rule: "Kemungkinan · might / may",
-      context: "Perkiraan yang belum pasti karena lampu rumah sudah mati.",
+      hintDetail: "Perkiraan yang belum pasti karena lampu rumah sudah mati.",
+      cue: "might / should / can",
       prompt: "All the lights are off. They ___ be asleep already.",
       answer: "might",
       accepted: ["might", "may", "could"],
@@ -1443,7 +1453,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "request-help",
       rule: "Permintaan sopan · could / would",
-      context: "Meminta bantuan dengan sopan.",
+      hintDetail: "Meminta bantuan dengan sopan.",
+      cue: "could / must / should",
       prompt: "___ you help me carry this heavy box, please?",
       answer: "could",
       accepted: ["could", "would", "can"],
@@ -1452,7 +1463,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "request-window",
       rule: "Permintaan sopan · could / would",
-      context: "Meminta tolong dengan sopan kepada seseorang.",
+      hintDetail: "Meminta tolong dengan sopan kepada seseorang.",
+      cue: "could / must / should",
       prompt: "___ you please open the window a little?",
       answer: "could",
       accepted: ["could", "would", "can"],
@@ -1461,7 +1473,8 @@ export function buildQuestionPool(): BasicsQuestion[] {
     {
       key: "permission-borrow",
       rule: "Meminta izin · may / can / could",
-      context: "Meminta izin dengan sopan untuk meminjam pena.",
+      hintDetail: "Meminta izin dengan sopan untuk meminjam pena.",
+      cue: "may / must / should",
       prompt: "___ I borrow your pen for a moment?",
       answer: "may",
       accepted: ["may", "could", "can"],
@@ -1473,9 +1486,9 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `modal-${item.key}`,
       topic: "modals",
       rule: item.rule,
-      context: item.context,
+      cue: item.cue,
       prompt: item.prompt,
-      hint: "Ketik modal auxiliary yang sesuai (can / cannot / could / should / should not / must / must not / might / may / would) berdasarkan konteks kalimat.",
+      hint: `${item.hintDetail} Pilih modal auxiliary yang sesuai berdasarkan makna kalimat.`,
       answer: item.answer,
       acceptedAnswers: item.accepted,
       explanation: item.explanation,
@@ -1844,10 +1857,9 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `cond-${item.key}`,
       topic: "conditionals",
       rule: item.rule,
-      context: item.context,
       cue: item.cue,
       prompt: item.prompt,
-      hint: "Ingat rumus Conditional: Zero (V1, V1), Type 1 (V1, will + V1), Type 2 (V2/were, would + V1), Type 3 (had + V3, would have + V3), Mixed (had + V3, would + V1 now).",
+      hint: `${item.context} Ingat rumus Conditional: Zero (V1, V1), Type 1 (V1, will + V1), Type 2 (V2/were, would + V1), Type 3 (had + V3, would have + V3), Mixed (had + V3, would + V1 now).`,
       answer: item.answer,
       acceptedAnswers: item.accepted,
       explanation: item.explanation,
@@ -2195,9 +2207,9 @@ export function mistakeHint(q: BasicsQuestion, input: string): string {
   }
   if (q.topic === "modals") {
     if (word.includes(" to")) return "Modal auxiliary (can, could, should, must, might) langsung diikuti V1 murni tanpa “to”.";
-    if (q.answer === "could" && word === "can" && q.context?.includes("masa lalu")) return "Konteks kalimat ini berada di masa lalu: gunakan bentuk lampau “could”, bukan “can”.";
+    if (q.answer === "could" && word === "can" && q.rule.includes("masa lalu")) return "Konteks kalimat ini berada di masa lalu: gunakan bentuk lampau “could”, bukan “can”.";
     if (q.answer === "can" && word === "could") return "Konteks ini menyatakan kemampuan saat ini (fakta sekarang): gunakan “can”.";
-    return `Modal “${input.trim()}” belum sesuai dengan makna pada konteks ini (${q.context?.toLowerCase() ?? "periksa makna kalimat"}).`;
+    return `Modal “${input.trim()}” belum sesuai dengan makna pada konteks ini (${q.rule.toLowerCase()}).`;
   }
   if (q.topic === "conjunctions") {
     if (q.answer === "although" && word === "but") return "“But” tidak diletakkan di awal kalimat seperti ini atau tanpa koma di tengah klausa bertingkat; gunakan “although”.";
@@ -2209,3 +2221,192 @@ export function mistakeHint(q: BasicsQuestion, input: string): string {
   }
   return `Bentuk “${input.trim()}” belum sesuai. Perhatikan jumlah yang disebutkan.`;
 }
+
+export interface BasicsTopicGuide {
+  summary: string;
+  rules: Array<{ label: string; detail: string }>;
+  examples: string[];
+}
+
+export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
+  articles: {
+    summary: "Articles (a, an, the, atau tanpa artikel) menentukan apakah suatu kata benda bersifat umum (belum spesifik) atau sudah spesifik/diketahui bersama.",
+    rules: [
+      { label: "a + bunyi konsonan", detail: "Untuk 1 benda umum yang diawali bunyi konsonan (a doctor, a university)." },
+      { label: "an + bunyi vokal", detail: "Untuk 1 benda umum yang diawali bunyi vokal a/i/u/e/o (an engineer, an honest person)." },
+      { label: "the (spesifik / unik)", detail: "Untuk benda yang sudah disebut sebelumnya, spesifik, atau hanya ada satu (the sun, the book I bought)." },
+      { label: "Tanpa artikel (-)", detail: "Untuk nama bahasa, olahraga, atau kata benda jamak/uncountable secara umum (speak English, Cats need water)." },
+    ],
+    examples: [
+      "Rina is an engineer at a technology company.",
+      "I bought a book yesterday. The book is very interesting.",
+      "The sun rises in the east.",
+      "We speak English at the office.",
+    ],
+  },
+  prepositions: {
+    summary: "Prepositions (kata depan) menghubungkan waktu, tempat/posisi, arah, maupun pasangan kata sifat dan kata kerja tertentu.",
+    rules: [
+      { label: "in / on / at (Waktu)", detail: "in = bulan/tahun (in July, in 2024) · on = hari/tanggal (on Monday) · at = jam/titik waktu (at 7 a.m., at noon)." },
+      { label: "in / on / at (Tempat)", detail: "in = di dalam ruang/wadah (in the box) · on = menempel di permukaan (on the table) · at = titik spesifik (at the bus stop)." },
+      { label: "for vs since", detail: "for + durasi waktu (for three hours) · since + titik awal waktu (since Monday / since 2022)." },
+      { label: "Pasangan tetap & used to", detail: "interested in, good at, afraid of, responsible for · used to + V1 (dulu terbiasa) vs be used to + V-ing (sekarang terbiasa)." },
+    ],
+    examples: [
+      "The meeting is on Monday at 9 a.m.",
+      "She has lived in Jakarta since 2022 (for four years).",
+      "He is very good at solving problems.",
+      "I used to wake up late, but now I am used to waking up early.",
+    ],
+  },
+  plurals: {
+    summary: "Singular & Plural mengatur perubahan kata benda dari tunggal (satu) menjadi jamak (lebih dari satu).",
+    rules: [
+      { label: "Reguler (+s / +es)", detail: "Umumnya ditambah -s (books, desks). Kata berakhiran -s, -x, -ch, -sh ditambah -es (boxes, buses)." },
+      { label: "Akhiran huruf -y", detail: "Konsonan + y berubah menjadi -ies (baby → babies). Vokal + y cukup ditambah -s (toy → toys)." },
+      { label: "Irregular (Tidak beraturan)", detail: "Berubah bentuk atau tetap sama: child → children, person → people, mouse → mice, sheep → sheep." },
+    ],
+    examples: [
+      "There is one book on the desk, and there are three boxes on the floor.",
+      "Two children are playing with their toys.",
+      "Five people are waiting at the bus stop.",
+    ],
+  },
+  pronouns: {
+    summary: "Pronouns & Possessives menggantikan kata benda sesuai posisinya (subjek, objek, kepemilikan, atau diri sendiri).",
+    rules: [
+      { label: "Subject vs Object", detail: "Subjek di awal sebelum kata kerja (I, she, they). Objek setelah kata kerja/preposisi (me, her, them)." },
+      { label: "Possessive Adjective", detail: "Wajib diikuti kata benda: my, your, his, her, our, their (my bag, her laptop)." },
+      { label: "Possessive Pronoun", detail: "Berdiri sendiri tanpa kata benda sesudahnya: mine, yours, his, hers, ours, theirs (This bag is mine)." },
+      { label: "Reflexive (-self/-selves)", detail: "Ketika subjek dan objek adalah orang yang sama (myself, himself, themselves)." },
+    ],
+    examples: [
+      "She called me yesterday to borrow my notebook.",
+      "This umbrella is hers, and that one is mine.",
+      "He taught himself how to play the guitar.",
+    ],
+  },
+  quantifiers: {
+    summary: "Quantifiers menyatakan jumlah atau kuantitas benda berdasarkan apakah benda tersebut dapat dihitung (countable) atau tidak (uncountable).",
+    rules: [
+      { label: "many vs much", detail: "many + benda jamak dapat dihitung (many books) · much + benda tak dapat dihitung (much water, much time, much money)." },
+      { label: "a few vs a little", detail: "a few = beberapa (+ countable jamak: a few minutes) · a little = sedikit (+ uncountable: a little sugar, a little patience)." },
+      { label: "some vs any", detail: "some untuk kalimat positif & tawaran sopan (Would you like some tea?) · any untuk kalimat negatif & tanya (don't have any bread)." },
+    ],
+    examples: [
+      "How much money and how many books did you bring?",
+      "I only need a few minutes and a little rest.",
+      "There is some milk in the fridge, but we don't have any bread.",
+    ],
+  },
+  comparatives: {
+    summary: "Comparatives membandingkan dua hal (lebih ... daripada), sedangkan Superlatives menyatakan yang paling ... di antara banyak hal.",
+    rules: [
+      { label: "Comparative (... than)", detail: "Kata pendek ditambah -er (taller, heavier). Kata panjang (2–3+ suku kata) memakai more (more expensive, more interesting)." },
+      { label: "Superlative (the ...)", detail: "Kata pendek ditambah -est (the tallest, the fastest). Kata panjang memakai most (the most important)." },
+      { label: "Irregular (Tidak beraturan)", detail: "good → better → the best · bad → worse → the worst · far → farther/further → the farthest/furthest." },
+    ],
+    examples: [
+      "This laptop is more expensive than my old one, but it is faster.",
+      "Mount Everest is the highest mountain in the world.",
+      "Maya is the best chess player in our school.",
+    ],
+  },
+  adjectives: {
+    summary: "Adjectives menerangkan kata benda (atau kondisi subjek), sedangkan Adverbs menerangkan cara suatu kata kerja dilakukan.",
+    rules: [
+      { label: "Adjective vs Adverb (-ly)", detail: "Adjective menerangkan benda/linking verb (quick, careful). Adverb menerangkan kata kerja aksi, umumnya +ly (quickly, carefully)." },
+      { label: "Irregular Adverb", detail: "good → well (speak English well) · fast → fast · hard → hard (work hard; hati-hati: hardly = hampir tidak)." },
+      { label: "Adjective -ed vs -ing", detail: "-ed menggambarkan perasaan orang (bored, tired, interested) · -ing menggambarkan sifat penyebabnya (boring movie, tiring day)." },
+    ],
+    examples: [
+      "She is a fluent speaker and she speaks English fluently.",
+      "He worked very hard and performed well in the interview.",
+      "The long meeting was exhausting, so everyone felt exhausted.",
+    ],
+  },
+  gerunds: {
+    summary: "Gerund (V-ing) dan To-Infinitive (to + V1) adalah bentuk kata kerja yang berfungsi sebagai kata benda atau pelengkap kata kerja lain.",
+    rules: [
+      { label: "Gerund (V-ing) sebagai Subjek / setelah Preposisi", detail: "Gunakan V-ing di awal kalimat sebagai subjek (Swimming is healthy) atau setelah preposisi (interested in learning, without saying)." },
+      { label: "Verb + Gerund (V-ing)", detail: "Kata kerja yang wajib diikuti V-ing: enjoy, finish, avoid, mind, keep, suggest (enjoy reading, finish working)." },
+      { label: "Verb + To-Infinitive (to + V1)", detail: "Kata kerja yang diikuti to + V1: want, decide, plan, hope, promise, agree, need (decide to buy, plan to visit)." },
+    ],
+    examples: [
+      "Swimming every morning keeps my body fit.",
+      "I enjoy learning English, and I have finished reading this chapter.",
+      "They decided to move to a bigger office next month.",
+    ],
+  },
+  relatives: {
+    summary: "Relative Clauses (who, which, that, whose, where) menggabungkan dan memperjelas informasi tentang orang, benda, kepemilikan, atau tempat.",
+    rules: [
+      { label: "who (Orang)", detail: "Menjelaskan manusia sebagai subjek/objek klausa (The doctor who treated me)." },
+      { label: "which vs that (Benda)", detail: "Klausa tanpa koma bisa memakai that/which. Setelah koma (non-defining) wajib which; setelah superlatif (the best/only) wajib that." },
+      { label: "whose (Kepemilikan) & where (Tempat)", detail: "whose + benda milik (the student whose laptop was lost) · where untuk tempat terjadinya aksi (the cafe where we met)." },
+    ],
+    examples: [
+      "The woman who called you earlier is our new project manager.",
+      "My laptop, which I bought three years ago, still works well.",
+      "This is the quiet cafe where I usually study on weekends.",
+    ],
+  },
+  modals: {
+    summary: "Modals (can, could, should, must, might, may, would) adalah kata kerja bantu yang menambahkan makna kemampuan, saran, kewajiban, larangan, atau kemungkinan. Semua modal wajib diikuti V1 murni (tanpa to).",
+    rules: [
+      { label: "can vs could (Kemampuan & Permintaan)", detail: "can = kemampuan saat ini · could = kemampuan masa lalu (when I was young) atau permintaan sopan (Could you help me?)." },
+      { label: "should / should not (Saran)", detail: "Digunakan untuk memberi nasihat atau anjuran yang baik (You should take a rest)." },
+      { label: "must vs must not (Kewajiban & Larangan)", detail: "must = aturan/keharusan wajib · must not / cannot = larangan keras (Visitors must not smoke)." },
+      { label: "might / may (Kemungkinan)", detail: "Menyatakan kemungkinan yang belum pasti terjadi (It might rain later)." },
+    ],
+    examples: [
+      "She can speak three languages, and she could read when she was four.",
+      "You look tired; you should get some sleep.",
+      "Passengers must wear a seatbelt and must not smoke on the plane.",
+      "Take an umbrella because it might rain this evening.",
+    ],
+  },
+  conjunctions: {
+    summary: "Conjunctions (kata penghubung) menyambungkan dua klausa berdasarkan hubungan logika: pertentangan, sebab-akibat, syarat, atau waktu.",
+    rules: [
+      { label: "Pertentangan: but vs although", detail: "but menghubungkan dua klausa setara setelah koma · although / even though berada di awal anak kalimat pertentangan." },
+      { label: "Sebab & Akibat: because vs so", detail: "because + alasan/penyebab · so + hasil/akibat setelah koma." },
+      { label: "Syarat: if vs unless", detail: "if = jika · unless = kecuali jika / jika tidak (if ... not)." },
+      { label: "Waktu: while vs until", detail: "while = sementara/ketika dua aksi berlangsung bersamaan · until = sampai batas waktu tertentu." },
+    ],
+    examples: [
+      "Although it was raining heavily, they continued the match.",
+      "The restaurant was full, so we cooked dinner at home.",
+      "You will miss the morning train unless you leave right now.",
+    ],
+  },
+  conditionals: {
+    summary: "Conditionals (Kalimat Pengandaian If) menyatakan hubungan syarat (If...) dan hasil berdasarkan tingkat kemungkinannya (fakta, rencana nyata, khayalan masa kini, atau penyesalan masa lalu).",
+    rules: [
+      { label: "Zero Conditional (Fakta Ilmiah)", detail: "If + Present Simple (V1), Present Simple (V1) — selalu benar setiap saat." },
+      { label: "First Conditional (Kemungkinan Nyata)", detail: "If + Present Simple (V1), will + V1 — mungkin terjadi di masa depan (jangan pakai will di klausa If!)." },
+      { label: "Second Conditional (Pengandaian Masa Kini)", detail: "If + Past Simple (V2 / were), would + V1 — berlawanan dengan kenyataan sekarang." },
+      { label: "Third & Mixed Conditional (Masa Lalu)", detail: "Type 3: If + had + V3, would have + V3 (penyesalan masa lalu). Mixed: If + had + V3, would + V1 now (sebab lampau, akibat sekarang)." },
+    ],
+    examples: [
+      "Zero: If you heat water to 100 degrees, it boils.",
+      "Type 1: If I have time tonight, I will study English.",
+      "Type 2: If I had enough money now, I would buy a house.",
+      "Type 3: If I had studied harder, I would have passed the exam.",
+    ],
+  },
+  collocations: {
+    summary: "Collocations adalah pasangan kata alami yang selalu digunakan bersama oleh penutur asli (native speakers). Menghafal collocation membuat bahasa Inggris terdengar natural tanpa menerjemahkan kata per kata.",
+    rules: [
+      { label: "make + hasil / keputusan / kemajuan", detail: "make a decision, make progress, make a mistake, make an effort." },
+      { label: "do + tugas / aktivitas / bantuan", detail: "do homework, do an assignment, do your best, do someone a favor." },
+      { label: "take + tindakan / jeda / tanggung jawab", detail: "take responsibility, take a break, take notes, take a risk." },
+      { label: "Ungkapan penting lainnya", detail: "give feedback, pay attention, gain experience, keep a promise, meet a deadline, break a habit, save time." },
+    ],
+    examples: [
+      "You will make great progress if you practice every day.",
+      "Our team worked hard to meet the project deadline.",
+      "Please pay attention and take notes during the presentation.",
+    ],
+  },
+};

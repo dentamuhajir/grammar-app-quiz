@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BASICS_POOL, checkBasicsAnswer, completedSentence, createDeck, mistakeHint, NO_WORD } from "../src/grammar/basics/engine";
+import { BASICS_POOL, BASICS_TOPIC_GUIDES, checkBasicsAnswer, completedSentence, createDeck, mistakeHint, NO_WORD, type BasicsTopic } from "../src/grammar/basics/engine";
 import { BASICS_LABELS } from "../src/grammar/labels";
 import { checkAnswer } from "../src/grammar/check";
 import { DEFAULT_FILTER, generateQuestion } from "../src/grammar/generator";
@@ -165,5 +165,20 @@ test("existing sentence generator and checker still agree", () => {
   for (let i = 0; i < 100; i++) {
     const q = generateQuestion(DEFAULT_FILTER);
     assert.equal(checkAnswer(q, q.answer).correct, true, q.answer);
+  }
+});
+
+test("every basics topic has a complete topic guide and questions avoid spoiler contexts", () => {
+  for (const topic of Object.keys(BASICS_LABELS) as BasicsTopic[]) {
+    const guide = BASICS_TOPIC_GUIDES[topic];
+    assert.ok(guide, `missing guide for ${topic}`);
+    assert.ok(guide.summary.length > 20, topic);
+    assert.ok(guide.rules.length >= 3, topic);
+    assert.ok(guide.examples.length >= 3, topic);
+  }
+  for (const q of BASICS_POOL) {
+    if (q.topic === "conditionals" || q.topic === "quantifiers" || q.topic === "modals" || q.topic === "prepositions") {
+      assert.equal(q.context, undefined, `unexpected spoiler context on ${q.id}`);
+    }
   }
 });
