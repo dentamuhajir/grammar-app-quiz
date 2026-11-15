@@ -190,6 +190,127 @@ export function buildQuestionPool(): BasicsQuestion[] {
       explanation: `Gunakan “at” untuk titik lokasi spesifik atau ungkapan lokasi seperti ${point.label}.`,
     });
   }
+  const advancedPreps: Array<{
+    key: string;
+    rule: string;
+    context?: string;
+    cue: string;
+    prompt: string;
+    answer: string;
+    explanation: string;
+  }> = [
+    {
+      key: "dur-for-hours",
+      rule: "Durasi · for vs since",
+      cue: "for / since",
+      prompt: "She has studied English ___ three hours.",
+      answer: "for",
+      explanation: "Gunakan “for” untuk menyatakan durasi atau lamanya waktu (three hours).",
+    },
+    {
+      key: "dur-since-2022",
+      rule: "Titik awal waktu · for vs since",
+      cue: "for / since",
+      prompt: "They have lived in Jakarta ___ 2022.",
+      answer: "since",
+      explanation: "Gunakan “since” untuk menunjuk titik awal waktu dimulainya sesuatu (sejak 2022).",
+    },
+    {
+      key: "dur-for-five-years",
+      rule: "Durasi · for vs since",
+      cue: "for / since",
+      prompt: "He has worked at this company ___ five years.",
+      answer: "for",
+      explanation: "“Five years” adalah rentang durasi waktu, sehingga memakai “for”.",
+    },
+    {
+      key: "dur-since-monday",
+      rule: "Titik awal waktu · for vs since",
+      cue: "for / since",
+      prompt: "It has been raining ___ Monday morning.",
+      answer: "since",
+      explanation: "“Monday morning” adalah titik waktu awal kejadian dimulai, sehingga memakai “since”.",
+    },
+    {
+      key: "to-for-send",
+      rule: "Arah/penerima · to vs for",
+      cue: "to / for",
+      prompt: "Please send this report ___ the manager.",
+      answer: "to",
+      explanation: "Gunakan “to” untuk menunjukkan arah perpindahan atau penerima langsung (send to).",
+    },
+    {
+      key: "to-for-benefit",
+      rule: "Tujuan/manfaat · to vs for",
+      cue: "to / for",
+      prompt: "I bought these flowers ___ my mother.",
+      answer: "for",
+      explanation: "Gunakan “for” ketika melakukan sesuatu demi manfaat atau untuk diberikan kepada seseorang (buy for).",
+    },
+    {
+      key: "adj-interested-in",
+      rule: "Adjective + Preposition · interested in",
+      cue: "in / on / at",
+      prompt: "She is very interested ___ learning digital design.",
+      answer: "in",
+      explanation: "Kata sifat “interested” selalu berpasangan dengan preposisi “in” (interested in + noun/V-ing).",
+    },
+    {
+      key: "adj-good-at",
+      rule: "Adjective + Preposition · good at",
+      cue: "in / on / at",
+      prompt: "My brother is really good ___ solving math problems.",
+      answer: "at",
+      explanation: "Untuk menyatakan keahlian dalam suatu bidang, gunakan “good at”.",
+    },
+    {
+      key: "adj-afraid-of",
+      rule: "Adjective + Preposition · afraid of",
+      cue: "of / from / at",
+      prompt: "Many children are afraid ___ the dark.",
+      answer: "of",
+      explanation: "Pasangan preposisi tetap untuk kata sifat takut adalah “afraid of”.",
+    },
+    {
+      key: "adj-responsible-for",
+      rule: "Adjective + Preposition · responsible for",
+      cue: "for / to / of",
+      prompt: "Our team is responsible ___ testing the new software.",
+      answer: "for",
+      explanation: "Gunakan “responsible for” untuk menyatakan tanggung jawab atas suatu tugas.",
+    },
+    {
+      key: "used-to-past",
+      rule: "Kebiasaan masa lalu · used to + V1",
+      context: "Kebiasaan di masa lalu yang sekarang sudah tidak dilakukan lagi (diikuti V1).",
+      cue: "used to / am used to",
+      prompt: "I ___ wake up late, but now I wake up at 5 a.m.",
+      answer: "used to",
+      explanation: "Gunakan “used to + V1” untuk kebiasaan masa lalu yang sudah berhenti.",
+    },
+    {
+      key: "be-used-to-ing",
+      rule: "Terbiasa dengan · be used to + V-ing",
+      context: "Sudah terbiasa dengan kondisi saat ini (perhatikan kata kerja sesudahnya berbentuk V-ing).",
+      cue: "used to / am used to",
+      prompt: "After living here for two years, I ___ driving in heavy traffic.",
+      answer: "am used to",
+      explanation: "Jika diikuti V-ing (driving) dan bermakna “sudah terbiasa”, gunakan “be used to” (am used to).",
+    },
+  ];
+  for (const item of advancedPreps) {
+    add({
+      id: `prep-${item.key}`,
+      topic: "prepositions",
+      rule: item.rule,
+      context: item.context,
+      cue: item.cue,
+      prompt: item.prompt,
+      hint: "Perhatikan pasangan preposisi: for (durasi) vs since (titik awal), to (arah) vs for (manfaat), interested in, good at, atau used to + V1 vs be used to + V-ing.",
+      answer: item.answer,
+      explanation: item.explanation,
+    });
+  }
 
   // 3. Singular & Plural
   for (const noun of NOUNS) {
@@ -1521,6 +1642,407 @@ export function buildQuestionPool(): BasicsQuestion[] {
     });
   }
 
+  // 12. Conditionals (Zero, First, Second, Third, Mixed)
+  const conditionalItems: Array<{
+    key: string;
+    rule: string;
+    context: string;
+    cue: string;
+    prompt: string;
+    answer: string;
+    accepted?: string[];
+    explanation: string;
+  }> = [
+    {
+      key: "zero-boil",
+      rule: "Zero Conditional · fakta ilmiah",
+      context: "Fakta umum/ilmiah yang selalu benar (If + Present Simple, Present Simple).",
+      cue: "boil",
+      prompt: "If you heat water to 100 degrees, it ___.",
+      answer: "boils",
+      explanation: "Pada Zero Conditional (fakta ilmiah), kedua klausa memakai Present Simple: “it boils”.",
+    },
+    {
+      key: "zero-melt",
+      rule: "Zero Conditional · fakta ilmiah",
+      context: "Fakta alam yang selalu terjadi (If + Present Simple, Present Simple).",
+      cue: "melt",
+      prompt: "If ice stays under the hot sun, it ___ quickly.",
+      answer: "melts",
+      explanation: "Subjek tunggal “it” pada Zero Conditional menggunakan V1+s: “melts”.",
+    },
+    {
+      key: "zero-mix",
+      rule: "Zero Conditional · fakta umum",
+      context: "Fakta pasti saat mencampur warna (If + Present Simple, Present Simple).",
+      cue: "mix",
+      prompt: "If you ___ red and blue, you get purple.",
+      answer: "mix",
+      explanation: "Pada klausa If untuk fakta umum dengan subjek “you”, gunakan Present Simple “mix”.",
+    },
+    {
+      key: "zero-plants",
+      rule: "Zero Conditional · fakta ilmiah",
+      context: "Fakta biologis (Present Simple + if + Present Simple negatif).",
+      cue: "not get",
+      prompt: "Plants die if they ___ enough water.",
+      answer: "do not get",
+      accepted: ["do not get", "don't get"],
+      explanation: "Untuk bentuk negatif Present Simple dengan subjek “they”, gunakan “do not get” / “don't get”.",
+    },
+    {
+      key: "first-study",
+      rule: "First Conditional · rencana/kemungkinan nyata",
+      context: "Kemungkinan nyata di masa depan (If + Present Simple, will + V1).",
+      cue: "study",
+      prompt: "If I have free time tonight, I ___ English.",
+      answer: "will study",
+      accepted: ["will study", "'ll study"],
+      explanation: "Pada First Conditional, klausa hasil menggunakan “will + V1”: “will study”.",
+    },
+    {
+      key: "first-rain",
+      rule: "First Conditional · klausa If",
+      context: "Kemungkinan nyata besok (If + Present Simple, will + V1).",
+      cue: "rain",
+      prompt: "If it ___ tomorrow morning, we will stay at home.",
+      answer: "rains",
+      explanation: "Hati-hati: klausa “If” pada First Conditional tidak boleh memakai “will”, melainkan Present Simple (“rains”).",
+    },
+    {
+      key: "first-hurry",
+      rule: "First Conditional · klausa hasil",
+      context: "Peringatan nyata saat ini (If + Present Simple, will + V1).",
+      cue: "miss",
+      prompt: "If we do not hurry now, we ___ the train.",
+      answer: "will miss",
+      explanation: "Klausa hasil pada First Conditional memakai “will + V1”: “will miss”.",
+    },
+    {
+      key: "first-ask",
+      rule: "First Conditional · klausa If",
+      context: "Kemungkinan nyata di masa depan (will + V1 + if + Present Simple).",
+      cue: "ask",
+      prompt: "She will help you if you ___ her nicely.",
+      answer: "ask",
+      explanation: "Setelah “if” pada First Conditional, gunakan Present Simple “ask” (bukan will ask).",
+    },
+    {
+      key: "second-money",
+      rule: "Second Conditional · pengandaian masa kini",
+      context: "Khayalan/pengandaian yang berlawanan dengan kenyataan saat ini (If + Past Simple, would + V1).",
+      cue: "buy",
+      prompt: "If I had enough money now, I ___ a house.",
+      answer: "would buy",
+      accepted: ["would buy", "'d buy"],
+      explanation: "Klausa If memakai V2 (“had”), sehingga klausa hasil memakai “would + V1”: “would buy”.",
+    },
+    {
+      key: "second-know",
+      rule: "Second Conditional · klausa If (V2)",
+      context: "Pengandaian saat ini — faktanya saya tidak tahu nomornya (If + Past Simple, would + V1).",
+      cue: "know",
+      prompt: "If I ___ her phone number, I would call her right now.",
+      answer: "knew",
+      explanation: "Pada Second Conditional, klausa If menggunakan Past Simple (V2 dari know adalah “knew”).",
+    },
+    {
+      key: "second-were",
+      rule: "Second Conditional · If I were you",
+      context: "Pengandaian memberi saran (If + Subject + were, would + V1).",
+      cue: "be",
+      prompt: "If I ___ you, I would accept that job offer.",
+      answer: "were",
+      accepted: ["were", "was"],
+      explanation: "Dalam bahasa Inggris standar untuk pengandaian Second Conditional, semua subjek memakai “were” (“If I were you”).",
+    },
+    {
+      key: "second-read",
+      rule: "Second Conditional · klausa hasil",
+      context: "Pengandaian saat ini (Subject + would + V1 + if + Past Simple).",
+      cue: "read",
+      prompt: "He ___ more books if he had more free time.",
+      answer: "would read",
+      explanation: "Karena klausa If memakai Past Simple (“had”), klausa hasil memakai “would + V1” (“would read”).",
+    },
+    {
+      key: "second-fly",
+      rule: "Second Conditional · klausa If (V2)",
+      context: "Pengandaian imajiner saat ini (If + Past Simple, would + V1).",
+      cue: "have",
+      prompt: "If birds did not have wings, they ___ not be able to fly.",
+      answer: "would",
+      explanation: "Klausa hasil pada Second Conditional menggunakan modal lampau “would”.",
+    },
+    {
+      key: "third-study",
+      rule: "Third Conditional · penyesalan masa lalu",
+      context: "Kejadian di masa lalu yang sudah terlambat diubah (If + had + V3, would have + V3).",
+      cue: "pass",
+      prompt: "If I had studied harder, I ___ the exam.",
+      answer: "would have passed",
+      explanation: "Pada Third Conditional, klausa hasil memakai rumus “would have + V3”: “would have passed”.",
+    },
+    {
+      key: "third-leave",
+      rule: "Third Conditional · klausa If (had + V3)",
+      context: "Penyesalan masa lalu — faktanya kami berangkat terlambat (If + had + V3, would have + V3).",
+      cue: "leave",
+      prompt: "If we ___ earlier, we would not have missed the flight.",
+      answer: "had left",
+      explanation: "Klausa If pada Third Conditional wajib memakai Past Perfect (“had + V3”): “had left”.",
+    },
+    {
+      key: "third-invite",
+      rule: "Third Conditional · klausa If (had + V3)",
+      context: "Penyesalan masa lalu (would have + V3 + if + had + V3).",
+      cue: "invite",
+      prompt: "She would have come to the party if you ___ her.",
+      answer: "had invited",
+      explanation: "Karena klausa utama memakai “would have come”, klausa If memakai “had + V3” (“had invited”).",
+    },
+    {
+      key: "third-rain",
+      rule: "Third Conditional · klausa hasil",
+      context: "Kejadian masa lalu yang batal karena hujan (If + had + V3, would have + V3).",
+      cue: "play",
+      prompt: "If it had not rained heavily yesterday, we ___ football outside.",
+      answer: "would have played",
+      explanation: "Untuk hasil yang batal terjadi di masa lalu (Third Conditional), gunakan “would have + V3”: “would have played”.",
+    },
+    {
+      key: "third-alarm",
+      rule: "Third Conditional · klausa If (had + V3)",
+      context: "Penyesalan tadi pagi (would have + V3 + if + had + V3).",
+      cue: "set",
+      prompt: "I would have woken up on time if I ___ my alarm last night.",
+      answer: "had set",
+      explanation: "Gunakan Past Perfect “had set” pada klausa If untuk pengandaian masa lampau.",
+    },
+    {
+      key: "mixed-sleep",
+      rule: "Mixed Conditional · sebab lampau, akibat sekarang",
+      context: "Penyebab di masa lalu (last night), tetapi hasilnya dirasakan SEKARANG (right now).",
+      cue: "not be",
+      prompt: "If I had slept earlier last night, I ___ so tired right now.",
+      answer: "would not be",
+      accepted: ["would not be", "wouldn't be"],
+      explanation: "Ini Mixed Conditional: karena ada penanda “right now”, hasilnya memakai “would + V1” (“would not be”), bukan would have been.",
+    },
+    {
+      key: "mixed-map",
+      rule: "Mixed Conditional · sebab lampau, akibat sekarang",
+      context: "Penyebab terjadi kemarin (yesterday), akibatnya kami tersesat sekarang (now).",
+      cue: "bring",
+      prompt: "If we ___ the map yesterday, we would not be lost now.",
+      answer: "had brought",
+      explanation: "Penyebab di masa lampau (“yesterday”) tetap memakai Past Perfect “had brought”.",
+    },
+  ];
+  for (const item of conditionalItems) {
+    add({
+      id: `cond-${item.key}`,
+      topic: "conditionals",
+      rule: item.rule,
+      context: item.context,
+      cue: item.cue,
+      prompt: item.prompt,
+      hint: "Ingat rumus Conditional: Zero (V1, V1), Type 1 (V1, will + V1), Type 2 (V2/were, would + V1), Type 3 (had + V3, would have + V3), Mixed (had + V3, would + V1 now).",
+      answer: item.answer,
+      acceptedAnswers: item.accepted,
+      explanation: item.explanation,
+    });
+  }
+
+  // 13. Collocations (Natural Word Combinations)
+  const collocationItems: Array<{
+    key: string;
+    rule: string;
+    cue: string;
+    prompt: string;
+    answer: string;
+    accepted?: string[];
+    explanation: string;
+  }> = [
+    {
+      key: "give-feedback",
+      rule: "Collocation · give feedback",
+      cue: "give / make / do",
+      prompt: "The manager promised to ___ constructive feedback after our presentation.",
+      answer: "give",
+      explanation: "Pasangan kata alami (collocation) untuk “feedback” adalah “give feedback” (bukan make/do feedback).",
+    },
+    {
+      key: "make-decision",
+      rule: "Collocation · make a decision",
+      cue: "make / do / take",
+      prompt: "We need to ___ a final decision before Friday.",
+      answer: "make",
+      explanation: "Dalam bahasa Inggris alami, gunakan “make a decision” (membuat keputusan).",
+    },
+    {
+      key: "make-progress",
+      rule: "Collocation · make progress",
+      cue: "make / do / get",
+      prompt: "You will ___ great progress if you practice speaking every day.",
+      answer: "make",
+      explanation: "Pasangan kata alami untuk kemajuan adalah “make progress” (bukan do progress).",
+    },
+    {
+      key: "pay-attention",
+      rule: "Collocation · pay attention",
+      cue: "pay / give / take",
+      prompt: "Please ___ attention to the safety instructions.",
+      answer: "pay",
+      explanation: "Ungkapan baku untuk memperhatikan adalah “pay attention (to)”.",
+    },
+    {
+      key: "gain-experience",
+      rule: "Collocation · gain experience",
+      cue: "gain / make / do",
+      prompt: "Internships help students ___ valuable work experience.",
+      answer: "gain",
+      accepted: ["gain", "get"],
+      explanation: "Pasangan kata alami untuk memperoleh pengalaman adalah “gain experience” (atau get experience).",
+    },
+    {
+      key: "take-responsibility",
+      rule: "Collocation · take responsibility",
+      cue: "take / make / do",
+      prompt: "A good leader must ___ responsibility for the team's results.",
+      answer: "take",
+      explanation: "Ungkapan alami untuk memikul tanggung jawab adalah “take responsibility”.",
+    },
+    {
+      key: "make-mistake",
+      rule: "Collocation · make a mistake",
+      cue: "make / do / take",
+      prompt: "Don't be afraid to ___ mistakes when learning a new language.",
+      answer: "make",
+      explanation: "Untuk melakukan kesalahan, selalu gunakan “make a mistake / make mistakes” (bukan do mistakes).",
+    },
+    {
+      key: "do-homework",
+      rule: "Collocation · do homework/assignments",
+      cue: "done / made / taken",
+      prompt: "Have you ___ your English assignment yet?",
+      answer: "done",
+      explanation: "Untuk tugas atau pekerjaan rumah (homework/assignment), gunakan kata kerja “do” (V3: “done”).",
+    },
+    {
+      key: "do-favor",
+      rule: "Collocation · do someone a favor",
+      cue: "do / make / give",
+      prompt: "Could you please ___ me a small favor?",
+      answer: "do",
+      explanation: "Ungkapan meminta bantuan adalah “do someone a favor” (bukan make a favor).",
+    },
+    {
+      key: "do-best",
+      rule: "Collocation · do your best",
+      cue: "do / make / give",
+      prompt: "Just ___ your best in the interview tomorrow.",
+      answer: "do",
+      explanation: "Ungkapan melakukan yang terbaik adalah “do your best”.",
+    },
+    {
+      key: "make-effort",
+      rule: "Collocation · make an effort",
+      cue: "makes / does / takes",
+      prompt: "She always ___ an effort to speak English at the office.",
+      answer: "makes",
+      explanation: "Pasangan kata untuk berusaha adalah “make an effort” (subjek She → “makes”).",
+    },
+    {
+      key: "take-break",
+      rule: "Collocation · take a break",
+      cue: "take / make / do",
+      prompt: "You have worked for four hours; let's ___ a short break.",
+      answer: "take",
+      explanation: "Untuk beristirahat sejenak, gunakan “take a break”.",
+    },
+    {
+      key: "take-notes",
+      rule: "Collocation · take notes",
+      cue: "take / make / do",
+      prompt: "Students should ___ notes during the lecture.",
+      answer: "take",
+      accepted: ["take", "make"],
+      explanation: "Ungkapan paling umum untuk mencatat saat kuliah/rapat adalah “take notes”.",
+    },
+    {
+      key: "take-risk",
+      rule: "Collocation · take a risk",
+      cue: "take / make / do",
+      prompt: "Successful entrepreneurs are willing to ___ calculated risks.",
+      answer: "take",
+      explanation: "Pasangan kata alami untuk mengambil risiko adalah “take a risk / take risks”.",
+    },
+    {
+      key: "keep-promise",
+      rule: "Collocation · keep a promise",
+      cue: "keep / hold / make",
+      prompt: "You should always ___ your promise to your friends.",
+      answer: "keep",
+      explanation: "Untuk menepati janji, gunakan “keep a promise” (bukan hold a promise).",
+    },
+    {
+      key: "catch-cold",
+      rule: "Collocation · catch a cold",
+      cue: "catch / take / make",
+      prompt: "Wear a warm jacket so you don't ___ a cold.",
+      answer: "catch",
+      accepted: ["catch", "get"],
+      explanation: "Ungkapan alami untuk terkena flu/masuk angin adalah “catch a cold”.",
+    },
+    {
+      key: "save-time",
+      rule: "Collocation · save time",
+      cue: "save / keep / spend",
+      prompt: "Using keyboard shortcuts will ___ you a lot of time.",
+      answer: "save",
+      explanation: "Untuk menghemat waktu, gunakan “save time” (bukan keep time).",
+    },
+    {
+      key: "break-habit",
+      rule: "Collocation · break a habit",
+      cue: "break / stop / lose",
+      prompt: "It is hard to ___ a bad habit without daily discipline.",
+      answer: "break",
+      explanation: "Pasangan kata alami untuk menghentikan kebiasaan buruk adalah “break a habit”.",
+    },
+    {
+      key: "reach-goal",
+      rule: "Collocation · reach/achieve a goal",
+      cue: "reach / arrive / get",
+      prompt: "Consistent daily practice will help you ___ your fluency goal.",
+      answer: "reach",
+      accepted: ["reach", "achieve"],
+      explanation: "Gunakan “reach a goal” atau “achieve a goal” untuk mencapai tujuan.",
+    },
+    {
+      key: "meet-deadline",
+      rule: "Collocation · meet a deadline",
+      cue: "meet / catch / do",
+      prompt: "Our developers worked hard to ___ the project deadline.",
+      answer: "meet",
+      explanation: "Ungkapan bisnis baku untuk memenuhi tenggat waktu adalah “meet a deadline”.",
+    },
+  ];
+  for (const item of collocationItems) {
+    add({
+      id: `colloc-${item.key}`,
+      topic: "collocations",
+      rule: item.rule,
+      cue: item.cue,
+      prompt: item.prompt,
+      hint: "Pilih kata kerja yang membentuk pasangan kata alami (natural collocation) dengan kata benda sesudahnya.",
+      answer: item.answer,
+      acceptedAnswers: item.accepted,
+      explanation: item.explanation,
+    });
+  }
+
   return pool;
 }
 
@@ -1561,7 +2083,26 @@ export function mistakeHint(q: BasicsQuestion, input: string): string {
     return "Ketik a, an, the, atau - jika tidak memerlukan artikel.";
   }
   if (q.topic === "prepositions") {
-    return `Pilihan ${word === NO_WORD || word === "-" || word === "none" ? "tanpa preposisi" : `“${word}”`} belum sesuai dengan keterangan waktu atau posisi pada konteks ini.`;
+    if (q.answer === "for" && word === "since") return "Setelah bagian kosong adalah rentang/durasi waktu (berapa lama), jadi gunakan “for”, bukan “since”.";
+    if (q.answer === "since" && word === "for") return "Setelah bagian kosong adalah titik awal waktu (sejak kapan), jadi gunakan “since”, bukan “for”.";
+    if (q.answer === "used to" && word === "am used to") return "Diikuti V1 murni (kebiasaan masa lalu yang sudah berhenti): gunakan “used to”, bukan “am used to”.";
+    if (q.answer === "am used to" && word === "used to") return "Diikuti V-ing dan bermakna “sudah terbiasa sekarang”: gunakan “am used to”, bukan “used to”.";
+    return `Pilihan ${word === NO_WORD || word === "-" || word === "none" ? "tanpa preposisi" : `“${word}”`} belum sesuai dengan keterangan waktu, posisi, atau pasangan kata pada konteks ini.`;
+  }
+  if (q.topic === "conditionals") {
+    if (q.prompt.startsWith("If ") && q.prompt.indexOf("___") < q.prompt.indexOf(",") && (word.startsWith("will ") || word.startsWith("would "))) {
+      return "Di dalam anak kalimat “If ...”, jangan gunakan “will” atau “would”. Gunakan tense kondisinya (“" + q.answer + "”).";
+    }
+    if (q.answer.startsWith("would have ") && word.startsWith("would ") && !word.startsWith("would have ")) {
+      return `Ini Third Conditional (penyesalan masa lalu dengan “had + V3”): gunakan “${q.answer}”, bukan “${word}”.`;
+    }
+    if (q.answer === "would not be" && word.includes("have been")) {
+      return "Perhatikan kata “right now” di ujung kalimat (Mixed Conditional — akibat dirasakan sekarang): gunakan “would not be”.";
+    }
+    return `Bentuk “${input.trim()}” belum sesuai dengan tipe Conditional pada kalimat ini. Periksa klausa pasangan di sebelahnya.`;
+  }
+  if (q.topic === "collocations") {
+    return `Dalam bahasa Inggris alami, kata benda pada kalimat ini tidak berpasangan dengan “${input.trim()}”, melainkan “${q.answer}” (${q.rule.replace("Collocation · ", "")}).`;
   }
   if (q.topic === "pronouns") {
     const posAdjs = ["my", "your", "his", "her", "our", "their"];
