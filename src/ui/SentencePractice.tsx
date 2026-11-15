@@ -21,6 +21,7 @@ import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
 import { SpokenSentence } from "./SpokenSentence";
+import { TensesExplorer } from "./TensesExplorer";
 import { VoiceInputBar } from "./VoiceInputBar";
 
 /** The chips shown as the puzzle prompt. */
@@ -94,6 +95,7 @@ export function SentencePractice() {
   const [praise, setPraise] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [explorerOpen, setExplorerOpen] = useState(false);
   const [implicitMode, setImplicitMode] = useState(false);
 
   const next = useCallback((f: QuizFilter) => {
@@ -103,6 +105,7 @@ export function SentencePractice() {
     setRevealed(false);
     setPraise("");
     setGuideOpen(false);
+    setExplorerOpen(false);
   }, []);
 
   const solved = revealed || result?.correct === true;
@@ -157,17 +160,31 @@ export function SentencePractice() {
         {...swipeHandlers}
       >
         <div className="tags">
-          <span className="tag tag-tense">
-            {implicitMode && !solved
-              ? "❓ Tebak Tense"
-              : TENSE_LABELS[question.tense]}
-          </span>
-          <span className="tag tag-mode">
-            {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
-          </span>
-          <span className="tag tag-form">
-            {FORM_LABELS[question.form].replace(/\s*\(.*\)/, "")}
-          </span>
+          {implicitMode && !solved ? (
+            <span className="tag tag-tense">❓ Tebak Tense</span>
+          ) : (
+            <button
+              type="button"
+              className="tag tag-tense tag-clickable"
+              onClick={() => setExplorerOpen(true)}
+              title="Klik untuk membuka Tenses Explorer & Visualisasi Waktu"
+            >
+              {TENSE_LABELS[question.tense]}{" "}
+              <span className="tag-info-icon" aria-hidden="true">
+                ⓘ
+              </span>
+            </button>
+          )}
+          {(!implicitMode || solved || question.mode === "passive") && (
+            <span className="tag tag-mode">
+              {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
+            </span>
+          )}
+          {(!implicitMode || solved || question.form !== "whQuestion") && (
+            <span className="tag tag-form">
+              {FORM_LABELS[question.form].replace(/\s*\(.*\)/, "")}
+            </span>
+          )}
           {question.rare && (
             <span className="tag tag-rare">⚠ jarang digunakan</span>
           )}
@@ -399,6 +416,17 @@ export function SentencePractice() {
           key={question.answer}
           question={question}
           solved={solved}
+        />
+      </BottomSheet>
+
+      <BottomSheet
+        open={explorerOpen}
+        onClose={() => setExplorerOpen(false)}
+        title="🧭 Tenses Explorer & Garis Waktu"
+      >
+        <TensesExplorer
+          initialTense={question.tense}
+          initialSubject={question.subject.text}
         />
       </BottomSheet>
     </>
