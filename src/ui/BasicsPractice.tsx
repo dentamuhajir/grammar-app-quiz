@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BASICS_LABELS } from "../grammar/labels";
 import {
+  BASICS_TOPIC_GUIDES,
   checkBasicsAnswer,
   completedSentence,
   createDeck,
@@ -23,7 +24,9 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
     "empty" | "correct" | "incorrect" | "revealed" | null
   >(null);
   const [hintOpen, setHintOpen] = useState(false);
+  const [topicGuideOpen, setTopicGuideOpen] = useState(false);
   const question = deck[index];
+  const topicGuide = BASICS_TOPIC_GUIDES[question.topic];
   const finished = status === "correct" || status === "revealed";
 
   function next() {
@@ -35,6 +38,7 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
     setInput("");
     setStatus(null);
     setHintOpen(false);
+    setTopicGuideOpen(false);
   }
 
   function change(value: string) {
@@ -55,7 +59,25 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
         {...swipeHandlers}
       >
         <div className="tags">
-          <span className="tag tag-tense">{BASICS_LABELS[question.topic]}</span>
+          <button
+            type="button"
+            className="tag tag-tense tag-clickable"
+            onClick={() => setTopicGuideOpen(true)}
+            title="Klik untuk melihat penjelasan & contoh topik ini"
+          >
+            {BASICS_LABELS[question.topic]}{" "}
+            <span className="tag-info-icon" aria-hidden="true">
+              ⓘ
+            </span>
+          </button>
+          <button
+            type="button"
+            className="tag tag-hint-btn"
+            onClick={() => setHintOpen(true)}
+            title="Lihat petunjuk soal ini"
+          >
+            💡 Hint
+          </button>
         </div>
 
         {question.context && (
@@ -66,7 +88,8 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
         </p>
         {question.cue && (
           <p className="basics-cue">
-            Kata dasar: <strong>{question.cue}</strong>
+            {question.cue.includes("/") ? "Pilihan:" : "Kata dasar:"}{" "}
+            <strong>{question.cue}</strong>
           </p>
         )}
 
@@ -157,7 +180,7 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
       <BottomSheet
         open={hintOpen}
         onClose={() => setHintOpen(false)}
-        title="Hint & Aturan Grammar"
+        title="Hint & Aturan Soal"
       >
         <div className="sheet-content-stack">
           <div className="tags">
@@ -168,6 +191,39 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
           {finished && (
             <p className="basics-explanation">{question.explanation}</p>
           )}
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={topicGuideOpen}
+        onClose={() => setTopicGuideOpen(false)}
+        title={`Panduan: ${BASICS_LABELS[question.topic]}`}
+      >
+        <div className="sheet-content-stack topic-guide-stack">
+          <p className="note">{topicGuide.summary}</p>
+
+          <div className="topic-guide-section">
+            <h4 className="topic-guide-heading">Aturan & Pola Penggunaan</h4>
+            <div className="topic-guide-rules">
+              {topicGuide.rules.map((rule) => (
+                <div key={rule.label} className="topic-guide-rule-card">
+                  <strong>{rule.label}</strong>
+                  <p>{rule.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="topic-guide-section">
+            <h4 className="topic-guide-heading">Contoh Kalimat</h4>
+            <ul className="topic-guide-examples">
+              {topicGuide.examples.map((ex) => (
+                <li key={ex} className="topic-guide-example-item">
+                  {ex}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </BottomSheet>
     </>

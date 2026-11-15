@@ -12,6 +12,7 @@ import {
   TENSE_LABELS,
   TENSE_ORDER,
 } from "../grammar/labels";
+import { implicitContextCue } from "../grammar/explanations";
 import type { Mode, Question, SentenceForm } from "../grammar/types";
 import { SentenceExplanation } from "./SentenceExplanation";
 import { BottomSheet } from "./BottomSheet";
@@ -20,6 +21,7 @@ import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
 import { SpokenSentence } from "./SpokenSentence";
+import { VoiceInputBar } from "./VoiceInputBar";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
@@ -92,6 +94,7 @@ export function SentencePractice() {
   const [praise, setPraise] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [implicitMode, setImplicitMode] = useState(false);
 
   const next = useCallback((f: QuizFilter) => {
     setQuestion(generateQuestion(f));
@@ -154,7 +157,11 @@ export function SentencePractice() {
         {...swipeHandlers}
       >
         <div className="tags">
-          <span className="tag tag-tense">{TENSE_LABELS[question.tense]}</span>
+          <span className="tag tag-tense">
+            {implicitMode && !solved
+              ? "❓ Tebak Tense"
+              : TENSE_LABELS[question.tense]}
+          </span>
           <span className="tag tag-mode">
             {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
           </span>
@@ -164,7 +171,22 @@ export function SentencePractice() {
           {question.rare && (
             <span className="tag tag-rare">⚠ jarang digunakan</span>
           )}
+          <button
+            type="button"
+            className={`tag tag-implicit-toggle ${implicitMode ? "active" : ""}`}
+            aria-pressed={implicitMode}
+            onClick={() => setImplicitMode((v) => !v)}
+            title="Sembunyikan nama Tense agar berlatih memilih Tense dari konteks situasi"
+          >
+            {implicitMode ? "🧠 Mode Konteks: ON" : "🧠 Mode Konteks"}
+          </button>
         </div>
+
+        {implicitMode && (
+          <p className="implicit-context-box">
+            🧭 <strong>{implicitContextCue(question)}</strong>
+          </p>
+        )}
 
         <PromptChips q={question} />
 
@@ -174,7 +196,7 @@ export function SentencePractice() {
             value={input}
             id="sentence-answer"
             aria-label="Jawabanmu"
-            placeholder="Tulis kalimat lengkap dalam bahasa Inggris…"
+            placeholder="Tulis atau ucapkan kalimat lengkap dalam bahasa Inggris…"
             spellCheck={false}
             autoComplete="off"
             autoCapitalize="off"
@@ -191,6 +213,15 @@ export function SentencePractice() {
                 e.preventDefault();
                 check();
               }
+            }}
+          />
+          <VoiceInputBar
+            value={input}
+            disabled={solved}
+            onChange={(nextVal) => {
+              setInput(nextVal);
+              if (result) setResult(null);
+              setPraise("");
             }}
           />
         </div>
@@ -327,6 +358,17 @@ export function SentencePractice() {
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="rare-toggle">
+            <input
+              type="checkbox"
+              checked={implicitMode}
+              onChange={(e) => setImplicitMode(e.target.checked)}
+            />
+            <span>
+              🧠 Mode Konteks (Sembunyikan nama Tense &amp; tampilkan situasi)
+            </span>
           </label>
 
           <label className="rare-toggle">

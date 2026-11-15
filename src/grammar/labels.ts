@@ -20,6 +20,8 @@ export const BASICS_LABELS = {
   relatives: "Relative Pronouns",
   modals: "Modals",
   conjunctions: "Conjunctions",
+  conditionals: "Conditionals (If)",
+  collocations: "Collocations",
 };
 
 export const TENSE_LABELS: Record<Tense, string> = {

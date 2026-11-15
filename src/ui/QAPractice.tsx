@@ -13,6 +13,7 @@ import {
 import { BottomSheet } from "./BottomSheet";
 import { SuccessBadge } from "./FeedbackIcons";
 import { SpokenSentence } from "./SpokenSentence";
+import { VoiceInputBar } from "./VoiceInputBar";
 import { useSwipeCard } from "./useSwipeCard";
 
 const INTENTS = Object.keys(INTENT_LABELS) as Intent[];
@@ -114,6 +115,14 @@ function QASession({ filter }: { filter: QAFilter }) {
                     : ""
               }
               aria-invalid={result?.status === "incorrect"}
+            />
+            <VoiceInputBar
+              value={input}
+              disabled={finished}
+              onChange={(nextVal) => {
+                setInput(nextVal);
+                setResult(null);
+              }}
             />
           </div>
           <div aria-live="polite" aria-atomic="true">

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BASICS_POOL, checkBasicsAnswer, completedSentence, createDeck, mistakeHint, NO_WORD } from "../src/grammar/basics/engine";
+import { BASICS_POOL, BASICS_TOPIC_GUIDES, checkBasicsAnswer, completedSentence, createDeck, mistakeHint, NO_WORD, type BasicsTopic } from "../src/grammar/basics/engine";
 import { BASICS_LABELS } from "../src/grammar/labels";
 import { checkAnswer } from "../src/grammar/check";
 import { DEFAULT_FILTER, generateQuestion } from "../src/grammar/generator";
@@ -110,6 +110,23 @@ test("sound rules, irregulars, and time expressions have accurate keys", () => {
     "conj-condition-unless": "unless",
     "conj-time-until": "until",
     "conj-time-while": "while",
+    "prep-dur-for-hours": "for",
+    "prep-dur-since-2022": "since",
+    "prep-adj-interested-in": "in",
+    "prep-adj-good-at": "at",
+    "prep-used-to-past": "used to",
+    "prep-be-used-to-ing": "am used to",
+    "cond-zero-boil": "boils",
+    "cond-first-study": "will study",
+    "cond-second-money": "would buy",
+    "cond-third-study": "would have passed",
+    "cond-mixed-sleep": "would not be",
+    "colloc-give-feedback": "give",
+    "colloc-make-decision": "make",
+    "colloc-make-progress": "make",
+    "colloc-pay-attention": "pay",
+    "colloc-gain-experience": "gain",
+    "colloc-take-responsibility": "take",
   };
   for (const [id, answer] of Object.entries(cases)) assert.equal(question(id).answer, answer, id);
   // Defining relative clauses accept both that and which; non-defining comma clauses require which
@@ -136,11 +153,32 @@ test("sound rules, irregulars, and time expressions have accurate keys", () => {
   assert.equal(checkBasicsAnswer(question("conj-contrast-although-front"), "even though"), "correct");
   assert.match(mistakeHint(question("conj-contrast-although-front"), "but"), /although/);
   assert.match(mistakeHint(question("conj-condition-unless"), "if"), /unless/);
+  // Expanded Prepositions, Conditionals, Collocations
+  assert.match(mistakeHint(question("prep-dur-for-hours"), "since"), /for/);
+  assert.match(mistakeHint(question("prep-dur-since-2022"), "for"), /since/);
+  assert.match(mistakeHint(question("cond-first-rain"), "will rain"), /rains/);
+  assert.match(mistakeHint(question("cond-third-study"), "would pass"), /would have passed/);
+  assert.match(mistakeHint(question("colloc-make-decision"), "do"), /make a decision/);
 });
 
 test("existing sentence generator and checker still agree", () => {
   for (let i = 0; i < 100; i++) {
     const q = generateQuestion(DEFAULT_FILTER);
     assert.equal(checkAnswer(q, q.answer).correct, true, q.answer);
+  }
+});
+
+test("every basics topic has a complete topic guide and questions avoid spoiler contexts", () => {
+  for (const topic of Object.keys(BASICS_LABELS) as BasicsTopic[]) {
+    const guide = BASICS_TOPIC_GUIDES[topic];
+    assert.ok(guide, `missing guide for ${topic}`);
+    assert.ok(guide.summary.length > 20, topic);
+    assert.ok(guide.rules.length >= 3, topic);
+    assert.ok(guide.examples.length >= 3, topic);
+  }
+  for (const q of BASICS_POOL) {
+    if (q.topic === "conditionals" || q.topic === "quantifiers" || q.topic === "modals" || q.topic === "prepositions") {
+      assert.equal(q.context, undefined, `unexpected spoiler context on ${q.id}`);
+    }
   }
 });

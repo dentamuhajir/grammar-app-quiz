@@ -32,6 +32,37 @@ const USES: Record<Tense, string> = {
   futurePerfectContinuous: "Future Perfect Continuous menekankan durasi kegiatan hingga titik waktu tertentu di masa depan.",
 };
 
+const IMPLICIT_SITUATIONS: Record<Tense, string> = {
+  presentSimple:
+    "Situasi: Kebiasaan rutin, fakta umum, atau keadaan yang berlaku saat ini.",
+  pastSimple:
+    "Situasi: Kejadian atau keadaan yang terjadi dan selesai di masa lalu.",
+  futureSimple:
+    "Situasi: Prediksi, keputusan, atau hal yang akan terjadi di masa depan.",
+  presentContinuous:
+    "Situasi: Kegiatan atau perilaku sementara yang sedang berlangsung saat ini.",
+  pastContinuous:
+    "Situasi: Kegiatan yang sedang berlangsung pada suatu momen di masa lalu.",
+  futureContinuous:
+    "Situasi: Kegiatan yang akan sedang berlangsung pada waktu tertentu di masa depan.",
+  presentPerfect:
+    "Situasi: Kejadian yang sudah terjadi dan hasilnya masih berkaitan dengan keadaan sekarang.",
+  pastPerfect:
+    "Situasi: Kejadian yang sudah selesai lebih dulu sebelum waktu/kejadian lain di masa lalu.",
+  futurePerfect:
+    "Situasi: Hal yang akan sudah tuntas sebelum batas waktu tertentu di masa depan.",
+  presentPerfectContinuous:
+    "Situasi: Kegiatan yang dimulai di masa lalu dan proses/durasinya masih berlanjut hingga kini.",
+  pastPerfectContinuous:
+    "Situasi: Durasi kegiatan yang terus berlangsung sebelum titik waktu lain di masa lalu.",
+  futurePerfectContinuous:
+    "Situasi: Durasi kegiatan yang akan sudah berlangsung hingga titik waktu tertentu di masa depan.",
+};
+
+export function implicitContextCue(q: Question): string {
+  return IMPLICIT_SITUATIONS[effectiveTense(q)];
+}
+
 export function sentenceGuide(q: Question): SentenceGuide {
   const tense = effectiveTense(q);
   const agreement = q.mode === "passive" && q.verb

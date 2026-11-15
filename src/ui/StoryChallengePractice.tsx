@@ -15,6 +15,7 @@ import { BottomSheet } from "./BottomSheet";
 import { Confetti } from "./Confetti";
 import { SuccessBadge } from "./FeedbackIcons";
 import { SpokenSentence } from "./SpokenSentence";
+import { VoiceInputBar } from "./VoiceInputBar";
 import { useSwipeCard } from "./useSwipeCard";
 
 const STORY_LEVELS = Object.keys(STORY_LEVEL_LABELS) as StoryLevel[];
@@ -224,6 +225,14 @@ function StorySession({ filter }: { filter: StoryFilter }) {
               placeholder="Contoh: I ran fast to the station, but the train had left before I arrived..."
               autoCapitalize="sentences"
               spellCheck={true}
+            />
+            <VoiceInputBar
+              value={text}
+              multiline={true}
+              onChange={(nextVal) => {
+                setText(nextVal);
+                if (evaluation) setEvaluation(null);
+              }}
             />
           </div>
 
