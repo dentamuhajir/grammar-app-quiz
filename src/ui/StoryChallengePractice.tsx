@@ -1,16 +1,23 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   ALL_STORY_SCENARIOS,
   RULE_SHORT_NAMES,
   STORY_LEVEL_LABELS,
   evaluateStorySubmission,
   filterStoryScenarios,
+  getScenarioAnchors,
   type StoryEvaluationResult,
   type StoryFilter,
   type StoryLevel,
   type StoryMission,
   type StoryScenario,
 } from "../grammar/story/engine";
+import {
+  computeMiniLmSimilarityAsync,
+  getMiniLmStatus,
+  subscribeMiniLmStatus,
+  type MiniLmProgressEvent,
+} from "../grammar/story/minilm-client";
 import { BottomSheet } from "./BottomSheet";
 import { Confetti } from "./Confetti";
 import { SuccessBadge } from "./FeedbackIcons";
@@ -49,11 +56,46 @@ function StorySession({ filter }: { filter: StoryFilter }) {
   );
   const [sampleOpen, setSampleOpen] = useState(false);
   const [celebrateKey, setCelebrateKey] = useState(0);
+  const [miniLmState, setMiniLmState] = useState<MiniLmProgressEvent>(() =>
+    getMiniLmStatus(),
+  );
+  const [miniLmRunning, setMiniLmRunning] = useState(false);
+
+  useEffect(() => {
+    return subscribeMiniLmStatus((st) => {
+      setMiniLmState(st);
+    });
+  }, []);
 
   const scenario: StoryScenario = scenarios[index % scenarios.length];
   const liveEval = evaluateStorySubmission(scenario, text);
   const activeEval = evaluation ?? liveEval;
   const allComplete = evaluation?.status === "complete";
+
+  async function runMiniLmForText(targetScenario: StoryScenario, rawText: string) {
+    if (!rawText.trim()) return;
+    setMiniLmRunning(true);
+    try {
+      const anchors = getScenarioAnchors(targetScenario);
+      const sim = await computeMiniLmSimilarityAsync(
+        targetScenario.id,
+        anchors,
+        rawText,
+      );
+      setEvaluation((prev) => {
+        if (!prev) return prev;
+        return evaluateStorySubmission(targetScenario, rawText, {
+          miniLmSimilarity: sim.calibratedScore,
+          rawMiniLmCosine: sim.rawCosine,
+          latencyMs: sim.latencyMs,
+        });
+      });
+    } catch {
+      // Fallback gracefully to local semantic score already in `evaluation`
+    } finally {
+      setMiniLmRunning(false);
+    }
+  }
 
   function nextScenario() {
     setIndex((prev) => (prev + 1) % scenarios.length);
@@ -71,6 +113,9 @@ function StorySession({ filter }: { filter: StoryFilter }) {
       setCelebrateKey((k) => k + 1);
       setSampleOpen(true);
     }
+    if (miniLmState.status === "ready" && text.trim()) {
+      void runMiniLmForText(scenario, text);
+    }
   }
 
   function handleTrySample() {
@@ -78,6 +123,18 @@ function StorySession({ filter }: { filter: StoryFilter }) {
     const res = evaluateStorySubmission(scenario, scenario.sampleStory);
     setEvaluation(res);
     setSampleOpen(true);
+    if (miniLmState.status === "ready") {
+      void runMiniLmForText(scenario, scenario.sampleStory);
+    }
+  }
+
+  function handleActivateMiniLm() {
+    const currentText = text.trim() ? text : scenario.sampleStory;
+    if (!text.trim()) {
+      setText(scenario.sampleStory);
+      setEvaluation(evaluateStorySubmission(scenario, scenario.sampleStory));
+    }
+    void runMiniLmForText(scenario, currentText);
   }
 
   function handleResetText() {
@@ -198,7 +255,8 @@ function StorySession({ filter }: { filter: StoryFilter }) {
             </label>
             <div className="story-meta-bar">
               <span>
-                <strong>{activeEval.sentenceCount}</strong> kalimat
+                <strong>{activeEval.sentenceCount}</strong>/3 kalimat ·{" "}
+                <strong>{activeEval.wordCount}</strong>/15 kata
               </span>
               {text.trim().length > 0 && (
                 <button
@@ -257,13 +315,17 @@ function StorySession({ filter }: { filter: StoryFilter }) {
           </div>
         </form>
 
-        {/* 4. TAMPILAN HASIL & KOREKSI (THE EVALUATION SCREEN) */}
+        {/* 4. TAMPILAN HASIL TERPISAH SESUAI 13.5:
+            (A) Struktur & Syarat Eksplisit Terdeteksi
+            (B) Perkiraan Relevansi Topik (MiniLM / Semantik)
+            (C) Saran Berbasis Template (Eksploratif) */}
         {evaluation && evaluation.status === "empty" && (
           <div className="feedback feedback-warn" role="status">
             <p className="feedback-title">Kotak cerita masih kosong</p>
             <p className="feedback-hint">
               Ketik cerita singkat Anda atau tekan <strong>Isi Contoh</strong>{" "}
-              untuk melihat simulasi bedah paragraf visual.
+              untuk melihat hasil bedah struktur, perkiraan relevansi, dan saran
+              berbasis template.
             </p>
           </div>
         )}
@@ -274,70 +336,248 @@ function StorySession({ filter }: { filter: StoryFilter }) {
               allComplete ? "eval-complete" : "eval-incomplete"
             }`}
             role="status"
-            aria-label="Hasil Bedah Paragraf Visual"
+            aria-label="Hasil Evaluasi Terpisah Story Challenge"
           >
-            <div className="story-eval-header">
-              {allComplete ? (
-                <p className="feedback-title">
-                  <SuccessBadge /> Misi Selesai Sempurna! (3/3 Grammar Terpenuhi)
-                </p>
-              ) : (
-                <p className="feedback-title">
-                  Bedah Paragraf Visual ({evaluation.passedCount}/
-                  {evaluation.totalCount} Misi Terpenuhi)
-                </p>
-              )}
-            </div>
-
-            {/* Color-coded paragraph display */}
-            <div className="story-dissected-paragraph">
-              <p className="story-dissected-label">
-                Hasil Bedah Teks Anda (Color-Coded Highlighting):
-              </p>
-              <p className="story-dissected-text">
-                {evaluation.segments.map((seg, i) =>
-                  seg.highlight ? (
-                    <mark
-                      key={i}
-                      className={`story-hl story-hl-${seg.highlight.color}`}
-                    >
-                      [{seg.text}]
-                      <span className="story-hl-tag">
-                        {seg.highlight.ruleName}
-                      </span>
-                    </mark>
-                  ) : (
-                    <span key={i}>{seg.text}</span>
-                  ),
+            {/* PANEL 1: STRUKTUR & SYARAT EKSPLISIT TERDETEKSI (ATURAN LOKAL) */}
+            <div className="story-panel-block">
+              <div className="story-panel-header">
+                <span className="story-panel-number">1</span>
+                <div className="story-panel-title-wrap">
+                  <h3 className="story-panel-title">
+                    Struktur &amp; Syarat Eksplisit Terdeteksi
+                  </h3>
+                  <span className="story-panel-subtitle">
+                    Diperiksa dengan aturan lokal (Rule-Based Engine)
+                  </span>
+                </div>
+                {evaluation.explicitChecks.allPassed ? (
+                  <span className="story-status-pill pill-ok">
+                    <SuccessBadge /> Lengkap
+                  </span>
+                ) : (
+                  <span className="story-status-pill pill-warn">
+                    {evaluation.passedCount}/{evaluation.totalCount} Misi
+                  </span>
                 )}
+              </div>
+
+              {/* 3 Syarat Eksplisit Lokal: Struktur Target, Panjang Minimum, Format */}
+              <div className="story-explicit-grid">
+                <div
+                  className={`story-explicit-item ${
+                    evaluation.explicitChecks.targetStructures.passed
+                      ? "passed"
+                      : "pending"
+                  }`}
+                >
+                  <span className="story-explicit-icon" aria-hidden="true">
+                    {evaluation.explicitChecks.targetStructures.passed
+                      ? "✓"
+                      : "!"}
+                  </span>
+                  <div>
+                    <strong>
+                      {evaluation.explicitChecks.targetStructures.label}
+                    </strong>
+                    <p>{evaluation.explicitChecks.targetStructures.detail}</p>
+                  </div>
+                </div>
+
+                <div
+                  className={`story-explicit-item ${
+                    evaluation.explicitChecks.minimumLength.passed
+                      ? "passed"
+                      : "pending"
+                  }`}
+                >
+                  <span className="story-explicit-icon" aria-hidden="true">
+                    {evaluation.explicitChecks.minimumLength.passed ? "✓" : "!"}
+                  </span>
+                  <div>
+                    <strong>
+                      {evaluation.explicitChecks.minimumLength.label}
+                    </strong>
+                    <p>{evaluation.explicitChecks.minimumLength.detail}</p>
+                  </div>
+                </div>
+
+                <div
+                  className={`story-explicit-item ${
+                    evaluation.explicitChecks.format.passed
+                      ? "passed"
+                      : "pending"
+                  }`}
+                >
+                  <span className="story-explicit-icon" aria-hidden="true">
+                    {evaluation.explicitChecks.format.passed ? "✓" : "!"}
+                  </span>
+                  <div>
+                    <strong>{evaluation.explicitChecks.format.label}</strong>
+                    <p>{evaluation.explicitChecks.format.detail}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Color-coded paragraph display */}
+              <div className="story-dissected-paragraph">
+                <p className="story-dissected-label">
+                  Bedah Struktur Paragraf Anda (Color-Coded Highlighting):
+                </p>
+                <p className="story-dissected-text">
+                  {evaluation.segments.map((seg, i) =>
+                    seg.highlight ? (
+                      <mark
+                        key={i}
+                        className={`story-hl story-hl-${seg.highlight.color}`}
+                      >
+                        [{seg.text}]
+                        <span className="story-hl-tag">
+                          {seg.highlight.ruleName}
+                        </span>
+                      </mark>
+                    ) : (
+                      <span key={i}>{seg.text}</span>
+                    ),
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* PANEL 2: PERKIRAAN RELEVANSI TOPIK (MINILM / SEMANTIK) */}
+            <div className="story-panel-block">
+              <div className="story-panel-header">
+                <span className="story-panel-number">2</span>
+                <div className="story-panel-title-wrap">
+                  <h3 className="story-panel-title">
+                    Perkiraan Relevansi Terhadap Topik
+                  </h3>
+                  <span className="story-panel-subtitle">
+                    {evaluation.relevance.source === "minilm-hybrid"
+                      ? `MiniLM-L6-v2 On-Device (384-dim${
+                          evaluation.relevance.latencyMs
+                            ? ` · ${evaluation.relevance.latencyMs} ms`
+                            : ""
+                        })`
+                      : "Estimasi Vektor Semantik Multi-Anchor Lokal"}
+                  </span>
+                </div>
+                <span
+                  className={`story-status-pill relevance-${evaluation.relevance.level}`}
+                >
+                  {evaluation.relevance.label} (
+                  {evaluation.relevance.percentage}%)
+                </span>
+              </div>
+
+              <div className="story-relevance-meter-wrap">
+                <div
+                  className="story-relevance-meter-bar"
+                  role="progressbar"
+                  aria-valuenow={evaluation.relevance.percentage}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div
+                    className={`story-relevance-meter-fill fill-${evaluation.relevance.level}`}
+                    style={{ width: `${evaluation.relevance.percentage}%` }}
+                  />
+                </div>
+              </div>
+
+              <p className="story-relevance-summary">
+                {evaluation.relevance.summary}
+              </p>
+
+              {evaluation.relevance.matchedConcepts.length > 0 && (
+                <div className="story-concept-tags">
+                  <span className="story-concept-label">
+                    Konsep Tema Terdeteksi:
+                  </span>
+                  {evaluation.relevance.matchedConcepts.map((c) => (
+                    <span key={c} className="story-concept-chip matched">
+                      ✓ {c}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Kontrol Opsional MiniLM On-Device Web Worker */}
+              <div className="story-minilm-bar">
+                {miniLmState.status === "ready" ? (
+                  <span className="story-minilm-ready-badge">
+                    ⚡ MiniLM-L6-v2 (q8) aktif di Web Worker HP
+                    {miniLmRunning ? " · Menghitung embedding..." : ""}
+                  </span>
+                ) : miniLmState.status === "loading" ? (
+                  <span className="story-minilm-loading-badge">
+                    ⏳ {miniLmState.message}
+                  </span>
+                ) : (
+                  <div className="story-minilm-cta">
+                    <button
+                      type="button"
+                      className="story-minilm-btn"
+                      onClick={handleActivateMiniLm}
+                      disabled={miniLmRunning}
+                    >
+                      ⚡ Gunakan MiniLM-L6-v2 On-Device (~23 MB)
+                    </button>
+                    <span className="story-minilm-hint">
+                      Opsional: diunduh 1x ke cache browser HP &amp; berjalan di
+                      Web Worker tanpa membebani UI.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <p className="story-limitations-note">
+                ℹ️ {evaluation.relevance.limitationsDisclaimer}
               </p>
             </div>
 
-            {/* Feedback Khusus untuk misi yang belum selesai */}
-            {!allComplete && (
+            {/* PANEL 3: SARAN BERBASIS TEMPLATE & EKSPLORASI */}
+            <div className="story-panel-block">
+              <div className="story-panel-header">
+                <span className="story-panel-number">3</span>
+                <div className="story-panel-title-wrap">
+                  <h3 className="story-panel-title">
+                    Saran Berbasis Template &amp; Eksplorasi
+                  </h3>
+                  <span className="story-panel-subtitle">
+                    Panduan terarah &amp; saran eksploratif (bukan vonis
+                    definitif)
+                  </span>
+                </div>
+              </div>
+
               <div className="story-feedback-list">
-                <p className="story-dissected-label">
-                  Feedback & Saran Perbaikan:
-                </p>
-                {evaluation.missions
-                  .filter((m) => !m.passed)
-                  .map((m) => (
-                    <div
-                      key={m.mission.id}
-                      className={`story-feedback-card ${
-                        m.isNearMiss ? "near-miss" : ""
+                {evaluation.templateSuggestions.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`story-feedback-card ${
+                      item.isExploratory
+                        ? "exploratory-card"
+                        : item.category === "structure"
+                          ? "near-miss"
+                          : ""
+                    }`}
+                  >
+                    <span
+                      className={`story-color-dot ${
+                        item.isExploratory
+                          ? "dot-exploratory"
+                          : item.category === "length-format"
+                            ? "dot-blue"
+                            : "dot-purple"
                       }`}
                     >
-                      <span
-                        className={`story-color-dot dot-${m.mission.color}`}
-                      >
-                        {RULE_SHORT_NAMES[m.mission.ruleId]}
-                      </span>
-                      <p>{m.feedback}</p>
-                    </div>
-                  ))}
+                      {item.badge}
+                    </span>
+                    <p>{item.text}</p>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
 
             {/* Contoh Cerita Referensi + Audio TTS */}
             <div className="story-sample-toggle-wrap">
