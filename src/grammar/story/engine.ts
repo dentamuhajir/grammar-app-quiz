@@ -78,15 +78,96 @@ export interface StoryTextSegment {
   };
 }
 
+export type RelevanceLevel = "high" | "medium" | "low";
+
+export interface StoryConceptGroup {
+  id: string;
+  label: string;
+  terms: string[];
+}
+
+export interface StoryExplicitChecks {
+  targetStructures: {
+    passed: boolean;
+    passedCount: number;
+    totalCount: number;
+    label: string;
+    detail: string;
+  };
+  minimumLength: {
+    passed: boolean;
+    sentenceCount: number;
+    minSentences: number;
+    wordCount: number;
+    minWords: number;
+    label: string;
+    detail: string;
+  };
+  format: {
+    passed: boolean;
+    startsWithCapital: boolean;
+    endsWithPunctuation: boolean;
+    label: string;
+    detail: string;
+  };
+  allPassed: boolean;
+}
+
+export interface StoryRelevanceAssessment {
+  level: RelevanceLevel;
+  score: number; // 0..1
+  percentage: number; // 0..100
+  source: "minilm-hybrid" | "local-semantic";
+  rawMiniLmCosine?: number;
+  latencyMs?: number;
+  label: string;
+  summary: string;
+  matchedConcepts: string[];
+  missingConcepts: string[];
+  limitationsDisclaimer: string;
+}
+
+export interface StoryTemplateSuggestion {
+  id: string;
+  category:
+    | "structure"
+    | "length-format"
+    | "exploratory-topic"
+    | "refinement";
+  badge: string;
+  text: string;
+  isExploratory: boolean;
+}
+
+export interface StoryEvaluationOptions {
+  /** Calibrated MiniLM similarity score (0..1) from the Web Worker */
+  miniLmSimilarity?: number;
+  /** Raw cosine similarity (-1..1) from MiniLM 384-dim vectors */
+  rawMiniLmCosine?: number;
+  /** Inference latency in milliseconds */
+  latencyMs?: number;
+}
+
 export interface StoryEvaluationResult {
   status: "empty" | "incomplete" | "complete";
   passedCount: number;
   totalCount: number;
   sentenceCount: number;
+  wordCount: number;
   matchedKeywords: string[];
   missions: MissionEvaluation[];
   segments: StoryTextSegment[];
+  /** 13.5 Explicit local rule checks: target structure, minimum length, and format */
+  explicitChecks: StoryExplicitChecks;
+  /** 13.5 Estimated topic relevance (MiniLM / semantic anchor comparison) */
+  relevance: StoryRelevanceAssessment;
+  /** 13.5 Separated template-based & exploratory suggestions */
+  templateSuggestions: StoryTemplateSuggestion[];
 }
+
+export const MINILM_LIMITATIONS_DISCLAIMER =
+  "Batas kemampuan model: MiniLM hanya memperkirakan kemiripan topik/semantik terhadap prompt. Skor ini bukan bukti seluruh grammar di luar misi bebas kesalahan, tidak menilai koherensi cerita panjang secara mendalam, dan tidak menggantikan revisi/penilaian manusia.";
+
 
 export const STORY_LEVEL_LABELS: Record<StoryLevel, string> = {
   starter: "Starter (Dasar)",
@@ -707,17 +788,810 @@ export function buildHighlightedSegments(
   return segments;
 }
 
+// ============================================================================
+// 13.5 Semantic Relevance (MiniLM + Multi-Anchor Concept Vectors) & Explicit Rules
+// ============================================================================
+
+interface ScenarioSemanticProfile {
+  anchors: string[];
+  concepts: StoryConceptGroup[];
+  exploratoryPrompt: string;
+}
+
+const GRAMMAR_STOPWORDS = new Set([
+  "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them",
+  "my", "your", "his", "our", "their", "its", "mine", "yours", "ours", "theirs",
+  "a", "an", "the", "this", "that", "these", "those", "some", "any", "every", "all",
+  "to", "of", "in", "on", "at", "by", "for", "with", "from", "into", "onto", "about",
+  "and", "but", "or", "so", "as", "if", "when", "while", "before", "after", "until",
+  "although", "though", "even", "however", "because", "since", "unless", "whether",
+  "was", "were", "is", "are", "am", "be", "been", "being",
+  "had", "have", "has", "having", "did", "do", "does", "done", "doing",
+  "will", "would", "should", "could", "can", "may", "might", "must", "going",
+  "not", "no", "never", "very", "too", "also", "still", "just", "already", "really",
+  "who", "which", "where", "there", "here", "then", "than", "more", "most", "much",
+  "many", "several", "few", "one", "two", "three", "first", "last",
+]);
+
+const SCENARIO_SEMANTIC_PROFILES: Record<string, ScenarioSemanticProfile> = {
+  "late-event": {
+    anchors: [
+      "I ran fast to the station, but the train had left before I arrived. I was panicking because my ticket was left on my desk at home. I should have prepared everything last night.",
+      "I rushed to the office this morning, but the important meeting had started before I entered the room. My presentation folder was forgotten on the kitchen table. I should have set an earlier alarm clock.",
+      "We hurried to the terminal, yet the morning bus had departed ten minutes earlier due to traffic. Our event passes were locked inside the drawer at home. We should have checked our bags the night before.",
+    ],
+    concepts: [
+      {
+        id: "lateness-time",
+        label: "Situasi Terlambat & Waktu",
+        terms: [
+          "late", "delay", "delayed", "miss", "missed", "hurry", "hurried",
+          "ran", "run", "rush", "rushed", "overslept", "alarm", "morning",
+          "night", "early", "earlier", "minute", "minutes", "hour", "time",
+          "traffic", "schedule", "fast", "quickly",
+        ],
+      },
+      {
+        id: "venue-transport-meeting",
+        label: "Lokasi Acara / Rapat / Transportasi",
+        terms: [
+          "station", "train", "bus", "terminal", "platform", "gate",
+          "meeting", "office", "event", "conference", "room", "boss",
+          "manager", "client", "seminar", "class", "exam", "arrive",
+          "arrived", "leave", "left", "depart", "departed", "start",
+          "started", "begin", "begun", "enter", "entered", "reach", "reached",
+        ],
+      },
+      {
+        id: "preparation-forgotten-item",
+        label: "Barang Tertinggal & Persiapan",
+        terms: [
+          "ticket", "tickets", "pass", "passes", "desk", "table", "home",
+          "house", "folder", "document", "file", "notes", "laptop", "card",
+          "wallet", "key", "keys", "bag", "prepare", "prepared", "forget",
+          "forgot", "forgotten", "check", "checked", "panic", "panicked",
+          "pack", "packed", "wake", "woken",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Bagaimana situasi saat Anda terburu-buru menuju lokasi (stasiun/kantor/ruang rapat), apa yang sudah terlanjur terjadi saat Anda tiba, dan barang atau persiapan apa yang terlupa?",
+  },
+  "ruined-trip": {
+    anchors: [
+      "We arrived at the airport early, but our morning bus had departed ten minutes before. Later, our flight was cancelled due to a heavy storm. We should have checked the weather forecast before leaving the hotel.",
+      "Our family reached the harbor in the morning, but the ferry had sailed before we got there. All island tours were postponed because of strong winds and rain. We should have booked a refundable hotel room.",
+    ],
+    concepts: [
+      {
+        id: "travel-transport",
+        label: "Perjalanan & Transportasi",
+        terms: [
+          "airport", "flight", "plane", "bus", "train", "ferry", "ship",
+          "terminal", "harbor", "station", "hotel", "trip", "vacation",
+          "holiday", "journey", "tour", "island", "luggage", "baggage",
+          "depart", "departed", "arrive", "arrived", "reach", "reached",
+        ],
+      },
+      {
+        id: "weather-disruption",
+        label: "Cuaca Buruk & Pembatalan",
+        terms: [
+          "storm", "weather", "rain", "wind", "typhoon", "fog", "flood",
+          "heavy", "bad", "cancel", "cancelled", "canceled", "delay",
+          "delayed", "postpone", "postponed", "close", "closed", "ruin",
+          "ruined", "schedule",
+        ],
+      },
+      {
+        id: "planning-forecast",
+        label: "Antisipasi & Rencana Cadangan",
+        terms: [
+          "check", "checked", "forecast", "news", "book", "booked", "plan",
+          "planned", "prepare", "prepared", "ticket", "reservation", "early",
+          "earlier",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Kendala cuaca atau transportasi apa yang mengacaukan jadwal liburan Anda, dan hal apa yang seharusnya dicek sebelum berangkat?",
+  },
+  "project-crisis": {
+    anchors: [
+      "I opened my laptop for the client meeting, but the final slide had disappeared from my folder. Fortunately, a backup copy was saved on our cloud server by my teammate. Although I was nervous at first, the presentation finished smoothly.",
+      "Before the board presentation began, our projector had stopped working suddenly. Thankfully, the main report was printed and shared by my colleague. Even though we faced a technical problem, the client approved our proposal.",
+    ],
+    concepts: [
+      {
+        id: "device-file-crisis",
+        label: "Kendala File / Perangkat Presentasi",
+        terms: [
+          "laptop", "computer", "projector", "screen", "file", "slide",
+          "slides", "folder", "document", "data", "system", "disappear",
+          "disappeared", "crash", "crashed", "break", "broken", "delete",
+          "deleted", "lose", "lost", "corrupt", "problem", "error",
+        ],
+      },
+      {
+        id: "backup-recovery",
+        label: "Penyelamatan / Cadangan (Backup)",
+        terms: [
+          "backup", "copy", "server", "cloud", "drive", "flash", "save",
+          "saved", "restore", "restored", "repair", "repaired", "fix",
+          "fixed", "send", "sent", "print", "printed", "teammate",
+          "colleague", "technician",
+        ],
+      },
+      {
+        id: "meeting-outcome",
+        label: "Jalannya Rapat & Hasil Akhir",
+        terms: [
+          "meeting", "presentation", "client", "manager", "boss", "team",
+          "project", "office", "room", "panic", "panicked", "nervous",
+          "calm", "smoothly", "finish", "finished", "success", "successful",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Masalah teknis apa yang menimpa file/perangkat Anda tepat sebelum presentasi, bagaimana cadangannya diselamatkan, dan bagaimana hasil akhirnya?",
+  },
+  "hometown-change": {
+    anchors: [
+      "My hometown has grown rapidly over the last five years. Many old fields were replaced by modern cafes and apartments. Even so, the public library where I studied every afternoon is still protected by the local community.",
+      "The small city where I grew up has changed a lot since my childhood. Several traditional markets were rebuilt into clean shopping centers. I still love the quiet river park which brings back warm memories.",
+    ],
+    concepts: [
+      {
+        id: "city-growth",
+        label: "Perkembangan Kota & Waktu",
+        terms: [
+          "hometown", "city", "town", "village", "neighborhood", "area",
+          "grow", "grown", "grew", "change", "changed", "develop",
+          "developed", "rapidly", "year", "years", "decade", "childhood",
+        ],
+      },
+      {
+        id: "buildings-transformation",
+        label: "Pembangunan & Perubahan Tempat",
+        terms: [
+          "building", "buildings", "mall", "malls", "cafe", "cafes",
+          "apartment", "apartments", "road", "roads", "bridge", "office",
+          "modern", "tall", "new", "old", "field", "fields", "trees",
+          "replace", "replaced", "build", "built", "rebuild", "rebuilt",
+        ],
+      },
+      {
+        id: "favorite-place-memory",
+        label: "Tempat Favorit & Kenangan",
+        terms: [
+          "park", "library", "school", "river", "market", "garden", "museum",
+          "visit", "visited", "play", "played", "study", "studied",
+          "protect", "protected", "keep", "kept", "community", "child",
+          "memory", "favorite",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Perubahan apa yang paling terlihat di kota/lingkungan Anda dibanding dulu, bangunan apa yang diganti/dibangun, dan tempat kenangan mana yang masih ada?",
+  },
+  "lost-wallet": {
+    anchors: [
+      "I was walking home from the night market when I realized my wallet was missing. I searched everywhere, and thankfully my wallet was found by a kind shopkeeper near the gate. After I thanked him warmly, I promised to be more careful.",
+      "While I was waiting for the bus yesterday, my phone slipped out of my jacket pocket. Fortunately, the phone was returned by an honest passenger at the station. Before I went home, I bought her a cup of coffee.",
+    ],
+    concepts: [
+      {
+        id: "valuable-item",
+        label: "Barang Berharga yang Hilang",
+        terms: [
+          "wallet", "phone", "keys", "key", "bag", "purse", "watch", "card",
+          "passport", "money", "pocket", "backpack", "jacket", "lose",
+          "lost", "missing", "drop", "dropped", "disappear", "disappeared",
+          "realize", "realized", "notice", "noticed",
+        ],
+      },
+      {
+        id: "activity-place",
+        label: "Aktivitas & Lokasi Kejadian",
+        terms: [
+          "walk", "walking", "walked", "shop", "shopping", "wait", "waiting",
+          "ride", "riding", "run", "running", "market", "street", "mall",
+          "station", "park", "bus", "cafe", "gate", "home", "search",
+          "searched", "panic", "panicked",
+        ],
+      },
+      {
+        id: "found-returned",
+        label: "Penemuan Kembali & Rasa Syukur",
+        terms: [
+          "find", "found", "return", "returned", "keep", "kept", "save",
+          "saved", "give", "given", "shopkeeper", "stranger", "driver",
+          "guard", "passenger", "police", "kind", "honest", "thank",
+          "thanked", "careful", "promise", "promised",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Apa yang sedang Anda lakukan saat menyadari barang berharga (dompet/ponsel/kunci) hilang, siapa yang menemukannya, dan apa yang Anda lakukan setelahnya?",
+  },
+  "dream-skill": {
+    anchors: [
+      "I have wanted to speak fluent English since I graduated from college. If I had more free time every afternoon, I would join an international speaking club. Although my daily schedule is busy, I still practice ten new sentences every night.",
+      "I have learned coding and web design for several months at home. If I had a faster laptop and a mentor, I would build my own mobile application. Even though the lessons are challenging, I enjoy practicing every weekend.",
+    ],
+    concepts: [
+      {
+        id: "skill-interest",
+        label: "Keterampilan / Bahasa Impian",
+        terms: [
+          "skill", "language", "english", "japanese", "coding", "programming",
+          "music", "piano", "guitar", "cooking", "design", "photography",
+          "fluent", "fluently", "speak", "speaking", "spoken", "learn",
+          "learned", "master", "want", "wanted", "study", "studied",
+        ],
+      },
+      {
+        id: "time-wish",
+        label: "Pengandaian Waktu & Kesempatan",
+        terms: [
+          "time", "free", "afternoon", "weekend", "chance", "opportunity",
+          "join", "course", "class", "club", "abroad", "teacher", "mentor",
+          "practice", "build", "create", "travel",
+        ],
+      },
+      {
+        id: "daily-effort",
+        label: "Tantangan Jadwal & Usaha Rutin",
+        terms: [
+          "schedule", "busy", "work", "job", "tired", "difficult",
+          "challenging", "daily", "night", "morning", "every", "read",
+          "write", "watch", "listen", "sentence", "sentences", "habit",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Keterampilan atau bahasa apa yang sudah lama ingin Anda kuasai, apa yang akan Anda lakukan jika punya waktu luang lebih, dan bagaimana usaha rutin Anda sekarang?",
+  },
+  "rainy-day": {
+    anchors: [
+      "Yesterday afternoon, I walked to a small coffee shop near my house. While I was waiting for my friend outside, heavy rain suddenly fell. We drank warm tea inside the cafe until the rain stopped.",
+      "Last evening, I went to the bookstore after work. While I was crossing the street, a sudden downpour started and I had no umbrella. I waited under a shop roof and drank hot coffee with my friend.",
+    ],
+    concepts: [
+      {
+        id: "rain-weather",
+        label: "Turunnya Hujan & Cuaca",
+        terms: [
+          "rain", "rained", "raining", "heavy", "storm", "wet", "cold",
+          "cloud", "clouds", "dark", "umbrella", "raincoat", "fall", "fell",
+          "start", "started", "stop", "stopped", "suddenly", "pour",
+        ],
+      },
+      {
+        id: "activity-waiting",
+        label: "Aktivitas & Tempat Berteduh",
+        terms: [
+          "walk", "walked", "walking", "wait", "waited", "waiting", "go",
+          "went", "run", "ran", "stand", "standing", "cafe", "coffee",
+          "shop", "house", "home", "bus", "street", "outside", "inside",
+          "roof", "shelter",
+        ],
+      },
+      {
+        id: "warm-moment",
+        label: "Suasana Hangat / Bersama Teman",
+        terms: [
+          "friend", "friends", "tea", "drink", "drank", "warm", "hot",
+          "cup", "talk", "talked", "chat", "yesterday", "afternoon",
+          "evening",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Ke mana Anda pergi kemarin, apa yang sedang Anda lakukan ketika hujan deras tiba-tiba turun, dan bagaimana Anda berteduh?",
+  },
+  "special-dinner": {
+    anchors: [
+      "Last night, my sister and I cooked a special dinner for our family. While I was cutting the vegetables, the warm soup was prepared by my sister. Everyone enjoyed the delicious meal together.",
+      "Yesterday evening, we made a birthday feast in our kitchen for our parents. While I was frying the chicken, the fresh salad and rice were served by my brother. Our family loved the tasty food.",
+    ],
+    concepts: [
+      {
+        id: "cooking-kitchen",
+        label: "Aktivitas Memasak di Dapur",
+        terms: [
+          "cook", "cooked", "cooking", "make", "made", "prepare", "prepared",
+          "cut", "cutting", "chop", "chopping", "fry", "frying", "boil",
+          "bake", "baked", "wash", "serve", "served", "kitchen", "stove",
+          "table",
+        ],
+      },
+      {
+        id: "food-dishes",
+        label: "Hidangan & Makanan",
+        terms: [
+          "dinner", "meal", "food", "dish", "dishes", "soup", "vegetable",
+          "vegetables", "chicken", "fish", "meat", "rice", "noodle", "salad",
+          "cake", "delicious", "tasty", "warm", "fresh", "special",
+        ],
+      },
+      {
+        id: "family-togetherness",
+        label: "Keluarga & Kebersamaan",
+        terms: [
+          "family", "parents", "mother", "father", "sister", "brother",
+          "friend", "friends", "everyone", "together", "enjoy", "enjoyed",
+          "eat", "ate", "happy", "night", "evening",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Hidangan apa yang Anda masak bersama keluarga/teman, tugas apa yang sedang dikerjakan di dapur, dan oleh siapa masakan itu disiapkan?",
+  },
+  "weekend-plan": {
+    anchors: [
+      "This weekend, my friends and I are going to visit the national museum. I have bought the entrance tickets online so we do not need to wait in line. After we explore the exhibition, we will eat lunch at our favorite noodle shop.",
+      "On Saturday morning, our family will travel to the city zoo and botanical garden. My brother has booked the train seats and snacks in advance. Before we return home in the evening, we are going to take photos together.",
+    ],
+    concepts: [
+      {
+        id: "weekend-destination",
+        label: "Rencana Tujuan Akhir Pekan",
+        terms: [
+          "weekend", "saturday", "sunday", "holiday", "tomorrow", "visit",
+          "travel", "go", "explore", "museum", "exhibition", "zoo", "park",
+          "beach", "mountain", "cinema", "gallery", "city",
+        ],
+      },
+      {
+        id: "preparation-tickets",
+        label: "Persiapan yang Sudah Dilakukan",
+        terms: [
+          "ticket", "tickets", "book", "booked", "buy", "bought", "reserve",
+          "reserved", "prepare", "prepared", "pack", "packed", "online",
+          "line", "seat", "plan", "planned",
+        ],
+      },
+      {
+        id: "friends-post-activity",
+        label: "Kebersamaan & Kegiatan Lanjutan",
+        terms: [
+          "friend", "friends", "family", "together", "lunch", "dinner",
+          "eat", "food", "noodle", "cafe", "restaurant", "photo", "photos",
+          "walk", "enjoy",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Ke mana Anda berencana pergi akhir pekan ini, persiapan apa yang sudah selesai Anda lakukan sekarang, dan kegiatan apa yang akan dilakukan setelahnya?",
+  },
+  interview: {
+    anchors: [
+      "I arrived at the office thirty minutes early because I had printed my resume the night before. During the session, several difficult questions were asked by the senior manager. I answered honestly, but I should have practiced my speaking speed more calmly.",
+      "Before I entered the interview room, I had researched the company profile carefully. My portfolio and certificates were reviewed by the human resources director. I felt confident, though I should have given shorter examples.",
+    ],
+    concepts: [
+      {
+        id: "interview-preparation",
+        label: "Persiapan Dokumen & Riset Sebelum Wawancara",
+        terms: [
+          "resume", "cv", "portfolio", "document", "documents", "certificate",
+          "print", "printed", "prepare", "prepared", "study", "studied",
+          "research", "researched", "early", "night", "before",
+        ],
+      },
+      {
+        id: "interview-session",
+        label: "Suasana & Pertanyaan Wawancara",
+        terms: [
+          "interview", "company", "office", "room", "manager", "director",
+          "hr", "interviewer", "question", "questions", "ask", "asked",
+          "check", "checked", "review", "reviewed", "session", "exam",
+        ],
+      },
+      {
+        id: "self-evaluation",
+        label: "Respons & Evaluasi Diri",
+        terms: [
+          "answer", "answered", "speak", "speaking", "practice", "practiced",
+          "nervous", "calm", "calmly", "confident", "honestly", "speed",
+          "English", "better",
+        ],
+      },
+    ],
+    exploratoryPrompt:
+      "Apa yang sudah Anda siapkan sebelum masuk ruang wawancara, pertanyaan/hal apa yang diajukan oleh pewawancara, dan apa evaluasi diri Anda?",
+  },
+};
+
+function tokenizeContentWords(text: string): string[] {
+  const rawTokens = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s']/g, " ")
+    .split(/\s+/)
+    .map((w) => w.replace(/^'+|'+$/g, ""))
+    .filter((w) => w.length >= 2 && !GRAMMAR_STOPWORDS.has(w));
+
+  const normalized: string[] = [];
+  for (const token of rawTokens) {
+    normalized.push(token);
+    const vEntry = V2_MAP.get(token);
+    if (vEntry) {
+      normalized.push(vEntry.base);
+    } else {
+      for (const v of ALL_VERBS) {
+        if (v.participle === token || v.ing === token) {
+          normalized.push(v.base);
+          break;
+        }
+      }
+    }
+    if (token.length > 4 && token.endsWith("s") && !token.endsWith("ss")) {
+      normalized.push(token.slice(0, -1));
+    }
+    if (token.length > 5 && token.endsWith("ed")) {
+      normalized.push(token.slice(0, -2));
+      normalized.push(token.slice(0, -1));
+    }
+    if (token.length > 5 && token.endsWith("ing")) {
+      normalized.push(token.slice(0, -3));
+    }
+  }
+  return normalized;
+}
+
+export function getScenarioAnchors(scenario: StoryScenario): string[] {
+  const profile = SCENARIO_SEMANTIC_PROFILES[scenario.id];
+  const missionExamples = scenario.missions.map((m) => m.example).join(" ");
+  if (profile) {
+    return [...profile.anchors, missionExamples];
+  }
+  return [
+    scenario.sampleStory,
+    missionExamples,
+    `${scenario.title}. ${scenario.keywords.join(" ")}. ${scenario.verbHelpers.map((v) => v.base).join(" ")}.`,
+  ];
+}
+
+export function getScenarioConceptGroups(
+  scenario: StoryScenario,
+): StoryConceptGroup[] {
+  const profile = SCENARIO_SEMANTIC_PROFILES[scenario.id];
+  if (profile) {
+    return profile.concepts;
+  }
+  return [
+    {
+      id: "keywords-context",
+      label: "Kata Kunci Skenario",
+      terms: scenario.keywords.map((k) => k.toLowerCase()),
+    },
+    {
+      id: "verbs-action",
+      label: "Kata Kerja Aksi Skenario",
+      terms: scenario.verbHelpers.flatMap((v) => [
+        v.base.toLowerCase(),
+        v.past.toLowerCase(),
+        v.participle.toLowerCase(),
+      ]),
+    },
+    {
+      id: "sample-theme",
+      label: "Tema Contoh Cerita",
+      terms: tokenizeContentWords(scenario.sampleStory),
+    },
+  ];
+}
+
+function computeContentCosineSimilarity(
+  tokensA: string[],
+  tokensB: string[],
+): number {
+  if (tokensA.length === 0 || tokensB.length === 0) return 0;
+  const freqA = new Map<string, number>();
+  const freqB = new Map<string, number>();
+
+  for (const t of tokensA) {
+    freqA.set(t, (freqA.get(t) ?? 0) + 1);
+  }
+  for (const t of tokensB) {
+    freqB.set(t, (freqB.get(t) ?? 0) + 1);
+  }
+
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (const [k, va] of freqA) {
+    normA += va * va;
+    const vb = freqB.get(k);
+    if (vb) dot += va * vb;
+  }
+  for (const [, vb] of freqB) {
+    normB += vb * vb;
+  }
+
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom > 0 ? dot / denom : 0;
+}
+
+export function evaluateExplicitRules(
+  scenario: StoryScenario,
+  trimmed: string,
+  sentences: string[],
+  passedCount: number,
+): StoryExplicitChecks {
+  const totalCount = scenario.missions.length;
+  const words = trimmed
+    .split(/\s+/)
+    .map((w) => w.replace(/[^a-zA-Z0-9']/g, ""))
+    .filter(Boolean);
+  const wordCount = words.length;
+  const minSentences = 3;
+  const minWords = 15;
+
+  const targetPassed = passedCount === totalCount;
+  const lengthPassed =
+    sentences.length >= minSentences && wordCount >= minWords;
+
+  const startsWithCapital = /^[A-Z]/.test(trimmed);
+  const endsWithPunctuation = /[.!?]["')]*$/.test(trimmed);
+  const formatPassed = startsWithCapital && endsWithPunctuation;
+
+  return {
+    targetStructures: {
+      passed: targetPassed,
+      passedCount,
+      totalCount,
+      label: "Struktur Target (Rule-Based)",
+      detail: targetPassed
+        ? `${passedCount}/${totalCount} misi grammar terdeteksi di dalam teks.`
+        : `Baru ${passedCount}/${totalCount} misi grammar yang terdeteksi.`,
+    },
+    minimumLength: {
+      passed: lengthPassed,
+      sentenceCount: sentences.length,
+      minSentences,
+      wordCount,
+      minWords,
+      label: "Panjang Minimum",
+      detail: lengthPassed
+        ? `${sentences.length} kalimat (${wordCount} kata) — memenuhi syarat minimal ${minSentences} kalimat & ${minWords} kata.`
+        : `Saat ini ${sentences.length} kalimat (${wordCount} kata) — disarankan minimal ${minSentences} kalimat & ${minWords} kata.`,
+    },
+    format: {
+      passed: formatPassed,
+      startsWithCapital,
+      endsWithPunctuation,
+      label: "Format Penulisan",
+      detail: formatPassed
+        ? "Diawali huruf kapital dan diakhiri tanda baca kalimat (.!?)."
+        : !startsWithCapital && !endsWithPunctuation
+          ? "Awali paragraf dengan huruf kapital dan akhiri kalimat dengan tanda titik (.)."
+          : !startsWithCapital
+            ? "Awali kalimat pertama dengan huruf kapital."
+            : "Akhiri kalimat terakhir Anda dengan tanda baca titik (.), seru (!), atau tanya (?).",
+    },
+    allPassed: targetPassed && lengthPassed && formatPassed,
+  };
+}
+
+export function estimateStoryRelevance(
+  scenario: StoryScenario,
+  trimmed: string,
+  matchedKeywords: string[],
+  options?: StoryEvaluationOptions,
+): StoryRelevanceAssessment {
+  const userTokens = tokenizeContentWords(trimmed);
+  const userTokenSet = new Set(userTokens);
+
+  const concepts = getScenarioConceptGroups(scenario);
+  const matchedConcepts: string[] = [];
+  const missingConcepts: string[] = [];
+  let totalConceptHits = 0;
+
+  for (const group of concepts) {
+    const hits = group.terms.filter((term) => userTokenSet.has(term.toLowerCase()));
+    if (hits.length > 0) {
+      matchedConcepts.push(group.label);
+      totalConceptHits += Math.min(3, hits.length);
+    } else {
+      missingConcepts.push(group.label);
+    }
+  }
+
+  const conceptCoverage =
+    concepts.length > 0 ? matchedConcepts.length / concepts.length : 0;
+  const conceptDensity = Math.min(1, totalConceptHits / 5);
+
+  const anchors = getScenarioAnchors(scenario);
+  const anchorCosines = anchors.map((anchor) =>
+    computeContentCosineSimilarity(userTokens, tokenizeContentWords(anchor)),
+  );
+  const maxAnchorCosine = Math.max(0, ...anchorCosines);
+  const calibratedAnchorSim = Math.min(1, maxAnchorCosine / 0.38);
+
+  const keywordRatio =
+    scenario.keywords.length > 0
+      ? Math.min(1, matchedKeywords.length / 3)
+      : 0;
+
+  const localScore = Math.min(
+    1,
+    conceptCoverage * 0.45 +
+      conceptDensity * 0.25 +
+      calibratedAnchorSim * 0.20 +
+      keywordRatio * 0.10,
+  );
+
+  const hasMiniLm =
+    options?.miniLmSimilarity !== undefined &&
+    Number.isFinite(options.miniLmSimilarity);
+
+  const finalScore = hasMiniLm
+    ? Math.max(
+        0,
+        Math.min(1, options!.miniLmSimilarity! * 0.65 + localScore * 0.35),
+      )
+    : localScore;
+
+  const percentage = Math.round(finalScore * 100);
+
+  let level: RelevanceLevel;
+  let label: string;
+  let summary: string;
+
+  if (finalScore >= 0.62) {
+    level = "high";
+    label = "Relevansi Tinggi";
+    summary = `Cerita Anda diperkirakan sangat selaras dengan topik "${scenario.title}" (${matchedConcepts.length}/${concepts.length} konsep tema terdeteksi).`;
+  } else if (finalScore >= 0.34) {
+    level = "medium";
+    label = "Relevansi Sedang / Parsial";
+    summary = `Cerita Anda menyentuh sebagian konteks "${scenario.title}", namun beberapa elemen skenario masih bisa dieksplorasi lebih jauh.`;
+  } else {
+    level = "low";
+    label = "Relevansi Rendah / Ambigu";
+    summary = `Kaitan semantik cerita dengan topik "${scenario.title}" masih rendah atau ambigu. Ini bukan penilaian salah—Anda bebas mengeksplorasi detail konteks di bawah jika ingin menyelaraskan tema.`;
+  }
+
+  return {
+    level,
+    score: Number(finalScore.toFixed(2)),
+    percentage,
+    source: hasMiniLm ? "minilm-hybrid" : "local-semantic",
+    rawMiniLmCosine: options?.rawMiniLmCosine,
+    latencyMs: options?.latencyMs,
+    label,
+    summary,
+    matchedConcepts,
+    missingConcepts,
+    limitationsDisclaimer: MINILM_LIMITATIONS_DISCLAIMER,
+  };
+}
+
+export function buildTemplateSuggestions(
+  scenario: StoryScenario,
+  missions: MissionEvaluation[],
+  explicitChecks: StoryExplicitChecks,
+  relevance: StoryRelevanceAssessment,
+  matchedKeywords: string[],
+): StoryTemplateSuggestion[] {
+  const suggestions: StoryTemplateSuggestion[] = [];
+
+  // 1. Explicit structure missions feedback (rule-based)
+  for (const m of missions) {
+    if (!m.passed) {
+      suggestions.push({
+        id: `struct-${m.mission.id}`,
+        category: "structure",
+        badge: `${RULE_SHORT_NAMES[m.mission.ruleId]}${m.isNearMiss ? " · Hampir Tepat" : ""}`,
+        text: m.feedback,
+        isExploratory: false,
+      });
+    }
+  }
+
+  // 2. Explicit length & format feedback (rule-based)
+  if (!explicitChecks.minimumLength.passed) {
+    suggestions.push({
+      id: "explicit-length",
+      category: "length-format",
+      badge: "Panjang Minimum",
+      text: `Template Panjang: Cerita saat ini terdiri dari ${explicitChecks.minimumLength.sentenceCount} kalimat (${explicitChecks.minimumLength.wordCount} kata). Coba kembangkan menjadi minimal ${explicitChecks.minimumLength.minSentences} kalimat utuh (≥ ${explicitChecks.minimumLength.minWords} kata) agar ketiga misi grammar punya ruang konteks yang jelas.`,
+      isExploratory: false,
+    });
+  }
+
+  if (!explicitChecks.format.passed) {
+    suggestions.push({
+      id: "explicit-format",
+      category: "length-format",
+      badge: "Format Paragraf",
+      text: `Template Format: ${explicitChecks.format.detail}`,
+      isExploratory: false,
+    });
+  }
+
+  // 3. Exploratory suggestions when relevance is low or medium/ambiguous (non-definitive!)
+  const profile = SCENARIO_SEMANTIC_PROFILES[scenario.id];
+  const unusedKeywords = scenario.keywords
+    .filter((k) => !matchedKeywords.includes(k))
+    .slice(0, 4);
+  const helperVerbs = scenario.verbHelpers
+    .map((v) => `${v.base}/${v.past}/${v.participle} (${v.meaning})`)
+    .slice(0, 3);
+
+  if (relevance.level === "low" || relevance.level === "medium") {
+    suggestions.push({
+      id: "exploratory-context",
+      category: "exploratory-topic",
+      badge: "Saran Eksploratif · Alur Topik",
+      text: profile
+        ? `Ide Eksplorasi (Opsional): ${profile.exploratoryPrompt}`
+        : `Ide Eksplorasi (Opsional): ${scenario.contextHint}`,
+      isExploratory: true,
+    });
+
+    if (relevance.missingConcepts.length > 0 || unusedKeywords.length > 0) {
+      const conceptText =
+        relevance.missingConcepts.length > 0
+          ? `Tema yang belum tampak: ${relevance.missingConcepts.join(", ")}. `
+          : "";
+      const kwText =
+        unusedKeywords.length > 0
+          ? `Anda dapat memancing ide dengan kata konteks seperti "${unusedKeywords.join('", "')}" `
+          : "";
+      const verbText =
+        helperVerbs.length > 0
+          ? `atau kata kerja ${helperVerbs.join(", ")}.`
+          : "";
+      suggestions.push({
+        id: "exploratory-vocab",
+        category: "exploratory-topic",
+        badge: "Saran Eksploratif · Kosakata & Sudut Pandang",
+        text: `${conceptText}${kwText}${verbText}`.trim(),
+        isExploratory: true,
+      });
+    }
+  } else if (explicitChecks.allPassed && relevance.level === "high") {
+    suggestions.push({
+      id: "refinement-mastery",
+      category: "refinement",
+      badge: "Eksplorasi Lanjutan",
+      text: `Struktur target, panjang kalimat, dan topik "${scenario.title}" sudah selaras! Sebagai latihan variasi, Anda bisa mencoba menulis ulang cerita ini dari sudut pandang orang lain (misal: rekan kerja atau teman) dengan tetap mempertahankan 3 struktur grammar misi.`,
+      isExploratory: true,
+    });
+  }
+
+  return suggestions;
+}
+
 export function evaluateStorySubmission(
   scenario: StoryScenario,
   rawText: string,
+  options?: StoryEvaluationOptions,
 ): StoryEvaluationResult {
   const trimmed = rawText.trim();
   if (!trimmed) {
+    const emptyExplicit = evaluateExplicitRules(scenario, "", [], 0);
+    const emptyRelevance: StoryRelevanceAssessment = {
+      level: "low",
+      score: 0,
+      percentage: 0,
+      source: "local-semantic",
+      label: "Belum Ada Teks",
+      summary: "Tulis cerita singkat Anda untuk melihat perkiraan relevansi topik.",
+      matchedConcepts: [],
+      missingConcepts: getScenarioConceptGroups(scenario).map((c) => c.label),
+      limitationsDisclaimer: MINILM_LIMITATIONS_DISCLAIMER,
+    };
     return {
       status: "empty",
       passedCount: 0,
       totalCount: scenario.missions.length,
       sentenceCount: 0,
+      wordCount: 0,
       matchedKeywords: [],
       missions: scenario.missions.map((mission) => ({
         mission,
@@ -727,12 +1601,20 @@ export function evaluateStorySubmission(
         isNearMiss: false,
       })),
       segments: [],
+      explicitChecks: emptyExplicit,
+      relevance: emptyRelevance,
+      templateSuggestions: [],
     };
   }
 
   const sentences = trimmed
     .split(/[.!?]+/)
     .map((s) => s.trim())
+    .filter(Boolean);
+
+  const words = trimmed
+    .split(/\s+/)
+    .map((w) => w.replace(/[^a-zA-Z0-9']/g, ""))
     .filter(Boolean);
 
   const lowerText = trimmed.toLowerCase();
@@ -770,14 +1652,38 @@ export function evaluateStorySubmission(
   const totalCount = scenario.missions.length;
   const segments = buildHighlightedSegments(trimmed, evaluations);
 
+  const explicitChecks = evaluateExplicitRules(
+    scenario,
+    trimmed,
+    sentences,
+    passedCount,
+  );
+  const relevance = estimateStoryRelevance(
+    scenario,
+    trimmed,
+    matchedKeywords,
+    options,
+  );
+  const templateSuggestions = buildTemplateSuggestions(
+    scenario,
+    evaluations,
+    explicitChecks,
+    relevance,
+    matchedKeywords,
+  );
+
   return {
     status: passedCount === totalCount ? "complete" : "incomplete",
     passedCount,
     totalCount,
     sentenceCount: sentences.length,
+    wordCount: words.length,
     matchedKeywords,
     missions: evaluations,
     segments,
+    explicitChecks,
+    relevance,
+    templateSuggestions,
   };
 }
 

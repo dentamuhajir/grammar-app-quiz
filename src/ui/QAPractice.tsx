@@ -10,6 +10,7 @@ import {
   type QAResult,
   type QATense,
 } from "../grammar/qa/engine";
+import { QADialoguePractice } from "./QADialoguePractice";
 import { BottomSheet } from "./BottomSheet";
 import { SuccessBadge } from "./FeedbackIcons";
 import { SpokenSentence } from "./SpokenSentence";
@@ -229,6 +230,7 @@ function QASession({ filter }: { filter: QAFilter }) {
 }
 
 export function QAPractice() {
+  const [mode, setMode] = useState<"drill" | "dialogue">("dialogue");
   const [filter, setFilter] = useState<QAFilter>({
     tense: "all",
     intent: "all",
@@ -255,6 +257,11 @@ export function QAPractice() {
 
   return (
     <>
+      <div className="qa-mode-switch" role="group" aria-label="Mode latihan Q&A">
+        <button type="button" className={`btn ${mode === "dialogue" ? "btn-primary" : "btn-ghost"}`} aria-pressed={mode === "dialogue"} onClick={() => setMode("dialogue")}>Roleplay bercabang</button>
+        <button type="button" className={`btn ${mode === "drill" ? "btn-primary" : "btn-ghost"}`} aria-pressed={mode === "drill"} onClick={() => setMode("drill")}>Latihan singkat</button>
+      </div>
+      {mode === "dialogue" ? <QADialoguePractice /> : <>
       <button
         type="button"
         className="filter-pill-bar"
@@ -321,6 +328,7 @@ export function QAPractice() {
           </button>
         </div>
       </BottomSheet>
+      </>}
     </>
   );
 }
