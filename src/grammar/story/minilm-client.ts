@@ -40,6 +40,7 @@ const pendingRequests = new Map<
   {
     resolve: (res: MiniLmSimilarityResult) => void;
     reject: (err: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
   }
 >();
 
@@ -86,6 +87,7 @@ export function calibrateMiniLmCosine(rawCosine: number): number {
 
 const WORKER_SOURCE = `
 let extractor = null;
+let pipelinePromise = null;
 const anchorCache = new Map();
 
 function cosineSim(a, b) {
@@ -104,6 +106,12 @@ function cosineSim(a, b) {
 
 async function ensurePipeline() {
   if (extractor) return extractor;
+  if (pipelinePromise) return pipelinePromise;
+  pipelinePromise = loadPipeline().catch(err => { pipelinePromise = null; throw err; });
+  return pipelinePromise;
+}
+
+async function loadPipeline() {
   self.postMessage({
     type: "status",
     status: "loading",
@@ -147,7 +155,11 @@ async function embedText(pipe, text) {
   return Array.from(output.data);
 }
 
-self.onmessage = async (event) => {
+let queue = Promise.resolve();
+self.onmessage = (event) => {
+  queue = queue.then(() => handleMessage(event)).catch(() => {});
+};
+async function handleMessage(event) {
   const msg = event.data;
   if (!msg) return;
 
@@ -170,14 +182,15 @@ self.onmessage = async (event) => {
     const t0 = performance.now();
     try {
       const pipe = await ensurePipeline();
-      let anchorVectors = anchorCache.get(scenarioId);
+      const cacheKey = JSON.stringify([scenarioId, anchors]);
+      let anchorVectors = anchorCache.get(cacheKey);
       if (!anchorVectors) {
         anchorVectors = [];
         for (const anchor of anchors) {
           const vec = await embedText(pipe, anchor);
           anchorVectors.push(vec);
         }
-        anchorCache.set(scenarioId, anchorVectors);
+        anchorCache.set(cacheKey, anchorVectors);
       }
 
       const userVec = await embedText(pipe, userText);
@@ -234,6 +247,7 @@ function ensureWorker(): Worker | null {
         const pending = pendingRequests.get(data.id);
         if (pending) {
           pendingRequests.delete(data.id);
+          clearTimeout(pending.timer);
           const rawCosine = Number(data.rawCosine ?? 0);
           pending.resolve({
             rawCosine,
@@ -251,18 +265,28 @@ function ensureWorker(): Worker | null {
         const pending = pendingRequests.get(data.id);
         if (pending) {
           pendingRequests.delete(data.id);
+          clearTimeout(pending.timer);
           pending.reject(new Error(data.error ?? "MiniLM worker error"));
         }
       }
     };
 
     workerInstance.onerror = () => {
+      for (const pending of pendingRequests.values()) {
+        clearTimeout(pending.timer);
+        pending.reject(new Error("MiniLM worker failed"));
+      }
+      pendingRequests.clear();
+      workerInstance?.terminate();
+      workerInstance = null;
       notifyListeners({
         status: "error",
         progress: 0,
         message: "Worker MiniLM tidak dapat dijalankan di browser ini. Menggunakan semantik lokal.",
       });
     };
+
+    URL.revokeObjectURL(url);
 
     return workerInstance;
   } catch {
@@ -301,7 +325,11 @@ export function computeMiniLmSimilarityAsync(
       return;
     }
     const id = ++requestCounter;
-    pendingRequests.set(id, { resolve, reject });
+    const timer = setTimeout(() => {
+      pendingRequests.delete(id);
+      reject(new Error("MiniLM request timed out; use local matching"));
+    }, 60000);
+    pendingRequests.set(id, { resolve, reject, timer });
     worker.postMessage({
       type: "compare",
       id,
@@ -310,4 +338,37 @@ export function computeMiniLmSimilarityAsync(
       userText,
     });
   });
+}
+
+/**
+ * Compares a user's Q&A reply against multiple intent branches (each with multiple example sentences)
+ * using the shared on-device MiniLM Web Worker.
+ */
+export async function computeMiniLmIntentScoresAsync(
+  nodeId: string,
+  branches: ReadonlyArray<{ id: string; examples: readonly string[] }>,
+  userText: string,
+): Promise<{
+  branchCosines: Record<string, number>;
+  latencyMs: number;
+}> {
+  const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const branchCosines: Record<string, number> = {};
+  // One request embeds the reply once and compares it to all intent examples.
+  const result = await computeMiniLmSimilarityAsync(
+    `qa-${nodeId}`,
+    branches.flatMap(branch => [...branch.examples]),
+    userText,
+  );
+  let offset = 0;
+  for (const branch of branches) {
+    const scores = result.anchorSimilarities.slice(offset, offset + branch.examples.length).sort((a, b) => b - a);
+    branchCosines[branch.id] = scores.length > 1 ? scores[0] * 0.7 + scores[1] * 0.3 : (scores[0] ?? 0);
+    offset += branch.examples.length;
+  }
+  const t1 = typeof performance !== "undefined" ? performance.now() : Date.now();
+  return {
+    branchCosines,
+    latencyMs: Math.max(1, Math.round(t1 - t0)),
+  };
 }

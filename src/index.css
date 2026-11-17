@@ -1167,6 +1167,27 @@ button:focus-visible {
   font-weight: 700;
 }
 
+.qa-mode-switch, .qa-clarification {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+.qa-scenario-picker { display: grid; gap: 0.5rem; margin-bottom: 1rem; font-weight: 700; }
+.qa-scenario-picker select { width: 100%; min-width: 0; padding: 0.7rem; font: inherit; }
+.qa-dialogue-card { overflow-wrap: anywhere; }
+.qa-dialogue-card p { line-height: 1.6; }
+.qa-dialogue-card .feedback { margin-top: 1rem; }
+.qa-dialogue-card textarea { box-sizing: border-box; width: 100%; margin-top: 0.5rem; padding: 0.85rem; font: inherit; border: 2px solid var(--ink); border-radius: 12px; resize: vertical; }
+.qa-dialogue-card summary { cursor: pointer; font-weight: 700; }
+.qa-model-settings, .qa-history, .qa-dialogue-question { margin: 1rem 0; padding: 0.85rem; border: 1px solid var(--ink); border-radius: 12px; }
+.qa-history ol { padding-left: 1.2rem; }
+.qa-history li + li { margin-top: 1rem; border-top: 1px solid var(--ink); }
+.qa-dialogue-question details { margin-top: 1rem; }
+.qa-clarification { flex-direction: column; }
+.qa-clarification .btn { white-space: normal; text-align: left; }
+.qa-dialogue-note, .qa-dialogue-card small { font-size: 0.82rem; line-height: 1.6; }
+
 .qa-feedback-partial {
   color: var(--ink);
   background: var(--yellow-card);

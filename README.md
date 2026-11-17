@@ -46,6 +46,29 @@ Grammar rules enforced by the engine:
 - Rare-but-valid forms (e.g. `will be being`, perfect-continuous passive) and
   stative-verb traps are hidden from the random pool behind a toggle.
 
+## Q&A roleplay
+
+Open Question & Answer and select **Roleplay bercabang**. Two local scenarios
+(late meeting and job interview) route replies through three turns of questions.
+The original filtered drills remain under **Latihan singkat**.
+
+Grammar pattern detection and estimated intent are shown separately. Unknown or
+ambiguous topics ask for clarification; users can revise the reply or explicitly
+confirm a branch. The checker recognizes a limited vocabulary and structures,
+and does not certify complete grammatical correctness or factual accuracy.
+
+Local matching works without a model download. Optional MiniLM uses the same
+worker as Story Challenge, embeds the reply once per check, and caches reference
+vectors in worker memory. The first use downloads model/runtime assets from
+external hosts; offline use depends on browser cache availability. Model failure
+or a 60-second request timeout falls back to local matching. Routing thresholds
+are provisional fixtures, not human-calibrated probabilities. Mobile latency,
+memory use, and real-model routing accuracy still require device evaluation.
+
+Run `npm test` for dialogue graph integrity, representative branches, grammar
+near misses, polarity, time conflicts, and critical subject changes. These tests
+inject model scores; they do not download or benchmark MiniLM.
+
 ## Develop
 
 ```bash
