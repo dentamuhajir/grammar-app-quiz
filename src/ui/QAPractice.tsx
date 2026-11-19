@@ -258,7 +258,7 @@ export function QAPractice() {
   return (
     <>
       <div className="qa-mode-switch" role="group" aria-label="Mode latihan Q&A">
-        <button type="button" className={`btn ${mode === "dialogue" ? "btn-primary" : "btn-ghost"}`} aria-pressed={mode === "dialogue"} onClick={() => setMode("dialogue")}>Roleplay bercabang</button>
+        <button type="button" className={`btn ${mode === "dialogue" ? "btn-primary" : "btn-ghost"}`} aria-pressed={mode === "dialogue"} onClick={() => setMode("dialogue")}>Roleplay percakapan</button>
         <button type="button" className={`btn ${mode === "drill" ? "btn-primary" : "btn-ghost"}`} aria-pressed={mode === "drill"} onClick={() => setMode("drill")}>Latihan singkat</button>
       </div>
       {mode === "dialogue" ? <QADialoguePractice /> : <>

@@ -2,47 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { checkQA, QA_POOL, qaDeck, type QAQuestion } from "../src/grammar/qa/engine";
 import { DIALOGUE_SCENARIOS, evaluateDialogueTurn, verifyDialogueGrammar } from "../src/grammar/qa/dialogue";
-import { computeMiniLmIntentScoresAsync, computeMiniLmSimilarityAsync } from "../src/grammar/story/minilm-client";
-import { Script } from "node:vm";
+import { ROLEPLAY_STARTERS, SCENARIO_GROUPS } from "../src/grammar/qa/starters";
 
-test("shared worker batches intent examples, has valid source, and rejects on worker failure", async () => {
-  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
-  const originalWorker = Object.getOwnPropertyDescriptor(globalThis, "Worker");
-  let worker: FakeWorker;
-  let sourceUrl = "";
-  class FakeWorker {
-    onmessage?: (event: { data: unknown }) => void;
-    onerror?: () => void;
-    messages: Array<{ id: number; anchors: string[]; userText: string }> = [];
-    constructor(url: string) { worker = this; sourceUrl = url; }
-    postMessage(message: { id: number; anchors: string[]; userText: string }) { this.messages.push(message); }
-    terminate() {}
-  }
-  const revoke = URL.revokeObjectURL;
-  let source: Promise<string> | undefined;
-  URL.revokeObjectURL = url => { source = fetch(url).then(res => res.text()).finally(() => revoke(url)); };
-  Object.defineProperty(globalThis, "window", { configurable: true, value: {} });
-  Object.defineProperty(globalThis, "Worker", { configurable: true, value: FakeWorker });
-  try {
-    const scores = computeMiniLmIntentScoresAsync("test", [{ id: "a", examples: ["A1", "A2"] }, { id: "b", examples: ["B1"] }], "reply");
-    assert.ok(sourceUrl.startsWith("blob:"));
-    new Script(await source!, { filename: "minilm-worker.js" });
-    assert.equal(worker!.messages.length, 1);
-    assert.deepEqual(worker!.messages[0].anchors, ["A1", "A2", "B1"]);
-    worker!.onmessage!({ data: { type: "result", id: worker!.messages[0].id, rawCosine: 0.8, anchorSimilarities: [0.8, 0.6, 0.2] } });
-    const result = await scores;
-    assert.ok(Math.abs(result.branchCosines.a - 0.74) < 0.00001);
-    assert.equal(result.branchCosines.b, 0.2);
-    const failed = computeMiniLmSimilarityAsync("failure", ["anchor"], "reply");
-    worker!.onerror!();
-    await assert.rejects(failed, /worker failed/);
-  } finally {
-    URL.revokeObjectURL = revoke;
-    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow); else Reflect.deleteProperty(globalThis, "window");
-    if (originalWorker) Object.defineProperty(globalThis, "Worker", originalWorker); else Reflect.deleteProperty(globalThis, "Worker");
+test("all roleplay starters have distinct openings, complete tutor context and an offline path", () => {
+  assert.equal(new Set(ROLEPLAY_STARTERS.map(s => s.id)).size, ROLEPLAY_STARTERS.length);
+  assert.equal(new Set(ROLEPLAY_STARTERS.map(s => s.question)).size, ROLEPLAY_STARTERS.length);
+  for (const category of SCENARIO_GROUPS) assert.ok(ROLEPLAY_STARTERS.some(s => s.group === category));
+  for (const s of ROLEPLAY_STARTERS) {
+    assert.ok(s.context.length > 0 && s.context.length <= 400, s.id);
+    assert.ok(s.goal && s.speaker && s.role && s.question && s.translation, s.id);
+    assert.ok(s.localFollowUp || s.guided?.nodes[s.guided.initialNodeId], s.id);
   }
 });
-
 const meeting = DIALOGUE_SCENARIOS[0];
 const interview = DIALOGUE_SCENARIOS[1];
 
@@ -105,17 +76,17 @@ test("dialogue separates unknown topics from grammar and allows retries", () => 
   assert.equal(verifyDialogueGrammar(interview.nodes.turn3_contribution, "I can built websites.").passed, false);
 });
 
-test("high model similarity cannot bypass polarity, time and critical meaning guards", () => {
+test("local dialogue guards polarity, time and critical meaning", () => {
   const node = meeting.nodes.turn2_overslept;
-  const negative = evaluateDialogueTurn(node, "No, I did not finish the slides last night.", { miniLmBranchCosines: { slides_finished: 0.99, slides_unfinished: 0.85 } });
+  const negative = evaluateDialogueTurn(node, "No, I did not finish the slides last night.");
   assert.notEqual(negative.matchedBranch?.id, "slides_finished");
-  const future = evaluateDialogueTurn(meeting.nodes.turn1_reason, "The traffic was terrible tomorrow.", { miniLmBranchCosines: { traffic_transport: 0.99 } });
+  const future = evaluateDialogueTurn(meeting.nodes.turn1_reason, "The traffic was terrible tomorrow.");
   assert.notEqual(future.status, "advance");
-  const reverse = evaluateDialogueTurn(meeting.nodes.turn1_reason, "The traffic was smooth and I arrived early.", { miniLmBranchCosines: { traffic_transport: 0.99 } });
+  const reverse = evaluateDialogueTurn(meeting.nodes.turn1_reason, "The traffic was smooth and I arrived early.");
   assert.notEqual(reverse.matchedBranch?.id, "traffic_transport");
-  const deniedDelay = evaluateDialogueTurn(meeting.nodes.turn1_reason, "I did not miss the morning bus at the station.", { miniLmBranchCosines: { traffic_transport: 0.99 } });
+  const deniedDelay = evaluateDialogueTurn(meeting.nodes.turn1_reason, "I did not miss the morning bus at the station.");
   assert.notEqual(deniedDelay.status, "advance");
-  const otherPerson = evaluateDialogueTurn(node, "My manager finished all the slides last night.", { miniLmBranchCosines: { slides_finished: 0.99 } });
+  const otherPerson = evaluateDialogueTurn(node, "My manager finished all the slides last night.");
   assert.notEqual(otherPerson.status, "advance");
   const ambiguous = evaluateDialogueTurn(meeting.nodes.turn1_reason, "My car broke down and I overslept after my alarm failed.");
   assert.equal(ambiguous.status, "clarification_needed");

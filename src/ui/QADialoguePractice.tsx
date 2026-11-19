@@ -1,57 +1,132 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { DIALOGUE_SCENARIOS, evaluateDialogueTurn, type DialogueHistoryItem, type DialogueIntentBranch, type DialogueScenario, type DialogueTurnEvaluation } from "../grammar/qa/dialogue";
-import { computeMiniLmIntentScoresAsync, getMiniLmStatus, initMiniLmModel, subscribeMiniLmStatus } from "../grammar/story/minilm-client";
+import { evaluateDialogueTurn, type DialogueIntentBranch, type DialogueTurnEvaluation } from "../grammar/qa/dialogue";
+import { ROLEPLAY_STARTERS, SCENARIO_GROUPS, type RoleplayStarter } from "../grammar/qa/starters";
 import { SpokenSentence } from "./SpokenSentence";
 import { VoiceInputBar } from "./VoiceInputBar";
 
-function DialogueSession({ scenario }: { scenario: DialogueScenario }) {
-  const [nodeId, setNodeId] = useState<string | null>(scenario.initialNodeId);
-  const [history, setHistory] = useState<DialogueHistoryItem[]>([]);
+interface ConversationTurn {
+  speaker: string;
+  question: string;
+  answer: string;
+  feedback: string;
+  correction?: string;
+  reaction?: string;
+}
+
+function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
+  const openingId = scenario.guided?.initialNodeId ?? "opening";
+  const tutorAvailable = !window.location.hostname.endsWith(".github.io");
+  const [nodeId, setNodeId] = useState<string | null>(openingId);
+  const [history, setHistory] = useState<ConversationTurn[]>([]);
+  const [useTutor, setUseTutor] = useState(tutorAvailable);
+  const [followUp, setFollowUp] = useState("");
+  const pendingTutor = useRef<AbortController | null>(null);
   const [answer, setAnswer] = useState("");
   const [evaluation, setEvaluation] = useState<DialogueTurnEvaluation | null>(null);
-  const [model, setModel] = useState(getMiniLmStatus);
-  const [useModel, setUseModel] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const request = useRef(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const node = nodeId ? scenario.nodes[nodeId] : null;
+  const node = nodeId ? scenario.guided?.nodes[nodeId] : undefined;
+  const localQuestion = node?.question ?? (nodeId === "follow-up" ? scenario.localFollowUp : scenario.question);
+  const translation = node?.translation ?? (nodeId === openingId ? scenario.translation : undefined);
+  const question = followUp || localQuestion || "";
+  const latest = history[history.length - 1];
 
-  useEffect(() => subscribeMiniLmStatus(setModel), []);
-  useEffect(() => () => { request.current++; }, []);
+  useEffect(() => () => { request.current++; pendingTutor.current?.abort(); }, []);
   useEffect(() => { if (history.length) inputRef.current?.focus(); }, [nodeId, history.length]);
 
   function edit(value: string) {
     request.current++;
+    pendingTutor.current?.abort();
     setBusy(false);
     setAnswer(value);
     setEvaluation(null);
     setNotice("");
   }
 
+  async function checkWithTutor(token: number) {
+    if (!nodeId) return;
+    const controller = new AbortController();
+    pendingTutor.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(), 25_000);
+    setBusy(true);
+    let reason = "Tutor Gemini sedang tidak tersedia.";
+    try {
+      const response = await fetch("/api/roleplay", {
+        method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "conversation", scenario: scenario.context, speaker: `${scenario.speaker} (${scenario.role})`, target: scenario.goal,
+          question, answer: answer.trim(),
+          history: history.slice(-3).map(({ question, answer }) => ({ question, answer })),
+        }),
+      });
+      if (response.status === 429) reason = "Batas penggunaan Gemini tercapai.";
+      if (!response.ok) {
+        const failure = await response.json().catch(() => null);
+        if (typeof failure?.message === "string") {
+          reason = failure.message;
+        } else if (failure?.error === "unconfigured") {
+          reason = "Tutor Gemini belum diaktifkan oleh pengelola aplikasi.";
+        }
+        throw new Error("Tutor unavailable");
+      }
+      const tutor = await response.json();
+      if (token !== request.current) return;
+      if (typeof tutor.feedback !== "string" || !tutor.feedback.trim() || typeof tutor.correction !== "string"
+          || typeof tutor.nextQuestion !== "string" || !tutor.nextQuestion.trim()) {
+        throw new Error("Incomplete tutor turn");
+      }
+      setHistory(items => [...items, { speaker: scenario.speaker, question, answer: answer.trim(),
+        feedback: tutor.feedback, correction: tutor.correction }]);
+      // Keep a related offline question ready if the connection drops later.
+      if (!followUp) {
+        const nextLocal = node ? evaluateDialogueTurn(node, answer).matchedBranch?.nextNodeId : "follow-up";
+        if (nextLocal) setNodeId(nextLocal);
+      }
+      setFollowUp(tutor.nextQuestion);
+      setAnswer("");
+    } catch {
+      if (token !== request.current) return;
+      setUseTutor(false);
+      setFollowUp("");
+      if (!followUp && node) setEvaluation(evaluateDialogueTurn(node, answer));
+      setNotice(reason + (followUp
+        ? " Mode lokal aktif. Jawaban Anda tersimpan di kotak isian. Sesuaikan dengan pertanyaan lokal di atas."
+        : node ? " Jawaban Anda sudah diperiksa dalam mode lokal." : " Latihan mandiri tersedia. Simpan jawaban untuk melanjutkan."));
+    } finally {
+      window.clearTimeout(timeout);
+      if (pendingTutor.current === controller) pendingTutor.current = null;
+      if (token === request.current) setBusy(false);
+    }
+  }
+
   async function check(event: FormEvent) {
     event.preventDefault();
-    if (!node || busy) return;
+    if (!nodeId || busy || pendingTutor.current) return;
     const token = ++request.current;
-    const local = evaluateDialogueTurn(node, answer);
-    setEvaluation(local);
+    if (!answer.trim()) {
+      setNotice("Tulis jawaban Anda terlebih dahulu.");
+      return;
+    }
     setNotice("");
-    if (!useModel || !answer.trim() || !local.grammar.passed) return;
-    setBusy(true);
-    try {
-      const result = await computeMiniLmIntentScoresAsync(`${scenario.id}-${node.id}`, node.branches, answer);
-      if (token === request.current) setEvaluation(evaluateDialogueTurn(node, answer, { miniLmBranchCosines: result.branchCosines, latencyMs: result.latencyMs }));
-    } catch {
-      if (token === request.current) setNotice("MiniLM belum tersedia. Hasil memakai pencocokan lokal; latihan tetap dapat dilanjutkan.");
-    } finally {
-      if (token === request.current) setBusy(false);
+    if (useTutor) {
+      setEvaluation(null);
+      await checkWithTutor(token);
+    } else if (node) {
+      setEvaluation(evaluateDialogueTurn(node, answer));
+    } else {
+      setHistory(items => [...items, { speaker: scenario.speaker, question, answer: answer.trim(), feedback: "Jawaban latihan mandiri tersimpan." }]);
+      setNodeId(nodeId === openingId ? "follow-up" : null);
+      setAnswer("");
     }
   }
 
   function advance(branch: DialogueIntentBranch) {
     if (!node || !evaluation?.grammar.passed || busy) return;
     request.current++;
-    setHistory(items => [...items, { nodeId: node.id, speaker: node.speaker, question: node.question, userAnswer: answer.trim(), detectedStructure: evaluation.grammar.detectedStructure, matchedIntentId: branch.id, matchedIntentLabel: branch.label, npcReaction: branch.npcReaction }]);
+    setHistory(items => [...items, { speaker: node.speaker, question, answer: answer.trim(),
+      feedback: `Struktur terdeteksi: ${evaluation.grammar.detectedStructure} · Topik: ${branch.label}`, reaction: branch.npcReaction }]);
     setNodeId(branch.nextNodeId);
     setAnswer("");
     setEvaluation(null);
@@ -60,50 +135,75 @@ function DialogueSession({ scenario }: { scenario: DialogueScenario }) {
 
   function restart() {
     request.current++;
+    pendingTutor.current?.abort();
+    setFollowUp("");
     setBusy(false);
-    setNodeId(scenario.initialNodeId);
+    setNodeId(openingId);
+    setUseTutor(tutorAvailable);
     setHistory([]);
     setAnswer("");
     setEvaluation(null);
     setNotice("");
   }
 
-  return <main className="card qa-dialogue-card">
-    <div className="tags"><span className="tag tag-tense">{scenario.levelBadge}</span><span className="tag">{history.length} giliran selesai</span></div>
-    <h2>{scenario.title}</h2>
-    <p>{scenario.contextDescription}</p>
-    <details className="qa-model-settings"><summary>Pengaturan analisis topik</summary>
-      <p>Pencocokan lokal aktif tanpa unduhan model. MiniLM opsional memakai worker bersama Story Challenge dan memerlukan unduhan model sekitar 23 MB, ditambah runtime.</p>
-      <label><input type="checkbox" checked={useModel} onChange={e => { setUseModel(e.target.checked); request.current++; setBusy(false); setEvaluation(null); if (e.target.checked) initMiniLmModel(); }} /> Gunakan MiniLM di perangkat</label>
-      {useModel && <><p role="status">{model.message}</p>{model.status === "error" && <button type="button" className="btn btn-ghost" onClick={initMiniLmModel}>Coba muat ulang model</button>}</>}
-    </details>
-    {history.length > 0 && <details className="qa-history" open={!node}><summary>Riwayat percakapan ({history.length} giliran)</summary>
-      <ol>{history.map((item, index) => <li key={`${item.nodeId}-${index}`}>
+  return <main className="card qa-dialogue-card" aria-label={scenario.title}>
+    <header className="qa-scenario-intro">
+      <div className="qa-scenario-meta"><strong>{scenario.group}</strong>{history.length > 0 && <span>{history.length} giliran selesai</span>}</div>
+      <p>{scenario.context}</p>
+    </header>
+    {nodeId && tutorAvailable && <div className="qa-tutor">
+      <span className="qa-tutor-icon" aria-hidden="true">✦</span>
+      <div><label htmlFor="qa-tutor-switch">Tutor Gemini</label>
+        <p id="qa-tutor-description">{useTutor ? "Gemini menerima jawaban untuk koreksi dan tanya jawab." : "Mode lokal aktif. Nyalakan untuk berlatih dengan Gemini."}</p>
+      </div>
+      <input id="qa-tutor-switch" type="checkbox" role="switch" aria-describedby="qa-tutor-description" checked={useTutor} disabled={busy} onChange={event => {
+        setUseTutor(event.target.checked);
+        setFollowUp("");
+        setEvaluation(null);
+        setNotice("");
+      }} />
+    </div>}
+    {history.length > 0 && <details className="qa-history" open={!nodeId}><summary>Riwayat percakapan ({history.length} giliran)</summary>
+      <ol>{history.map((item, index) => <li key={index}>
         <p><strong>{item.speaker}:</strong> {item.question}</p>
-        <p><strong>Anda:</strong> {item.userAnswer}</p>
-        <small>Struktur terdeteksi: {item.detectedStructure} · Topik: {item.matchedIntentLabel}</small>
-        <SpokenSentence text={item.npcReaction} />
+        <p><strong>Anda:</strong> {item.answer}</p>
+        <small>{item.feedback}</small>
+        {item.correction && <SpokenSentence text={item.correction} />}
+        {item.reaction && <SpokenSentence text={item.reaction} />}
       </li>)}</ol>
     </details>}
-    {node ? <>
-      {history.length > 0 && <div className="feedback feedback-reveal"><SpokenSentence text={history[history.length - 1].npcReaction} /></div>}
+    {nodeId ? <>
+      {latest && <div className="feedback feedback-reveal" role="status">{latest.reaction
+        ? <SpokenSentence text={latest.reaction} />
+        : <><strong>{latest.correction !== undefined ? "Umpan balik tutor" : "Latihan mandiri"}</strong><p>{latest.feedback}</p>{latest.correction && <SpokenSentence text={latest.correction} />}</>}
+      </div>}
       <section className="qa-dialogue-question" aria-label="Pertanyaan saat ini">
-        <span className="qa-speaker">{node.speaker} · {node.speakerRole}</span>
-        <SpokenSentence text={node.question} />
-        <details><summary>Terjemahan & petunjuk struktur</summary><p>{node.translation}</p><p><strong>{node.grammarFormula}</strong></p><p>{node.grammarHint}</p></details>
+        <div className="qa-interlocutor">
+          <span className="qa-avatar" aria-hidden="true">{scenario.speaker.charAt(0)}</span>
+          <div><strong>{scenario.speaker}</strong><span lang="en">{scenario.role}</span></div>
+        </div>
+        <SpokenSentence text={question} />
+        <details><summary>{!followUp && translation ? "Terjemahan & fokus latihan" : "Fokus latihan"}</summary>
+          {!followUp && translation && <p>{translation}</p>}
+          <p>{node && !followUp ? node.grammarHint : scenario.goal}</p>
+        </details>
       </section>
-      <form onSubmit={check}>
-        <label htmlFor="dialogue-answer">Jawaban Anda dalam bahasa Inggris</label>
-        <textarea ref={inputRef} id="dialogue-answer" rows={3} maxLength={1500} value={answer} onChange={e => edit(e.target.value)} placeholder="Tulis satu atau dua kalimat..." />
-        <VoiceInputBar value={answer} disabled={busy} onChange={edit} />
-        <div className="actions"><button type="submit" className="btn btn-primary" disabled={busy}>{busy ? "Memperkirakan topik..." : "Periksa jawaban"}</button></div>
+      <form className="qa-answer-form" onSubmit={check}>
+        <label htmlFor="dialogue-answer">Jawaban Anda</label>
+        <div className="qa-composer">
+          <textarea ref={inputRef} id="dialogue-answer" rows={2} maxLength={1500} value={answer} onChange={e => edit(e.target.value)} placeholder="Balas dalam bahasa Inggris…" />
+          <div className="qa-composer-tools">
+            <VoiceInputBar compact value={answer} disabled={busy} onChange={edit} />
+            <button type="submit" className="btn btn-primary qa-send" disabled={busy}>{busy ? "Menunggu…" : useTutor ? "Kirim jawaban" : node ? "Periksa jawaban" : "Simpan jawaban"}{!busy && <span aria-hidden="true">↗</span>}</button>
+          </div>
+        </div>
       </form>
       <div aria-live="polite" aria-busy={busy}>
         {notice && <p role="status">{notice}</p>}
-        {evaluation && <div className={`feedback ${evaluation.status === "advance" ? "feedback-ok" : "qa-feedback-partial"}`}>
+        {evaluation && node && <div className={`feedback ${evaluation.status === "advance" ? "feedback-ok" : "qa-feedback-partial"}`}>
           <strong>{evaluation.status === "empty" ? "Jawaban masih kosong" : "Struktur yang terdeteksi"}</strong>
           <p>{evaluation.grammar.feedback}</p>
-          {evaluation.status !== "empty" && <><strong>Perkiraan topik</strong><p>{evaluation.source === "minilm-hybrid" ? "MiniLM + aturan lokal" : "Pencocokan lokal"} · {evaluation.confidenceBand === "high" ? "Arah topik cukup jelas" : "Perlu klarifikasi"}</p></>}
+          {evaluation.status !== "empty" && <><strong>Perkiraan topik</strong><p>Pencocokan lokal · {evaluation.confidenceBand === "high" ? "Arah topik cukup jelas" : "Perlu klarifikasi"}</p></>}
           {evaluation.clarificationPrompt && <p>{evaluation.clarificationPrompt}</p>}
           {evaluation.status === "grammar_retry" && <p>Coba ulangi dengan pola target. Pemeriksa ini hanya mengenali struktur terbatas; hasilnya bukan koreksi grammar menyeluruh.</p>}
           {!busy && evaluation.status === "advance" && evaluation.matchedBranch && <button type="button" className="btn btn-primary" onClick={() => advance(evaluation.matchedBranch!)}>Lanjutkan percakapan →</button>}
@@ -112,17 +212,30 @@ function DialogueSession({ scenario }: { scenario: DialogueScenario }) {
         </div>}
       </div>
     </> : <div className="feedback feedback-ok" role="status"><strong>Percakapan selesai!</strong><p>Anda menyelesaikan {history.length} giliran. Buka riwayat untuk meninjau jawaban dan struktur yang terdeteksi.</p></div>}
-    <div className="actions"><button type="button" className="btn btn-ghost" onClick={restart}>Mulai ulang skenario</button></div>
-    <p className="qa-dialogue-note">Dialog berasal dari bank skenario lokal. Perkiraan topik tidak membuktikan fakta, kesetaraan makna, atau semua grammar sudah benar.</p>
+    <div className="actions qa-session-actions">{useTutor && nodeId && history.length > 0 &&
+      <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setNodeId(null)}>Akhiri percakapan</button>}
+      <button type="button" className="btn btn-ghost" onClick={restart}>Mulai ulang skenario</button></div>
+    {!useTutor && <p className="qa-dialogue-note">Pertanyaan mode lokal berasal dari bank skenario. Koreksi lengkap tersedia melalui tutor Gemini.</p>}
   </main>;
 }
 
 export function QADialoguePractice() {
-  const [scenarioId, setScenarioId] = useState(DIALOGUE_SCENARIOS[0].id);
-  const scenario = DIALOGUE_SCENARIOS.find(item => item.id === scenarioId)!;
+  const [scenarioId, setScenarioId] = useState(() => {
+    const index = Math.floor(Math.random() * ROLEPLAY_STARTERS.length);
+    return ROLEPLAY_STARTERS[index].id;
+  });
+  const scenario = ROLEPLAY_STARTERS.find(item => item.id === scenarioId)!;
   return <>
     <label className="qa-scenario-picker" htmlFor="qa-scenario">Skenario roleplay
-      <select id="qa-scenario" value={scenarioId} onChange={e => setScenarioId(e.target.value)}>{DIALOGUE_SCENARIOS.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
+      <span className="qa-scenario-field">
+        <select id="qa-scenario" value={scenarioId} onChange={event => setScenarioId(event.target.value)}>
+          {SCENARIO_GROUPS.map(group => <optgroup key={group} label={group}>
+            {ROLEPLAY_STARTERS.filter(item => item.group === group).map(item =>
+              <option key={item.id} value={item.id}>{item.title}</option>)}
+          </optgroup>)}
+        </select>
+        <span className="qa-scenario-chevron" aria-hidden="true">▾</span>
+      </span>
     </label>
     <DialogueSession key={scenario.id} scenario={scenario} />
   </>;

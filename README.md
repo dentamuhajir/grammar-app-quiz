@@ -5,8 +5,8 @@ An interactive English grammar drill. The app shows a random **subject + cue**
 You **type the full sentence**, and the app checks it word-by-word, celebrates
 correct answers, and pinpoints exactly what went wrong when you miss.
 
-Built with **React + Vite + TypeScript**. Fully static — no backend, no API
-keys. All answer checking runs locally in the browser.
+Built with **React + Vite + TypeScript**. The default exercises run in the
+browser. Q&A roleplay starts with the server-backed Gemini tutor on supported hosts.
 
 ## Answer checking
 
@@ -48,26 +48,33 @@ Grammar rules enforced by the engine:
 
 ## Q&A roleplay
 
-Open Question & Answer and select **Roleplay bercabang**. Two local scenarios
-(late meeting and job interview) route replies through three turns of questions.
+Open Question & Answer and select **Roleplay percakapan**. Pick a starter from work, everyday life, travel or study and community. The opening question is available immediately.
 The original filtered drills remain under **Latihan singkat**.
 
-Grammar pattern detection and estimated intent are shown separately. Unknown or
-ambiguous topics ask for clarification; users can revise the reply or explicitly
-confirm a branch. The checker recognizes a limited vocabulary and structures,
-and does not certify complete grammatical correctness or factual accuracy.
+### Gemini tutor on the free tier
 
-Local matching works without a model download. Optional MiniLM uses the same
-worker as Story Challenge, embeds the reply once per check, and caches reference
-vectors in worker memory. The first use downloads model/runtime assets from
-external hosts; offline use depends on browser cache availability. Model failure
-or a 60-second request timeout falls back to local matching. Routing thresholds
-are provisional fixtures, not human-calibrated probabilities. Mobile latency,
-memory use, and real-model routing accuracy still require device evaluation.
+Use a Gemini API key from a Google AI Studio project on the **Free** tier
+with billing disabled. The project attached to the key determines billing.
+For local development, put `GEMINI_API_KEY=your_key` in `.env.local` (ignored
+by Git) and restart `npm run dev`. On Vercel, set the same server environment
+variable and redeploy. GitHub Pages serves the local roleplay.
 
-Run `npm test` for dialogue graph integrity, representative branches, grammar
-near misses, polarity, time conflicts, and critical subject changes. These tests
-inject model scores; they do not download or benchmark MiniLM.
+Gemini is selected by default on localhost and Vercel. One submission sends the
+current question, answer, learning goals and up to three recent exchanges to
+Gemini 3.5 Flash-Lite through `/api/roleplay`. The tutor gives Indonesian
+feedback, an English correction when needed and a contextual follow-up or
+clarification. Gemini writes each follow-up in character. Select **Akhiri percakapan** to finish. Learners use the feature
+without signing in. Google may use free-tier content for product improvement.
+[Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite)
+
+If the key is unavailable, the request times out or quota is exhausted, the
+session switches to local exercises. The transcript and current draft stay
+available. After a generated question, the learner can adjust the draft to
+the local question before checking again.
+
+The local meeting and interview exercises retain their branching questions and
+grammar pattern checks. Other starters offer two offline prompts for independent
+practice. MiniLM is used only by Story Challenge.
 
 ## Develop
 

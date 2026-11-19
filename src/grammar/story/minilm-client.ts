@@ -339,36 +339,3 @@ export function computeMiniLmSimilarityAsync(
     });
   });
 }
-
-/**
- * Compares a user's Q&A reply against multiple intent branches (each with multiple example sentences)
- * using the shared on-device MiniLM Web Worker.
- */
-export async function computeMiniLmIntentScoresAsync(
-  nodeId: string,
-  branches: ReadonlyArray<{ id: string; examples: readonly string[] }>,
-  userText: string,
-): Promise<{
-  branchCosines: Record<string, number>;
-  latencyMs: number;
-}> {
-  const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
-  const branchCosines: Record<string, number> = {};
-  // One request embeds the reply once and compares it to all intent examples.
-  const result = await computeMiniLmSimilarityAsync(
-    `qa-${nodeId}`,
-    branches.flatMap(branch => [...branch.examples]),
-    userText,
-  );
-  let offset = 0;
-  for (const branch of branches) {
-    const scores = result.anchorSimilarities.slice(offset, offset + branch.examples.length).sort((a, b) => b - a);
-    branchCosines[branch.id] = scores.length > 1 ? scores[0] * 0.7 + scores[1] * 0.3 : (scores[0] ?? 0);
-    offset += branch.examples.length;
-  }
-  const t1 = typeof performance !== "undefined" ? performance.now() : Date.now();
-  return {
-    branchCosines,
-    latencyMs: Math.max(1, Math.round(t1 - t0)),
-  };
-}

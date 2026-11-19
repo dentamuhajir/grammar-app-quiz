@@ -51,6 +51,7 @@ function joinTranscript(base: string, spoken: string): string {
 }
 
 export interface VoiceInputBarProps {
+  compact?: boolean;
   value: string;
   onChange: (nextValue: string) => void;
   disabled?: boolean;
@@ -58,6 +59,7 @@ export interface VoiceInputBarProps {
 }
 
 export function VoiceInputBar({
+  compact = false,
   value,
   onChange,
   disabled = false,
@@ -244,7 +246,7 @@ export function VoiceInputBar({
             {listening ? "⏹" : "🎙️"}
           </span>
           <span>
-            {listening
+            {compact ? (listening ? "Berhenti" : hasText ? "Sambung suara" : "Dikte") : listening
               ? "Mendengarkan… (Klik untuk selesai)"
               : hasText
                 ? "Sambung Suara"
