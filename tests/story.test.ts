@@ -6,7 +6,8 @@ import {
   evaluateStorySubmission,
   filterStoryScenarios,
 } from "../src/grammar/story/engine";
-import { calibrateMiniLmCosine } from "../src/grammar/story/minilm-client";
+import { Script } from "node:vm";
+import { computeMiniLmSimilarityAsync, calibrateMiniLmCosine } from "../src/grammar/story/minilm-client";
 
 describe("Story Challenge Engine", () => {
   it("loads all built-in and custom scenarios and validates every sampleStory passes 3/3 missions, explicit checks, and high relevance", () => {
@@ -233,4 +234,39 @@ describe("Story Challenge Engine", () => {
   });
 });
 
-
+it("story worker compares anchors, has valid source, and rejects on worker failure", async () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const originalWorker = Object.getOwnPropertyDescriptor(globalThis, "Worker");
+  let worker: FakeWorker;
+  let sourceUrl = "";
+  class FakeWorker {
+    onmessage?: (event: { data: unknown }) => void;
+    onerror?: () => void;
+    messages: Array<{ id: number; anchors: string[]; userText: string }> = [];
+    constructor(url: string) { worker = this; sourceUrl = url; }
+    postMessage(message: { id: number; anchors: string[]; userText: string }) { this.messages.push(message); }
+    terminate() {}
+  }
+  const revoke = URL.revokeObjectURL;
+  let source: Promise<string> | undefined;
+  URL.revokeObjectURL = url => { source = fetch(url).then(res => res.text()).finally(() => revoke(url)); };
+  Object.defineProperty(globalThis, "window", { configurable: true, value: {} });
+  Object.defineProperty(globalThis, "Worker", { configurable: true, value: FakeWorker });
+  try {
+    const scores = computeMiniLmSimilarityAsync("test", ["A1", "A2", "B1"], "reply");
+    assert.ok(sourceUrl.startsWith("blob:"));
+    new Script(await source!, { filename: "minilm-worker.js" });
+    assert.equal(worker!.messages.length, 1);
+    assert.deepEqual(worker!.messages[0].anchors, ["A1", "A2", "B1"]);
+    worker!.onmessage!({ data: { type: "result", id: worker!.messages[0].id, rawCosine: 0.8, anchorSimilarities: [0.8, 0.6, 0.2] } });
+    const result = await scores;
+    assert.equal(result.rawCosine, 0.8);
+    const failed = computeMiniLmSimilarityAsync("failure", ["anchor"], "reply");
+    worker!.onerror!();
+    await assert.rejects(failed, /worker failed/);
+  } finally {
+    URL.revokeObjectURL = revoke;
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow); else Reflect.deleteProperty(globalThis, "window");
+    if (originalWorker) Object.defineProperty(globalThis, "Worker", originalWorker); else Reflect.deleteProperty(globalThis, "Worker");
+  }
+});

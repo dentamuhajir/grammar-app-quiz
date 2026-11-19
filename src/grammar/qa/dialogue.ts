@@ -5,7 +5,7 @@
  * 1. Pengguna menerima pertanyaan/skenario dari bank dialog lokal (`DIALOGUE_SCENARIOS`).
  * 2. Pengguna menjawab dalam bahasa Inggris.
  * 3. Rule-based engine (`verifyDialogueGrammar`) memeriksa syarat grammar yang dapat diverifikasi.
- * 4. MiniLM / Multi-example semantic matcher membandingkan jawaban dengan beberapa contoh kalimat
+ * 4. Pencocokan lokal membandingkan jawaban dengan beberapa contoh kalimat
  *    per intent/topik (`branch.examples`), bukan satu kalimat referensi saja.
  * 5. Dialogue manager (`evaluateDialogueTurn`) memilih pertanyaan lanjutan dari bank dialog bercabang
  *    berdasarkan intent/topik yang terdeteksi dan state percakapan.
@@ -15,7 +15,6 @@
  *    bermakna mirip tetapi berbeda secara kritis.
  */
 
-import { calibrateMiniLmCosine } from "../story/minilm-client";
 import { VERBS } from "../data/verbs";
 
 export type DialogueGrammarTarget =
@@ -104,8 +103,6 @@ export interface DialogueTurnEvaluation {
   topScore: number;
   topPercentage: number;
   intentRankings: IntentScoreDetail[];
-  source: "minilm-hybrid" | "local-multi-example";
-  latencyMs?: number;
   criticalTrap?: CriticalTrapKind;
   criticalTrapExplanation?: string;
   clarificationPrompt?: string;
@@ -124,7 +121,7 @@ export interface DialogueHistoryItem {
 }
 
 export const QA_SEMANTIC_LIMITATIONS_NOTE =
-  "Batas evaluasi: Kemiripan semantik (MiniLM) hanya memperkirakan kecocokan topik/intent, bukan bukti grammar benar, fakta benar, atau jawaban setara. Pemeriksaan negasi, waktu, dan struktur tetap dikawal oleh aturan lokal.";
+  "Pemeriksaan lokal mengenali pola grammar dan memperkirakan topik dari contoh skenario.";
 
 // ============================================================================
 // Bank Dialog Lokal Bercabang (Branching Dialogue Scenarios)
@@ -1116,16 +1113,9 @@ export function verifyDialogueGrammar(
 // Dialogue Manager & Multi-Example Semantic Intent Evaluator (13.4)
 // ============================================================================
 
-export interface EvaluateDialogueOptions {
-  /** Optional raw cosine similarities per branch ID from MiniLM Web Worker */
-  miniLmBranchCosines?: Record<string, number>;
-  latencyMs?: number;
-}
-
 export function evaluateDialogueTurn(
   node: DialogueNode,
   rawAnswer: string,
-  options?: EvaluateDialogueOptions,
 ): DialogueTurnEvaluation {
   const trimmed = rawAnswer.trim();
   if (!trimmed) {
@@ -1142,7 +1132,6 @@ export function evaluateDialogueTurn(
       topScore: 0,
       topPercentage: 0,
       intentRankings: [],
-      source: "local-multi-example",
       limitationsNote: QA_SEMANTIC_LIMITATIONS_NOTE,
     };
   }
@@ -1157,10 +1146,6 @@ export function evaluateDialogueTurn(
   const hasTimeConflict =
     (node.expectedTimeFrame === "past" && userTimeSignal === "future") ||
     (node.expectedTimeFrame === "future" && userTimeSignal === "past");
-
-  const hasMiniLm =
-    options?.miniLmBranchCosines !== undefined &&
-    Object.keys(options.miniLmBranchCosines).length > 0;
 
   let detectedTrap: CriticalTrapKind | undefined;
   let detectedTrapExplanation: string | undefined;
@@ -1193,20 +1178,10 @@ export function evaluateDialogueTurn(
     ).length;
     const conceptScore = Math.min(1, conceptHits / 2.2);
 
-    const localScore = Math.min(
+    let combinedScore = Math.min(
       1,
       conceptScore * 0.58 + multiExampleSim * 0.42,
     );
-
-    // 3. Blend with MiniLM multi-example cosine similarity if available
-    const rawMiniLm = options?.miniLmBranchCosines?.[branch.id];
-    const calibratedMiniLm =
-      rawMiniLm !== undefined ? calibrateMiniLmCosine(rawMiniLm) : undefined;
-
-    let combinedScore =
-      calibratedMiniLm !== undefined
-        ? calibratedMiniLm * 0.65 + localScore * 0.35
-        : localScore;
 
     let trapTriggered: CriticalTrapKind | undefined;
     let trapNote: string | undefined;
@@ -1319,8 +1294,6 @@ export function evaluateDialogueTurn(
     topScore,
     topPercentage,
     intentRankings: rankings,
-    source: hasMiniLm ? "minilm-hybrid" : "local-multi-example",
-    latencyMs: options?.latencyMs,
     criticalTrap: detectedTrap,
     criticalTrapExplanation: detectedTrapExplanation,
     clarificationPrompt:

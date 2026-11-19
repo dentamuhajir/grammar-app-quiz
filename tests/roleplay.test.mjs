@@ -44,6 +44,25 @@ test("quota, malformed responses and missing keys signal local fallback", async 
   assert.equal((await submit(turn)).status, 503);
 });
 
+test("conversation continues from the latest reply without scripted branches", async t => {
+  const { branches, ...input } = turn;
+  const history = [{ question: input.question, answer: input.answer }];
+  const next = { feedback: "Jawaban sudah jelas.", correction: "", nextQuestion: "Where did the taxi drop you off?" };
+  const provider = t.mock.method(globalThis, "fetch", async (_url, options) => {
+    const payload = JSON.parse(options.body);
+    const context = JSON.parse(payload.contents[0].parts[0].text);
+    assert.deepEqual(context.history, history);
+    assert.equal(context.answer, "I took a taxi.");
+    assert.ok(!("branches" in context));
+    assert.ok(!("branch" in payload.generationConfig.responseSchema.properties));
+    return Response.json({ candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify(next) }] } }] });
+  });
+  const response = await submit({ ...input, mode: "conversation", history, question: "How did you get here?", answer: "I took a taxi." });
+  assert.equal(provider.mock.callCount(), 1);
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, next);
+});
+
 test("Gemini rejection reports a safe reason and its actual HTTP status", async t => {
   const provider = t.mock.method(globalThis, "fetch", async () => Response.json({
     error: { message: "private detail", details: [{ reason: "API_KEY_INVALID" }] },
