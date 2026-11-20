@@ -9,6 +9,7 @@ const turn = {
 };
 const feedback = {
   branch: "traffic", correction: "I missed my bus.", feedback: "Gunakan bentuk lampau missed.",
+  explanation: "Saat bercerita tentang kemarin, bentuk lampau juga dipakai pada kata kerja lain. Contohnya “I walked home yesterday.”",
   nextQuestion: "How did you get here after missing the bus?",
 };
 
@@ -47,7 +48,7 @@ test("quota, malformed responses and missing keys signal local fallback", async 
 test("conversation continues from the latest reply without scripted branches", async t => {
   const { branches, ...input } = turn;
   const history = [{ question: input.question, answer: input.answer }];
-  const next = { feedback: "Jawaban sudah jelas.", correction: "", nextQuestion: "Where did the taxi drop you off?" };
+  const next = { feedback: "Jawaban sudah jelas.", correction: "", explanation: "", nextQuestion: "Where did the taxi drop you off?" };
   const provider = t.mock.method(globalThis, "fetch", async (_url, options) => {
     const payload = JSON.parse(options.body);
     const context = JSON.parse(payload.contents[0].parts[0].text);
@@ -61,6 +62,16 @@ test("conversation continues from the latest reply without scripted branches", a
   assert.equal(provider.mock.callCount(), 1);
   assert.equal(response.status, 200);
   assert.deepEqual(response.body, next);
+});
+
+test("missing extra detail still delivers the correction and next question", async t => {
+  const { explanation, branch, ...shortFeedback } = feedback;
+  t.mock.method(globalThis, "fetch", async () => Response.json({
+    candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify(shortFeedback) }] } }],
+  }));
+  const response = await submit({ ...turn, mode: "conversation" });
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, { ...shortFeedback, explanation: "" });
 });
 
 test("Gemini rejection reports a safe reason and its actual HTTP status", async t => {

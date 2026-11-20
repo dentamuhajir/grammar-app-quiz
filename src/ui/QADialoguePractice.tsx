@@ -10,7 +10,19 @@ interface ConversationTurn {
   answer: string;
   feedback: string;
   correction?: string;
+  explanation?: string;
   reaction?: string;
+}
+
+function TurnFeedback({ turn }: { turn: ConversationTurn }) {
+  return <>
+    {turn.correction && <SpokenSentence text={turn.correction} />}
+    <p>{turn.feedback}</p>
+    {turn.explanation && <details className="qa-tutor-explanation">
+      <summary>Bahas lebih lanjut</summary>
+      <p>{turn.explanation}</p>
+    </details>}
+  </>;
 }
 
 function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
@@ -78,7 +90,8 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
         throw new Error("Incomplete tutor turn");
       }
       setHistory(items => [...items, { speaker: scenario.speaker, question, answer: answer.trim(),
-        feedback: tutor.feedback, correction: tutor.correction }]);
+        feedback: tutor.feedback, correction: tutor.correction,
+        explanation: tutor.correction && typeof tutor.explanation === "string" ? tutor.explanation.trim() : "" }]);
       // Keep a related offline question ready if the connection drops later.
       if (!followUp) {
         const nextLocal = node ? evaluateDialogueTurn(node, answer).matchedBranch?.nextNodeId : "follow-up";
@@ -167,15 +180,14 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
       <ol>{history.map((item, index) => <li key={index}>
         <p><strong>{item.speaker}:</strong> {item.question}</p>
         <p><strong>Anda:</strong> {item.answer}</p>
-        <small>{item.feedback}</small>
-        {item.correction && <SpokenSentence text={item.correction} />}
+        {item.correction !== undefined ? <TurnFeedback turn={item} /> : <small>{item.feedback}</small>}
         {item.reaction && <SpokenSentence text={item.reaction} />}
       </li>)}</ol>
     </details>}
     {nodeId ? <>
       {latest && <div className="feedback feedback-reveal" role="status">{latest.reaction
         ? <SpokenSentence text={latest.reaction} />
-        : <><strong>{latest.correction !== undefined ? "Umpan balik tutor" : "Latihan mandiri"}</strong><p>{latest.feedback}</p>{latest.correction && <SpokenSentence text={latest.correction} />}</>}
+        : <><strong>{latest.correction !== undefined ? "Umpan balik tutor" : "Latihan mandiri"}</strong><TurnFeedback key={history.length} turn={latest} /></>}
       </div>}
       <section className="qa-dialogue-question" aria-label="Pertanyaan saat ini">
         <div className="qa-interlocutor">

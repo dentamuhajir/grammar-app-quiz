@@ -10,6 +10,7 @@ import { InstallPrompt } from "./ui/InstallPrompt";
 
 type PracticeMode = keyof typeof PRACTICE_LABELS;
 type ExtraPracticeMode = "articles" | "story" | "qa";
+const DEFAULT_MODE: ExtraPracticeMode = "qa";
 
 function ModeIcon({ mode }: { mode: PracticeMode }) {
   if (mode === "sentences") {
@@ -157,6 +158,11 @@ const EXTRA_MODES: Array<{
   description: string;
 }> = [
   {
+    mode: "qa",
+    description:
+      "Latihan merespons pertanyaan percakapan (Yes/No & WH-Questions).",
+  },
+  {
     mode: "articles",
     description:
       "Bedah tenses, passive, modal, dan cari kesalahan grammar di dalam artikel nyata.",
@@ -166,16 +172,11 @@ const EXTRA_MODES: Array<{
     description:
       "Rangkai cerita bebas sesuai topik & checklist misi grammar dengan bedah paragraf warna-warni.",
   },
-  {
-    mode: "qa",
-    description:
-      "Latihan merespons pertanyaan percakapan (Yes/No & WH-Questions).",
-  },
 ];
 
 export default function App() {
-  const [practice, setPractice] = useState<PracticeMode>("sentences");
-  const [extraMode, setExtraMode] = useState<ExtraPracticeMode>("articles");
+  const [practice, setPractice] = useState<PracticeMode>(DEFAULT_MODE);
+  const [extraMode, setExtraMode] = useState<ExtraPracticeMode>(DEFAULT_MODE);
   const [extraOpen, setExtraOpen] = useState(false);
 
   const isExtraActive =

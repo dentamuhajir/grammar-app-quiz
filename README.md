@@ -207,6 +207,11 @@ is a guided free-writing mode accessible from the third bottom-navigation button
   context keywords and an optional V1–V2–V3 verb helper drawer.
 - **Misi Grammar (Checklist Wajib)**: 3 required grammar structures per scenario,
   color-coded in **Blue**, **Green**, and **Purple**.
+- **Tutor Gemini** is on by default on localhost and Vercel. **Periksa Jawaban**
+  sends the draft, scenario and missions to `/api/story` using the same server-side
+  `GEMINI_API_KEY` as Roleplay. The tutor highlights a strength and, when useful,
+  explains one correction or suggests how to develop a missing mission.
+  Switching the tutor off keeps the review local. GitHub Pages uses local checks.
 - **Bedah Paragraf Visual (Color-Coded Highlighting)**: evaluates user-written
   paragraphs offline using morphological and structural pattern matching,
   highlighting matched phrases in their corresponding mission color and giving

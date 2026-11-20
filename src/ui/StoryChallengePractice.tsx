@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ALL_STORY_SCENARIOS,
   RULE_SHORT_NAMES,
@@ -24,6 +24,7 @@ import { SuccessBadge } from "./FeedbackIcons";
 import { SpokenSentence } from "./SpokenSentence";
 import { VoiceInputBar } from "./VoiceInputBar";
 import { useSwipeCard } from "./useSwipeCard";
+import { useStoryTutor } from "./useStoryTutor";
 
 const STORY_LEVELS = Object.keys(STORY_LEVEL_LABELS) as StoryLevel[];
 
@@ -44,7 +45,11 @@ function filterSummary(filter: StoryFilter): string {
   return STORY_LEVEL_LABELS[filter.level];
 }
 
-function StorySession({ filter }: { filter: StoryFilter }) {
+function StorySession({ filter, useTutor, setUseTutor }: {
+  filter: StoryFilter;
+  useTutor: boolean;
+  setUseTutor: (enabled: boolean) => void;
+}) {
   const scenarios = filterStoryScenarios(filter);
   const [index, setIndex] = useState(0);
   const [text, setText] = useState("");
@@ -60,6 +65,8 @@ function StorySession({ filter }: { filter: StoryFilter }) {
     getMiniLmStatus(),
   );
   const [miniLmRunning, setMiniLmRunning] = useState(false);
+  const miniLmRequest = useRef(0);
+  const tutor = useStoryTutor(() => setUseTutor(false));
 
   useEffect(() => {
     return subscribeMiniLmStatus((st) => {
@@ -74,6 +81,7 @@ function StorySession({ filter }: { filter: StoryFilter }) {
 
   async function runMiniLmForText(targetScenario: StoryScenario, rawText: string) {
     if (!rawText.trim()) return;
+    const request = ++miniLmRequest.current;
     setMiniLmRunning(true);
     try {
       const anchors = getScenarioAnchors(targetScenario);
@@ -82,33 +90,41 @@ function StorySession({ filter }: { filter: StoryFilter }) {
         anchors,
         rawText,
       );
-      setEvaluation((prev) => {
-        if (!prev) return prev;
-        return evaluateStorySubmission(targetScenario, rawText, {
+      if (request === miniLmRequest.current) {
+        setEvaluation(evaluateStorySubmission(targetScenario, rawText, {
           miniLmSimilarity: sim.calibratedScore,
           rawMiniLmCosine: sim.rawCosine,
           latencyMs: sim.latencyMs,
-        });
-      });
+        }));
+      }
     } catch {
       // Fallback gracefully to local semantic score already in `evaluation`
     } finally {
-      setMiniLmRunning(false);
+      if (request === miniLmRequest.current) setMiniLmRunning(false);
     }
+  }
+
+  function editText(value: string) {
+    ++miniLmRequest.current;
+    setMiniLmRunning(false);
+    tutor.clear();
+    setText(value);
+    setEvaluation(null);
   }
 
   function nextScenario() {
     setIndex((prev) => (prev + 1) % scenarios.length);
-    setText("");
-    setEvaluation(null);
+    editText("");
     setSelectedMission(null);
     setSampleOpen(false);
   }
 
   function handleCheck(e: FormEvent) {
     e.preventDefault();
+    if (tutor.busy) return;
     const res = evaluateStorySubmission(scenario, text);
     setEvaluation(res);
+    if (useTutor && text.trim()) void tutor.check(scenario, text.trim());
     if (res.status === "complete") {
       setCelebrateKey((k) => k + 1);
       setSampleOpen(true);
@@ -119,7 +135,7 @@ function StorySession({ filter }: { filter: StoryFilter }) {
   }
 
   function handleTrySample() {
-    setText(scenario.sampleStory);
+    editText(scenario.sampleStory);
     const res = evaluateStorySubmission(scenario, scenario.sampleStory);
     setEvaluation(res);
     setSampleOpen(true);
@@ -138,18 +154,12 @@ function StorySession({ filter }: { filter: StoryFilter }) {
   }
 
   function handleResetText() {
-    setText("");
-    setEvaluation(null);
+    editText("");
     setSampleOpen(false);
   }
 
   function insertWordAtEnd(word: string) {
-    setText((prev) => {
-      if (!prev.trim()) return word;
-      const needsSpace = !/\s$/.test(prev);
-      return `${prev}${needsSpace ? " " : ""}${word}`;
-    });
-    setEvaluation(null);
+    editText(text.trim() ? `${text}${/\s$/.test(text) ? "" : " "}${word}` : word);
   }
 
   const { swipeHandlers, cardStyle, cardClass } = useSwipeCard({
@@ -249,6 +259,19 @@ function StorySession({ filter }: { filter: StoryFilter }) {
 
         {/* 3. AREA INPUT TEKS (TEXT BOX) */}
         <form className="story-input-section" onSubmit={handleCheck}>
+          {!window.location.hostname.endsWith(".github.io") && <div className="qa-tutor">
+            <span className="qa-tutor-icon" aria-hidden="true">✦</span>
+            <div><label htmlFor="story-tutor-switch">Tutor Gemini</label>
+              <p id="story-tutor-description">{useTutor
+                ? "Cerita dikirim ke Gemini saat Anda menekan Periksa Jawaban."
+                : "Mode lokal aktif. Nyalakan untuk mendapat masukan tentang cerita Anda."}</p>
+            </div>
+            <input id="story-tutor-switch" type="checkbox" role="switch" checked={useTutor}
+              aria-describedby="story-tutor-description" onChange={e => {
+                tutor.clear();
+                setUseTutor(e.target.checked);
+              }} />
+          </div>}
           <div className="story-input-header">
             <label className="label" htmlFor="story-textarea">
               Ketik Cerita Anda:
@@ -276,10 +299,7 @@ function StorySession({ filter }: { filter: StoryFilter }) {
               className="story-textarea"
               rows={4}
               value={text}
-              onChange={(e) => {
-                setText(e.target.value);
-                if (evaluation) setEvaluation(null);
-              }}
+              onChange={(e) => editText(e.target.value)}
               placeholder="Contoh: I ran fast to the station, but the train had left before I arrived..."
               autoCapitalize="sentences"
               spellCheck={true}
@@ -287,16 +307,13 @@ function StorySession({ filter }: { filter: StoryFilter }) {
             <VoiceInputBar
               value={text}
               multiline={true}
-              onChange={(nextVal) => {
-                setText(nextVal);
-                if (evaluation) setEvaluation(null);
-              }}
+              onChange={editText}
             />
           </div>
 
           <div className="actions">
-            <button type="submit" className="btn btn-primary">
-              Periksa Jawaban
+            <button type="submit" className="btn btn-primary" disabled={tutor.busy}>
+              {tutor.busy ? "Gemini memeriksa…" : "Periksa Jawaban"}
             </button>
             <button
               type="button"
@@ -314,6 +331,21 @@ function StorySession({ filter }: { filter: StoryFilter }) {
             </button>
           </div>
         </form>
+
+        {tutor.notice && <p role="status">{tutor.notice}</p>}
+        {tutor.review && <section className="feedback feedback-reveal" aria-label="Umpan balik Tutor Gemini" role="status">
+          <strong>Umpan balik Tutor Gemini</strong>
+          <p>{tutor.review.strength}</p>
+          {tutor.review.focus !== "complete" && <>
+            <strong>{tutor.review.focus === "mission" ? "Coba lengkapi misi" : "Koreksi kalimat"}</strong>
+            {tutor.review.revision && <SpokenSentence text={tutor.review.revision} />}
+            <p>{tutor.review.feedback}</p>
+            {tutor.review.explanation && <details className="qa-tutor-explanation">
+              <summary>Bahas lebih lanjut</summary>
+              <p>{tutor.review.explanation}</p>
+            </details>}
+          </>}
+        </section>}
 
         {/* 4. TAMPILAN HASIL TERPISAH SESUAI 13.5:
             (A) Struktur & Syarat Eksplisit Terdeteksi
@@ -661,6 +693,7 @@ function StorySession({ filter }: { filter: StoryFilter }) {
 }
 
 export function StoryChallengePractice() {
+  const [useTutor, setUseTutor] = useState(() => !window.location.hostname.endsWith(".github.io"));
   const [filter, setFilter] = useState<StoryFilter>({
     level: "all",
     scenarioId: "all",
@@ -683,7 +716,7 @@ export function StoryChallengePractice() {
         <span className="filter-pill-action">⚙ Pilih</span>
       </button>
 
-      <StorySession key={filterKey} filter={filter} />
+      <StorySession key={filterKey} filter={filter} useTutor={useTutor} setUseTutor={setUseTutor} />
 
       <BottomSheet
         open={sheetOpen}
