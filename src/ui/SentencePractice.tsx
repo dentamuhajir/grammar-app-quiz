@@ -83,7 +83,7 @@ function filterSummary(f: QuizFilter): string {
   return parts.join(" · ");
 }
 
-export function SentencePractice() {
+export function SentencePractice({ onForSince }: { onForSince: () => void }) {
   const [filter, setFilter] = useState<QuizFilter>(DEFAULT_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
     generateQuestion(DEFAULT_FILTER),
@@ -319,6 +319,7 @@ export function SentencePractice() {
         title="Filter Sentence Practice"
       >
         <div className="sheet-form">
+          <button type="button" className="btn btn-ghost" onClick={onForSince}>For / since · 6 situasi</button>
           <label>
             <span>Tense</span>
             <select

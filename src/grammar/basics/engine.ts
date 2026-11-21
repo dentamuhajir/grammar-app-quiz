@@ -1,10 +1,12 @@
 import { BASICS_LABELS } from "../labels";
+import { FOR_SINCE, FOR_SINCE_LESSONS, timeExplanation, timeHint } from "../forSince";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
-export type BasicsFilter = BasicsTopic | "all";
+export type BasicsFilter = BasicsTopic | "all" | typeof FOR_SINCE;
 export const NO_WORD = "∅";
 
 export interface BasicsQuestion {
+  skillId?: typeof FOR_SINCE;
   id: string;
   topic: BasicsTopic;
   rule: string;
@@ -193,38 +195,6 @@ export function buildQuestionPool(): BasicsQuestion[] {
     explanation: string;
   }> = [
     {
-      key: "dur-for-hours",
-      rule: "Durasi · for vs since",
-      cue: "for / since",
-      prompt: "She has studied English ___ three hours.",
-      answer: "for",
-      explanation: "Gunakan “for” untuk menyatakan durasi atau lamanya waktu (three hours).",
-    },
-    {
-      key: "dur-since-2022",
-      rule: "Titik awal waktu · for vs since",
-      cue: "for / since",
-      prompt: "They have lived in Jakarta ___ 2022.",
-      answer: "since",
-      explanation: "Gunakan “since” untuk menunjuk titik awal waktu dimulainya sesuatu (sejak 2022).",
-    },
-    {
-      key: "dur-for-five-years",
-      rule: "Durasi · for vs since",
-      cue: "for / since",
-      prompt: "He has worked at this company ___ five years.",
-      answer: "for",
-      explanation: "“Five years” adalah rentang durasi waktu, sehingga memakai “for”.",
-    },
-    {
-      key: "dur-since-monday",
-      rule: "Titik awal waktu · for vs since",
-      cue: "for / since",
-      prompt: "It has been raining ___ Monday morning.",
-      answer: "since",
-      explanation: "“Monday morning” adalah titik waktu awal kejadian dimulai, sehingga memakai “since”.",
-    },
-    {
       key: "to-for-send",
       rule: "Arah/penerima · to vs for",
       cue: "to / for",
@@ -301,6 +271,15 @@ export function buildQuestionPool(): BasicsQuestion[] {
       hint: `${item.hintDetail ? `${item.hintDetail} ` : ""}Perhatikan pasangan preposisi: for (durasi) vs since (titik awal), to (arah) vs for (manfaat), interested in, good at, atau used to + V1 vs be used to + V-ing.`,
       answer: item.answer,
       explanation: item.explanation,
+    });
+  }
+
+  for (const lesson of FOR_SINCE_LESSONS) {
+    const expression = lesson.blank.split("___ ")[1].replace(/\.$/, "");
+    add({
+      id: lesson.id, skillId: FOR_SINCE, topic: "prepositions", rule: "Durasi dan titik awal",
+      cue: "for / since", prompt: lesson.blank, answer: lesson.preposition,
+      hint: timeHint(expression), explanation: timeExplanation(lesson.preposition, expression),
     });
   }
 
@@ -2062,7 +2041,7 @@ export const BASICS_POOL = buildQuestionPool();
 
 /** Shuffle a complete cycle, without repeating its last item at the next boundary. */
 export function createDeck(filter: BasicsFilter, previousId?: string): BasicsQuestion[] {
-  const deck = BASICS_POOL.filter((q) => filter === "all" || q.topic === filter);
+  const deck = BASICS_POOL.filter((q) => filter === "all" || q.topic === filter || q.skillId === filter);
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];

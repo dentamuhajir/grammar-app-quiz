@@ -256,6 +256,7 @@ const cacheName = `grammar-drill-${versionHash}`;
 
 const swCode = `const CACHE_NAME = ${JSON.stringify(cacheName)};
 const PRECACHE_URLS = ${JSON.stringify(precacheUrls)};
+const PRECACHE_REQUESTS = new Set(PRECACHE_URLS.map(path => new URL(path, self.location.origin).href));
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -274,7 +275,9 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   event.respondWith(
-    caches.match(event.request).then((cached) => {
+    // The build ships one representation of each precached file. A module
+    // request can carry a different Origin header from the install request.
+    caches.match(event.request, { cacheName: CACHE_NAME, ignoreVary: PRECACHE_REQUESTS.has(event.request.url) }).then((cached) => {
       if (cached) return cached;
       return fetch(event.request)
         .then((response) => {

@@ -4,12 +4,73 @@ import { BASICS_POOL, BASICS_TOPIC_GUIDES, checkBasicsAnswer, completedSentence,
 import { BASICS_LABELS } from "../src/grammar/labels";
 import { checkAnswer } from "../src/grammar/check";
 import { DEFAULT_FILTER, generateQuestion } from "../src/grammar/generator";
+import { FOR_SINCE, FOR_SINCE_LESSONS, checkForSinceWriting, referenceSentence } from "../src/grammar/forSince";
+import { dueReviews, reviewLesson, saveAttempt } from "../src/grammar/forSinceReview";
 
 function question(id: string) {
   const result = BASICS_POOL.find((q) => q.id === id);
   assert.ok(result, id);
   return result;
 }
+
+test("the six for/since blanks each link to a writing situation and give a meaning hint before the answer", () => {
+  const deck = createDeck(FOR_SINCE);
+  assert.equal(deck.length, 6);
+  assert.deepEqual(new Set(deck.map(q => q.id)), new Set(FOR_SINCE_LESSONS.map(item => item.id)));
+  for (const lesson of FOR_SINCE_LESSONS) {
+    const blank = question(lesson.id);
+    assert.equal(blank.skillId, FOR_SINCE);
+    assert.equal(checkBasicsAnswer(blank, lesson.preposition), "correct");
+    assert.doesNotMatch(blank.hint, /\b(for|since)\b/i);
+    assert.equal(checkForSinceWriting(lesson, referenceSentence(lesson)).status, "correct");
+    assert.equal(checkForSinceWriting(lesson, referenceSentence(lesson).replace(lesson.preposition, lesson.preposition === "for" ? "since" : "for")).status, "retry");
+    assert.equal(checkForSinceWriting(lesson, " ").status, "empty");
+  }
+});
+
+test("writing accepts natural variants and preserves duration, polarity, subject, and stative meaning", () => {
+  const [work, live, know, study] = FOR_SINCE_LESSONS;
+  for (const answer of ["I’ve worked here for 3 years.", "For three years, I have been working here.", "I've worked here for the past three years."]) {
+    assert.equal(checkForSinceWriting(work, answer).status, "correct", answer);
+  }
+  for (const answer of ["I haven't worked here for three years.", "I have worked here for two years.", "We have worked here for three years."]) {
+    assert.equal(checkForSinceWriting(work, answer).status, "retry", answer);
+  }
+  assert.equal(checkForSinceWriting(live, "Ever since 2021, I've been living in Bandung.").status, "correct");
+  assert.equal(checkForSinceWriting(study, "She's studied English since January.").status, "correct");
+  assert.equal(checkForSinceWriting(know, "I've been knowing Rina for two years.").status, "retry");
+});
+
+test("local review keeps the first attempt, waits three days, changes situation and clears only on unaided review", t => {
+  const entries = new Map<string, string>();
+  const storage = { getItem: (key: string) => entries.get(key) ?? null,
+    setItem: (key: string, value: string) => entries.set(key, value), removeItem: (key: string) => entries.delete(key) };
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
+  t.after(() => previous ? Object.defineProperty(globalThis, "localStorage", previous) : Reflect.deleteProperty(globalThis, "localStorage"));
+  const slot = { lessonId: FOR_SINCE_LESSONS[0].id, activity: "basics" } as const;
+  const threeDays = 3 * 86400000;
+  saveAttempt(slot, "incorrect", "incorrect", false, undefined, 0);
+  saveAttempt(slot, "incorrect", "correct", true, undefined, 1);
+  const latest = JSON.parse([...entries].find(([key]) => key.endsWith(".last"))![1]);
+  assert.equal(latest.first, "incorrect");
+  assert.equal(latest.outcome, "correct");
+  assert.equal(latest.hintUsed, true);
+  assert.equal(dueReviews(threeDays - 1).length, 0);
+  saveAttempt(slot, "correct", "correct", false, undefined, 2);
+  const [due] = dueReviews(threeDays);
+  const fresh = reviewLesson(due);
+  assert.notEqual(fresh.id, slot.lessonId);
+  assert.equal(fresh.preposition, FOR_SINCE_LESSONS[0].preposition);
+  const writing = { lessonId: fresh.id, activity: "sentence" } as const;
+  saveAttempt(writing, "correct", "correct", true, due, threeDays);
+  assert.equal(dueReviews(threeDays).length, 0);
+  const [again] = dueReviews(2 * threeDays);
+  const next = reviewLesson(again);
+  assert.notEqual(next.id, fresh.id);
+  saveAttempt({ ...writing, lessonId: next.id }, "correct", "correct", false, again, 2 * threeDays);
+  assert.equal(dueReviews(3 * threeDays).length, 0);
+});
 
 test("all generated questions have one blank, hints, and unique IDs", () => {
   assert.equal(new Set(BASICS_POOL.map((q) => q.id)).size, BASICS_POOL.length);
