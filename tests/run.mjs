@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 const temporary = await mkdtemp(join(tmpdir(), "grammar-basics-tests-"));
 try {
   await build({ entryPoints: ["tests/articles.test.ts", "tests/basics.test.ts", "tests/qa.test.ts", "tests/sentence.test.ts", "tests/story.test.ts"], outdir: temporary, outExtension: { ".js": ".mjs" }, bundle: true, platform: "node", format: "esm" });
-  const result = spawnSync(process.execPath, ["--test", "tests/roleplay.test.mjs", join(temporary, "articles.test.mjs"), join(temporary, "basics.test.mjs"), join(temporary, "qa.test.mjs"), join(temporary, "sentence.test.mjs"), join(temporary, "story.test.mjs")], { stdio: "inherit" });
+  const result = spawnSync(process.execPath, ["--test", "tests/roleplay.test.mjs", "tests/story-tutor.test.mjs", join(temporary, "articles.test.mjs"), join(temporary, "basics.test.mjs"), join(temporary, "qa.test.mjs"), join(temporary, "sentence.test.mjs"), join(temporary, "story.test.mjs")], { stdio: "inherit" });
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
 } finally {

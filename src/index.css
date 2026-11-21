@@ -1222,6 +1222,8 @@ button:focus-visible {
 .qa-tutor input:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
 .qa-tutor input:disabled { opacity: .65; cursor: wait; }
 .qa-dialogue-card summary { cursor: pointer; font-weight: 700; }
+.qa-tutor-explanation { margin-block: .5rem; font-size: .9rem; }
+.qa-tutor-explanation summary { padding-block: .3rem; }
 .qa-history { padding: .85rem; border: 1px solid var(--line); border-radius: 12px; }
 .qa-history ol { padding-left: 1.2rem; }
 .qa-history li + li { margin-top: 1rem; border-top: 1px solid var(--ink); }
