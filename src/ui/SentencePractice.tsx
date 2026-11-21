@@ -20,7 +20,7 @@ import { useSwipeCard } from "./useSwipeCard";
 import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
-import { SpokenSentence } from "./SpokenSentence";
+import { SentencePlayback } from "./SentencePlayback";
 import { TensesExplorer } from "./TensesExplorer";
 import { VoiceInputBar } from "./VoiceInputBar";
 
@@ -249,7 +249,7 @@ export function SentencePractice() {
               <SuccessBadge />
               <span>{praise}</span>
             </span>
-            <SpokenSentence text={question.answer} />
+            <SentencePlayback text={question.answer} question={question} />
             {result.alternativeOrder && (
               <p className="basics-explanation">
                 Letak keterangan waktu di awal kalimat juga diterima. Di atas
@@ -282,7 +282,7 @@ export function SentencePractice() {
 
         {revealed && !result?.correct && (
           <div className="feedback feedback-reveal">
-            <SpokenSentence text={question.answer} />
+            <SentencePlayback text={question.answer} question={question} />
             <button
               type="button"
               className="inline-popup-link"
@@ -409,6 +409,7 @@ export function SentencePractice() {
 
       <BottomSheet
         open={guideOpen}
+        closeButtonOnly
         onClose={() => setGuideOpen(false)}
         title={solved ? "Rumus & Penjelasan Jawaban" : "Rumus & Pola Kalimat"}
       >
@@ -421,6 +422,7 @@ export function SentencePractice() {
 
       <BottomSheet
         open={explorerOpen}
+        closeButtonOnly
         onClose={() => setExplorerOpen(false)}
         title="🧭 Tenses Explorer & Garis Waktu"
       >

@@ -1,10 +1,15 @@
 import { BASICS_LABELS } from "../labels";
+import { FOR_SINCE, FOR_SINCE_LESSONS, timeExplanation, timeHint } from "../forSince";
+import { INTERESTED_IN, INTEREST_LESSONS, activityHint, prepositionHint } from "../interestedIn";
+import { ARTICLE_WRITING, ARTICLE_LESSONS, knownHint, soundHint } from "../articleWriting";
+import type { WritingSkill } from "../writingPacks";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
-export type BasicsFilter = BasicsTopic | "all";
+export type BasicsFilter = BasicsTopic | "all" | WritingSkill;
 export const NO_WORD = "∅";
 
 export interface BasicsQuestion {
+  skillId?: WritingSkill;
   id: string;
   topic: BasicsTopic;
   rule: string;
@@ -52,9 +57,15 @@ export function buildQuestionPool(): BasicsQuestion[] {
 
   // 1. Articles (a / an / the / - )
   const articleHint = "Ketik a, an, the, atau - jika tidak memerlukan artikel. Perhatikan bunyi awal kata dan apakah benda sudah spesifik.";
+  function addArticle(question: BasicsQuestion) {
+    const lesson = ARTICLE_LESSONS.find(item => item.id === question.id);
+    if (!lesson) return add(question);
+    return add({ ...question, skillId: ARTICLE_WRITING, cue: "a / an / the",
+      context: lesson.basicsContext ?? question.context, hint: lesson.group === "known" ? knownHint : soundHint });
+  }
   for (const name of ["Maya", "Rina"]) {
     for (const role of ROLES) {
-      add({
+      addArticle({
         id: `article-role-${name}-${role.noun}`,
         topic: "articles",
         rule: "A / an · bunyi awal",
@@ -74,7 +85,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     }
   }
   for (const noun of ["book", "bag", "phone", "camera", "bicycle", "watch"]) {
-    add({
+    addArticle({
       id: `article-known-${noun}`,
       topic: "articles",
       rule: "The · sudah disebut",
@@ -193,38 +204,6 @@ export function buildQuestionPool(): BasicsQuestion[] {
     explanation: string;
   }> = [
     {
-      key: "dur-for-hours",
-      rule: "Durasi · for vs since",
-      cue: "for / since",
-      prompt: "She has studied English ___ three hours.",
-      answer: "for",
-      explanation: "Gunakan “for” untuk menyatakan durasi atau lamanya waktu (three hours).",
-    },
-    {
-      key: "dur-since-2022",
-      rule: "Titik awal waktu · for vs since",
-      cue: "for / since",
-      prompt: "They have lived in Jakarta ___ 2022.",
-      answer: "since",
-      explanation: "Gunakan “since” untuk menunjuk titik awal waktu dimulainya sesuatu (sejak 2022).",
-    },
-    {
-      key: "dur-for-five-years",
-      rule: "Durasi · for vs since",
-      cue: "for / since",
-      prompt: "He has worked at this company ___ five years.",
-      answer: "for",
-      explanation: "“Five years” adalah rentang durasi waktu, sehingga memakai “for”.",
-    },
-    {
-      key: "dur-since-monday",
-      rule: "Titik awal waktu · for vs since",
-      cue: "for / since",
-      prompt: "It has been raining ___ Monday morning.",
-      answer: "since",
-      explanation: "“Monday morning” adalah titik waktu awal kejadian dimulai, sehingga memakai “since”.",
-    },
-    {
       key: "to-for-send",
       rule: "Arah/penerima · to vs for",
       cue: "to / for",
@@ -239,14 +218,6 @@ export function buildQuestionPool(): BasicsQuestion[] {
       prompt: "I bought these flowers ___ my mother.",
       answer: "for",
       explanation: "Gunakan “for” ketika melakukan sesuatu demi manfaat atau untuk diberikan kepada seseorang (buy for).",
-    },
-    {
-      key: "adj-interested-in",
-      rule: "Adjective + Preposition · interested in",
-      cue: "in / on / at",
-      prompt: "She is very interested ___ learning digital design.",
-      answer: "in",
-      explanation: "Kata sifat “interested” selalu berpasangan dengan preposisi “in” (interested in + noun/V-ing).",
     },
     {
       key: "adj-good-at",
@@ -301,6 +272,26 @@ export function buildQuestionPool(): BasicsQuestion[] {
       hint: `${item.hintDetail ? `${item.hintDetail} ` : ""}Perhatikan pasangan preposisi: for (durasi) vs since (titik awal), to (arah) vs for (manfaat), interested in, good at, atau used to + V1 vs be used to + V-ing.`,
       answer: item.answer,
       explanation: item.explanation,
+    });
+  }
+
+  for (const lesson of FOR_SINCE_LESSONS) {
+    const expression = lesson.blank.split("___ ")[1].replace(/\.$/, "");
+    add({
+      id: lesson.id, skillId: FOR_SINCE, topic: "prepositions", rule: "Durasi dan titik awal",
+      cue: "for / since", prompt: lesson.blank, answer: lesson.preposition,
+      hint: timeHint(expression), explanation: timeExplanation(lesson.preposition, expression),
+    });
+  }
+
+  for (const lesson of INTEREST_LESSONS) {
+    const preposition = lesson.answer === "in";
+    add({ id: lesson.id, skillId: INTERESTED_IN, topic: preposition ? "prepositions" : "gerunds",
+      prompt: lesson.blank, rule: preposition ? "Kata depan setelah interested" : "Bentuk kata kerja setelah preposisi",
+      answer: lesson.answer, cue: lesson.cue, hint: preposition ? prepositionHint : activityHint,
+      explanation: preposition
+        ? "Gunakan in untuk menghubungkan interested dengan kegiatan yang menarik bagi subjek."
+        : `Setelah interested in, kegiatan dinyatakan dengan kata kerja berbentuk -ing. Di sini “${lesson.cue}” menjadi “${lesson.answer}”.`,
     });
   }
 
@@ -1108,7 +1099,6 @@ export function buildQuestionPool(): BasicsQuestion[] {
     { prep: "before", base: "eat", ing: "eating", prompt: "Wash your hands before ___ dinner." },
     { prep: "after", base: "finish", ing: "finishing", prompt: "She went home after ___ her work." },
     { prep: "by", base: "practice", ing: "practicing", prompt: "You can improve by ___ every day." },
-    { prep: "in", base: "learn", ing: "learning", prompt: "He is interested in ___ Japanese." },
   ];
   for (const item of gerundPreps) {
     add({
@@ -2062,7 +2052,7 @@ export const BASICS_POOL = buildQuestionPool();
 
 /** Shuffle a complete cycle, without repeating its last item at the next boundary. */
 export function createDeck(filter: BasicsFilter, previousId?: string): BasicsQuestion[] {
-  const deck = BASICS_POOL.filter((q) => filter === "all" || q.topic === filter);
+  const deck = BASICS_POOL.filter((q) => filter === "all" || q.topic === filter || q.skillId === filter);
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PRACTICE_LABELS } from "./grammar/labels";
 import { ArticlePractice } from "./ui/ArticlePractice";
 import { BottomSheet } from "./ui/BottomSheet";
@@ -7,6 +7,9 @@ import { BasicsPractice } from "./ui/BasicsPractice";
 import { SentencePractice } from "./ui/SentencePractice";
 import { StoryChallengePractice } from "./ui/StoryChallengePractice";
 import { InstallPrompt } from "./ui/InstallPrompt";
+import { packForLesson } from "./grammar/writingPacks";
+import { dueReviews, reviewLesson } from "./grammar/writingReview";
+import { SkillWriting, type WritingSession } from "./ui/SkillWriting";
 
 type PracticeMode = keyof typeof PRACTICE_LABELS;
 type ExtraPracticeMode = "articles" | "story" | "qa";
@@ -174,15 +177,47 @@ const EXTRA_MODES: Array<{
   },
 ];
 
+function WritingReviewLink({ from, onOpen }: {
+  from: WritingSession["from"]; onOpen: (session: WritingSession) => void;
+}) {
+  const [due, setDue] = useState(() => dueReviews()[0]);
+  useEffect(() => {
+    const refresh = () => setDue(dueReviews()[0]);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+  return due ? <button type="button" className="btn btn-ghost"
+    onClick={() => onOpen({ from, lessonId: reviewLesson(due).id, review: due })}>
+    Latihan ulang · {packForLesson(due.lessonId).label}
+  </button> : null;
+}
+
 export default function App() {
   const [practice, setPractice] = useState<PracticeMode>(DEFAULT_MODE);
   const [extraMode, setExtraMode] = useState<ExtraPracticeMode>(DEFAULT_MODE);
   const [extraOpen, setExtraOpen] = useState(false);
+  const [writing, setWriting] = useState<WritingSession | null>(null);
+  const isCorePractice = practice === "basics" || practice === "sentences";
+
+  function openWriting(session: WritingSession) {
+    setWriting(session);
+    setPractice("sentences");
+  }
+
+  function exitWriting() {
+    if (writing) setPractice(writing.from);
+    setWriting(null);
+  }
 
   const isExtraActive =
     practice === "articles" || practice === "story" || practice === "qa";
 
   function handleExtraNavClick() {
+    setWriting(null);
     if (isExtraActive) {
       setExtraOpen(true);
     } else {
@@ -207,11 +242,14 @@ export default function App() {
         </h1>
       </header>
 
-      {practice === "sentences" ? (
+      {isCorePractice && !writing && <WritingReviewLink key={practice} from={practice} onOpen={openWriting} />}
+      {(practice === "basics" || writing?.from === "basics") && <div style={{display: writing ? "none" : "contents"}}>
+        <BasicsPractice onWrite={lessonId => openWriting({ from: "basics", lessonId })} />
+      </div>}
+      {writing ? <SkillWriting session={writing} onExit={exitWriting} />
+      : practice === "sentences" ? (
         <SentencePractice />
-      ) : practice === "basics" ? (
-        <BasicsPractice />
-      ) : practice === "articles" ? (
+      ) : practice === "basics" ? null : practice === "articles" ? (
         <ArticlePractice />
       ) : practice === "story" ? (
         <StoryChallengePractice />
@@ -229,7 +267,7 @@ export default function App() {
               type="button"
               className="bottom-nav-item"
               aria-pressed={practice === mode}
-              onClick={() => setPractice(mode)}
+              onClick={() => { setWriting(null); setPractice(mode); }}
             >
               <ModeIcon mode={mode} />
               <span>{PRACTICE_LABELS[mode]}</span>

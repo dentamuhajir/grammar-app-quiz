@@ -15,8 +15,12 @@ import { BottomSheet } from "./BottomSheet";
 import { SuccessBadge } from "./FeedbackIcons";
 import { SpokenSentence } from "./SpokenSentence";
 import { useSwipeCard } from "./useSwipeCard";
+import { WRITING_PACKS } from "../grammar/writingPacks";
+import { useWritingAttempt } from "./useWritingAttempt";
 
-function BasicsSession({ filter }: { filter: BasicsFilter }) {
+type WritingLink = { onWrite: (lessonId: string) => void };
+
+function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLink) {
   const [deck, setDeck] = useState<BasicsQuestion[]>(() => createDeck(filter));
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState("");
@@ -28,8 +32,22 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
   const question = deck[index];
   const topicGuide = BASICS_TOPIC_GUIDES[question.topic];
   const finished = status === "correct" || status === "revealed";
+  const attempt = useWritingAttempt();
+
+  function record(outcome: "correct" | "incorrect" | "revealed") {
+    if (question.skillId) {
+      attempt.record({ lessonId: question.id, activity: "basics" }, outcome);
+    }
+    setStatus(outcome);
+  }
+
+  function openHint() {
+    attempt.hint();
+    setHintOpen(true);
+  }
 
   function next() {
+    attempt.reset();
     if (index + 1 < deck.length) setIndex(index + 1);
     else {
       setDeck(createDeck(filter, question.id));
@@ -48,7 +66,7 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
 
   const { swipeHandlers, cardStyle, cardClass } = useSwipeCard({
     onSwipeLeft: next,
-    onSwipeRight: () => setHintOpen(true),
+    onSwipeRight: openHint,
   });
 
   return (
@@ -62,7 +80,7 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
           <button
             type="button"
             className="tag tag-tense tag-clickable"
-            onClick={() => setTopicGuideOpen(true)}
+            onClick={() => { attempt.hint(); setTopicGuideOpen(true); }}
             title="Klik untuk melihat penjelasan & contoh topik ini"
           >
             {BASICS_LABELS[question.topic]}{" "}
@@ -73,7 +91,7 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
           <button
             type="button"
             className="tag tag-hint-btn"
-            onClick={() => setHintOpen(true)}
+            onClick={openHint}
             title="Lihat petunjuk soal ini"
           >
             💡 Hint
@@ -97,7 +115,11 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
           onSubmit={(event) => {
             event.preventDefault();
             if (finished) next();
-            else setStatus(checkBasicsAnswer(question, input));
+            else {
+              const result = checkBasicsAnswer(question, input);
+              if (result === "empty") setStatus(result);
+              else record(result);
+            }
           }}
         >
           <div className="answer-input">
@@ -131,8 +153,8 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
             {status === "incorrect" && (
               <div className="feedback feedback-bad basics-feedback">
                 <strong>Belum tepat — coba lagi.</strong>
-                <p className="hint">{mistakeHint(question, input)}</p>
-                <p className="basics-explanation">{question.explanation}</p>
+                <p className="hint">{question.skillId ? question.hint : mistakeHint(question, input)}</p>
+                {!question.skillId && <p className="basics-explanation">{question.explanation}</p>}
               </div>
             )}
             {finished && (
@@ -154,6 +176,8 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
                   <span>Tanpa kata tambahan (ketik -).</span>
                 )}
                 <p className="basics-explanation">{question.explanation}</p>
+                {question.skillId && <button type="button" className="btn btn-primary"
+                  onClick={() => onWrite(question.id)}>Pakai dalam kalimat</button>}
               </div>
             )}
           </div>
@@ -165,7 +189,7 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
               <button
                 className="btn btn-ghost"
                 type="button"
-                onClick={() => setStatus("revealed")}
+                onClick={() => record("revealed")}
               >
                 Lihat jawaban
               </button>
@@ -230,12 +254,13 @@ function BasicsSession({ filter }: { filter: BasicsFilter }) {
   );
 }
 
-export function BasicsPractice() {
+export function BasicsPractice({ onWrite }: WritingLink) {
   const [filter, setFilter] = useState<BasicsFilter>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const summary =
-    filter === "all" ? "Campuran · semua topik" : BASICS_LABELS[filter];
+    filter === "all" ? "Campuran · semua topik" : filter in BASICS_LABELS
+      ? BASICS_LABELS[filter as BasicsTopic] : WRITING_PACKS.find(pack => pack.skill === filter)?.label;
 
   return (
     <>
@@ -251,7 +276,7 @@ export function BasicsPractice() {
         <span className="filter-pill-action">⚙ Pilih Topik</span>
       </button>
 
-      <BasicsSession key={filter} filter={filter} />
+      <BasicsSession key={filter} filter={filter} onWrite={onWrite} />
 
       <BottomSheet
         open={filtersOpen}
@@ -282,6 +307,9 @@ export function BasicsPractice() {
               {BASICS_LABELS[topic]}
             </button>
           ))}
+          {WRITING_PACKS.map(pack => <button key={pack.skill} type="button"
+            className={`topic-pill ${filter === pack.skill ? "active" : ""}`}
+            onClick={() => { setFilter(pack.skill); setFiltersOpen(false); }}>{pack.label} · {pack.lessons.length} soal</button>)}
         </div>
       </BottomSheet>
     </>

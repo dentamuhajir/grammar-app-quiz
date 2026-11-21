@@ -4,6 +4,11 @@ import { conjugateNominal, conjugatePassive, conjugateVerbal } from "../src/gram
 import { implicitContextCue, sentenceGuide } from "../src/grammar/explanations";
 import { checkAnswer } from "../src/grammar/check";
 import { VERBS } from "../src/grammar/data/verbs";
+import { SUBJECTS } from "../src/grammar/data/subjects";
+import { COMPLEMENTS } from "../src/grammar/data/complements";
+import { TIME_SIGNALS } from "../src/grammar/data/timeSignals";
+import { WRITING_PACKS } from "../src/grammar/writingPacks";
+import { sentenceReading } from "../src/grammar/sentenceReadings";
 import { DEFAULT_FILTER, generateQuestion, generateStativeTrap } from "../src/grammar/generator";
 import { TENSE_LABELS, TENSE_ORDER } from "../src/grammar/labels";
 import type { Mode, Question, SentenceForm, Subject, Tense } from "../src/grammar/types";
@@ -14,6 +19,28 @@ function verbal(tense: Tense, form: SentenceForm, timeSignal?: string): Question
   return { tense, form, mode: "verbal", subject: she, verb: work, timeSignal,
     answer: conjugateVerbal(tense, she, work, form, { tail: timeSignal }) };
 }
+
+test("offline reading guide covers sentence vocabulary, inflections, time expressions and guided packs", () => {
+  const corpus = [
+    ...VERBS.flatMap(v => [v.base, v.past, v.participle, v.thirdSingular, v.ing, v.object]),
+    ...SUBJECTS.flatMap(s => [s.text, s.objectForm ?? ""]),
+    ...COMPLEMENTS.flatMap(c => [c.text, c.plural ?? ""]),
+    ...Object.values(TIME_SIGNALS).flatMap(groups => [...groups.action, ...groups.role, ...groups.state].map(s => s.text)),
+    ...WRITING_PACKS.flatMap(p => p.lessons.map(q => q.reference)),
+  ];
+  for (const text of corpus.filter(Boolean)) assert.ok(sentenceReading(text), text);
+});
+
+test("learner spellings preserve stress, context, contractions and clock abbreviations", () => {
+  assert.equal(sentenceReading("I usually do not"), "ai YUU-zhu-e-li duu nat");
+  assert.equal(sentenceReading("Sustainability!"), "se-stéi-ne-BIL-e-ti!");
+  assert.equal(sentenceReading("We’ve worked since 7 a.m."), "wiiv werkt sins SÉ-ven ÉI-ÉM");
+  assert.equal(sentenceReading("the umbrella, the uniform"), "dhii am-BRÉL-e, dhe YU-ne-form");
+  assert.equal(sentenceReading("read", verbal("pastSimple", "positive")), "réd");
+  assert.equal(sentenceReading("read", verbal("presentPerfect", "negative")), "réd");
+  assert.equal(sentenceReading("read", verbal("pastSimple", "yesNoQuestion")), "riid");
+  assert.equal(sentenceReading("constructor"), null);
+});
 
 test("guides cover every generated tense, mode and sentence form without losing words", () => {
   for (const tense of TENSE_ORDER) for (const mode of ["verbal", "nominal", "passive"] as Mode[]) {

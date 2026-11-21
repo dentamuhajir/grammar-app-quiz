@@ -420,7 +420,7 @@ body {
 }
 
 /* ---- answer input ---- */
-.answer-input input {
+.answer-input input, .answer-input .writing-pair {
   width: 100%;
   padding: 0.95rem 1.1rem;
   margin-bottom: 5px;
@@ -436,13 +436,15 @@ body {
     background 0.15s ease;
 }
 
-.answer-input input::placeholder {
+.writing-pair { resize: vertical; line-height: 1.5; }
+
+.answer-input input::placeholder, .writing-pair::placeholder {
   color: var(--ink-soft);
   font-weight: 600;
   opacity: 0.9;
 }
 
-.answer-input input:focus-visible {
+.answer-input input:focus-visible, .writing-pair:focus-visible {
   outline: none;
   background: #ffffff;
   box-shadow: 0 6px 0 0 var(--brand);
@@ -526,6 +528,16 @@ body {
   align-items: center;
   gap: 0.65rem;
 }
+
+.sentence-reading-guide {
+  margin-block: .8rem;
+  text-align: left;
+  font-size: .92rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.sentence-reading-guide summary { width: fit-content; padding-block: .35rem; cursor: pointer; font-weight: 700; }
+.sentence-reading-guide p { margin: .25rem 0; }
 
 .spoken-word {
   display: inline-block;
