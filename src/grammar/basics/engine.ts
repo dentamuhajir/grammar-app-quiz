@@ -1,6 +1,7 @@
 import { BASICS_LABELS } from "../labels";
 import { FOR_SINCE, FOR_SINCE_LESSONS, timeExplanation, timeHint } from "../forSince";
 import { INTERESTED_IN, INTEREST_LESSONS, activityHint, prepositionHint } from "../interestedIn";
+import { ARTICLE_WRITING, ARTICLE_LESSONS, knownHint, soundHint } from "../articleWriting";
 import type { WritingSkill } from "../writingPacks";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
@@ -56,9 +57,15 @@ export function buildQuestionPool(): BasicsQuestion[] {
 
   // 1. Articles (a / an / the / - )
   const articleHint = "Ketik a, an, the, atau - jika tidak memerlukan artikel. Perhatikan bunyi awal kata dan apakah benda sudah spesifik.";
+  function addArticle(question: BasicsQuestion) {
+    const lesson = ARTICLE_LESSONS.find(item => item.id === question.id);
+    if (!lesson) return add(question);
+    return add({ ...question, skillId: ARTICLE_WRITING, cue: "a / an / the",
+      context: lesson.basicsContext ?? question.context, hint: lesson.group === "known" ? knownHint : soundHint });
+  }
   for (const name of ["Maya", "Rina"]) {
     for (const role of ROLES) {
-      add({
+      addArticle({
         id: `article-role-${name}-${role.noun}`,
         topic: "articles",
         rule: "A / an · bunyi awal",
@@ -78,7 +85,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     }
   }
   for (const noun of ["book", "bag", "phone", "camera", "bicycle", "watch"]) {
-    add({
+    addArticle({
       id: `article-known-${noun}`,
       topic: "articles",
       rule: "The · sudah disebut",

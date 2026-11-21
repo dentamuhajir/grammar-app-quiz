@@ -58,9 +58,13 @@ export function SkillWriting({ session, onExit }: { session: WritingSession; onE
     <p className="basics-cue">{pack.instruction} dan kata panduan <strong>{lesson.cues}</strong>.</p>
     <form onSubmit={event => { event.preventDefault(); submit(); }}>
       <div className="answer-input">
-        <input aria-label="Kalimat Anda" value={input} onChange={e => edit(e.target.value)} readOnly={solved}
-          placeholder="Tulis kalimat dalam bahasa Inggris…" autoComplete="off" spellCheck={false} />
-        <VoiceInputBar value={input} disabled={solved} onChange={edit} />
+        {pack.multiline ? (
+          <textarea className="writing-pair" rows={3} aria-label="Kalimat Anda" value={input}
+            onChange={e => edit(e.target.value)} readOnly={solved} autoComplete="off" spellCheck={false}
+            placeholder="Tulis dua kalimat dalam bahasa Inggris…" />
+        ) : <input aria-label="Kalimat Anda" value={input} onChange={e => edit(e.target.value)} readOnly={solved}
+          placeholder="Tulis kalimat dalam bahasa Inggris…" autoComplete="off" spellCheck={false} />}
+        <VoiceInputBar value={input} disabled={solved} multiline={pack.multiline} onChange={edit} />
       </div>
       <div aria-live="polite">
         {result?.status === "correct" || revealed ? <div className="feedback basics-feedback">

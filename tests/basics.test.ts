@@ -8,6 +8,7 @@ import { FOR_SINCE, FOR_SINCE_LESSONS, checkForSinceWriting, referenceSentence }
 import { dueReviews, reviewLesson, saveAttempt } from "../src/grammar/writingReview";
 import { INTERESTED_IN, INTEREST_LESSONS, checkInterestWriting } from "../src/grammar/interestedIn";
 import { packForLesson } from "../src/grammar/writingPacks";
+import { ARTICLE_WRITING, ARTICLE_LESSONS, checkArticleWriting } from "../src/grammar/articleWriting";
 
 function question(id: string) {
   const result = BASICS_POOL.find((q) => q.id === id);
@@ -73,6 +74,40 @@ test("interest feedback covers subject, preposition and activity form while acce
     "I am interesting in learning Japanese.", "I am interested on learning Japanese.", "I am interested in learn Japanese.",
     "I am interested in learning Korean."]) assert.equal(checkInterestWriting(japanese, input).status, "retry", input);
   assert.match(checkInterestWriting(japanese, "I'm interested in learn Japanese.").message, /kegiatan/);
+});
+
+test("article pack links existing recognition items to two-sentence writing in the same review group", () => {
+  const deck = createDeck(ARTICLE_WRITING);
+  assert.equal(deck.length, 6);
+  assert.deepEqual(deck.map(q => q.answer).sort(), ["a", "a", "an", "an", "the", "the"]);
+  for (const blank of deck) {
+    assert.equal(blank.topic, "articles");
+    assert.ok(blank.context);
+    assert.doesNotMatch(blank.hint, /\b(a|an|the)\b/i);
+    const pack = packForLesson(blank.id);
+    assert.equal(pack.skill, ARTICLE_WRITING);
+    const lesson = pack.lessons.find(q => q.id === blank.id)!;
+    assert.equal(lesson.check(lesson.reference).status, "correct");
+    assert.equal(lesson.check(" ").status, "empty");
+    const review = reviewLesson({ activity: "basics", lessonId: blank.id, practicedId: blank.id, dueAt: 0 });
+    assert.notEqual(review.id, blank.id);
+    assert.equal(review.group, lesson.group);
+    assert.equal(packForLesson(review.id).skill, ARTICLE_WRITING);
+  }
+});
+
+test("article checker accepts guided alternatives and identifies the sentence needing revision", () => {
+  const [cat, uniform, umbrella, box, man, bike] = ARTICLE_LESSONS;
+  assert.equal(checkArticleWriting(cat, "Yesterday, I saw a cat. The cat was asleep.").status, "correct");
+  assert.equal(checkArticleWriting(box, "I opened a box.\nThe box turned out to be empty.").status, "correct");
+  assert.equal(checkArticleWriting(bike, "WE RENTED A BICYCLE\nThe bike was red").status, "correct");
+  assert.match(checkArticleWriting(uniform, "I bought an uniform. The uniform was blue.").message, /bunyi/);
+  assert.match(checkArticleWriting(man, "I met a honest man. The man helped me.").message, /bunyi/);
+  assert.match(checkArticleWriting(umbrella, "I found the umbrella. The umbrella was wet.").message, /memperkenalkan/);
+  assert.match(checkArticleWriting(cat, "I saw a cat. A cat was sleeping.").message, /sebelumnya/);
+  assert.match(checkArticleWriting(cat, "I saw a cat. It was sleeping.").message, /Kata ganti/);
+  assert.equal(checkArticleWriting(cat, "I saw a cat. The cat was not sleeping.").status, "retry");
+  assert.equal(checkArticleWriting(cat, "I saw a cat.").status, "retry");
 });
 
 test("local review keeps the first attempt, waits three days, changes situation and clears only on unaided review", t => {
