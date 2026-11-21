@@ -1,7 +1,7 @@
 import { useRef } from "react";
-import { saveAttempt, type Outcome, type ReviewSlot } from "../grammar/forSinceReview";
+import { saveAttempt, type Outcome, type ReviewSlot } from "../grammar/writingReview";
 
-export function useForSinceAttempt() {
+export function useWritingAttempt() {
   const first = useRef<Outcome | null>(null);
   const hintUsed = useRef(false);
 

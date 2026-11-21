@@ -1,4 +1,4 @@
-import { FOR_SINCE, FOR_SINCE_LESSONS } from "./forSince";
+import { WRITING_PACKS, packForLesson } from "./writingPacks";
 
 type Activity = "basics" | "sentence";
 export type Outcome = "incorrect" | "correct" | "revealed";
@@ -8,7 +8,7 @@ export interface ScheduledReview extends ReviewSlot {
   dueAt: number;
 }
 
-const key = (slot: ReviewSlot) => `grammar-drill.for_since.v1.${slot.activity}.${slot.lessonId}`;
+const key = (slot: ReviewSlot) => `grammar-drill.${packForLesson(slot.lessonId).skill}.v1.${slot.activity}.${slot.lessonId}`;
 const threeDays = 3 * 24 * 60 * 60 * 1000;
 
 export function saveAttempt(practice: ReviewSlot, first: Outcome, outcome: Outcome, hintUsed: boolean, review?: ReviewSlot, now = Date.now()) {
@@ -16,7 +16,7 @@ export function saveAttempt(practice: ReviewSlot, first: Outcome, outcome: Outco
   const queueKey = key(source);
   try {
     localStorage.setItem(key(practice) + ".last", JSON.stringify({
-      ...practice, skillId: FOR_SINCE, first, outcome, hintUsed, attemptedAt: now,
+      ...practice, skillId: packForLesson(practice.lessonId).skill, first, outcome, hintUsed, attemptedAt: now,
     }));
     if (first !== "correct" || hintUsed) {
       if (review || !localStorage.getItem(queueKey)) {
@@ -32,7 +32,7 @@ export function saveAttempt(practice: ReviewSlot, first: Outcome, outcome: Outco
 
 export function dueReviews(now = Date.now()): ScheduledReview[] {
   const results: ScheduledReview[] = [];
-  for (const lesson of FOR_SINCE_LESSONS) {
+  for (const lesson of WRITING_PACKS.flatMap(pack => pack.lessons)) {
     for (const activity of ["basics", "sentence"] as const) {
       try {
         const raw = localStorage.getItem(key({ lessonId: lesson.id, activity }));
@@ -47,8 +47,9 @@ export function dueReviews(now = Date.now()): ScheduledReview[] {
 }
 
 export function reviewLesson(review: ScheduledReview) {
-  const source = FOR_SINCE_LESSONS.find(lesson => lesson.id === review.lessonId)!;
-  const group = FOR_SINCE_LESSONS.filter(lesson => lesson.preposition === source.preposition);
+  const { lessons } = packForLesson(review.lessonId);
+  const source = lessons.find(lesson => lesson.id === review.lessonId)!;
+  const group = lessons.filter(lesson => lesson.group === source.group);
   const last = group.findIndex(lesson => lesson.id === review.practicedId);
   return group[(last + 1) % group.length];
 }

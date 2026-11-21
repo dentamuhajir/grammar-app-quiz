@@ -1,12 +1,14 @@
 import { BASICS_LABELS } from "../labels";
 import { FOR_SINCE, FOR_SINCE_LESSONS, timeExplanation, timeHint } from "../forSince";
+import { INTERESTED_IN, INTEREST_LESSONS, activityHint, prepositionHint } from "../interestedIn";
+import type { WritingSkill } from "../writingPacks";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
-export type BasicsFilter = BasicsTopic | "all" | typeof FOR_SINCE;
+export type BasicsFilter = BasicsTopic | "all" | WritingSkill;
 export const NO_WORD = "∅";
 
 export interface BasicsQuestion {
-  skillId?: typeof FOR_SINCE;
+  skillId?: WritingSkill;
   id: string;
   topic: BasicsTopic;
   rule: string;
@@ -211,14 +213,6 @@ export function buildQuestionPool(): BasicsQuestion[] {
       explanation: "Gunakan “for” ketika melakukan sesuatu demi manfaat atau untuk diberikan kepada seseorang (buy for).",
     },
     {
-      key: "adj-interested-in",
-      rule: "Adjective + Preposition · interested in",
-      cue: "in / on / at",
-      prompt: "She is very interested ___ learning digital design.",
-      answer: "in",
-      explanation: "Kata sifat “interested” selalu berpasangan dengan preposisi “in” (interested in + noun/V-ing).",
-    },
-    {
       key: "adj-good-at",
       rule: "Adjective + Preposition · good at",
       cue: "in / on / at",
@@ -280,6 +274,17 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: lesson.id, skillId: FOR_SINCE, topic: "prepositions", rule: "Durasi dan titik awal",
       cue: "for / since", prompt: lesson.blank, answer: lesson.preposition,
       hint: timeHint(expression), explanation: timeExplanation(lesson.preposition, expression),
+    });
+  }
+
+  for (const lesson of INTEREST_LESSONS) {
+    const preposition = lesson.answer === "in";
+    add({ id: lesson.id, skillId: INTERESTED_IN, topic: preposition ? "prepositions" : "gerunds",
+      prompt: lesson.blank, rule: preposition ? "Kata depan setelah interested" : "Bentuk kata kerja setelah preposisi",
+      answer: lesson.answer, cue: lesson.cue, hint: preposition ? prepositionHint : activityHint,
+      explanation: preposition
+        ? "Gunakan in untuk menghubungkan interested dengan kegiatan yang menarik bagi subjek."
+        : `Setelah interested in, kegiatan dinyatakan dengan kata kerja berbentuk -ing. Di sini “${lesson.cue}” menjadi “${lesson.answer}”.`,
     });
   }
 
@@ -1087,7 +1092,6 @@ export function buildQuestionPool(): BasicsQuestion[] {
     { prep: "before", base: "eat", ing: "eating", prompt: "Wash your hands before ___ dinner." },
     { prep: "after", base: "finish", ing: "finishing", prompt: "She went home after ___ her work." },
     { prep: "by", base: "practice", ing: "practicing", prompt: "You can improve by ___ every day." },
-    { prep: "in", base: "learn", ing: "learning", prompt: "He is interested in ___ Japanese." },
   ];
   for (const item of gerundPreps) {
     add({

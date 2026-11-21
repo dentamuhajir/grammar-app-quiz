@@ -7,9 +7,9 @@ import { BasicsPractice } from "./ui/BasicsPractice";
 import { SentencePractice } from "./ui/SentencePractice";
 import { StoryChallengePractice } from "./ui/StoryChallengePractice";
 import { InstallPrompt } from "./ui/InstallPrompt";
-import { FOR_SINCE_LESSONS } from "./grammar/forSince";
-import { dueReviews, reviewLesson } from "./grammar/forSinceReview";
-import { ForSinceWriting, type WritingSession } from "./ui/ForSinceWriting";
+import { packForLesson } from "./grammar/writingPacks";
+import { dueReviews, reviewLesson } from "./grammar/writingReview";
+import { SkillWriting, type WritingSession } from "./ui/SkillWriting";
 
 type PracticeMode = keyof typeof PRACTICE_LABELS;
 type ExtraPracticeMode = "articles" | "story" | "qa";
@@ -177,7 +177,7 @@ const EXTRA_MODES: Array<{
   },
 ];
 
-function ForSinceReviewLink({ from, onOpen }: {
+function WritingReviewLink({ from, onOpen }: {
   from: WritingSession["from"]; onOpen: (session: WritingSession) => void;
 }) {
   const [due, setDue] = useState(() => dueReviews()[0]);
@@ -192,7 +192,7 @@ function ForSinceReviewLink({ from, onOpen }: {
   }, []);
   return due ? <button type="button" className="btn btn-ghost"
     onClick={() => onOpen({ from, lessonId: reviewLesson(due).id, review: due })}>
-    Latihan ulang · For / since
+    Latihan ulang · {packForLesson(due.lessonId).label}
   </button> : null;
 }
 
@@ -242,13 +242,13 @@ export default function App() {
         </h1>
       </header>
 
-      {isCorePractice && !writing && <ForSinceReviewLink key={practice} from={practice} onOpen={openWriting} />}
+      {isCorePractice && !writing && <WritingReviewLink key={practice} from={practice} onOpen={openWriting} />}
       {(practice === "basics" || writing?.from === "basics") && <div style={{display: writing ? "none" : "contents"}}>
         <BasicsPractice onWrite={lessonId => openWriting({ from: "basics", lessonId })} />
       </div>}
-      {writing ? <ForSinceWriting session={writing} onExit={exitWriting} />
+      {writing ? <SkillWriting session={writing} onExit={exitWriting} />
       : practice === "sentences" ? (
-        <SentencePractice onForSince={() => openWriting({ from: "sentences", lessonId: FOR_SINCE_LESSONS[0].id })} />
+        <SentencePractice onWrite={lessonId => openWriting({ from: "sentences", lessonId })} />
       ) : practice === "basics" ? null : practice === "articles" ? (
         <ArticlePractice />
       ) : practice === "story" ? (

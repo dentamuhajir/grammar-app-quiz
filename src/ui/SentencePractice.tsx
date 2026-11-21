@@ -13,6 +13,7 @@ import {
   TENSE_ORDER,
 } from "../grammar/labels";
 import { implicitContextCue } from "../grammar/explanations";
+import { WRITING_PACKS } from "../grammar/writingPacks";
 import type { Mode, Question, SentenceForm } from "../grammar/types";
 import { SentenceExplanation } from "./SentenceExplanation";
 import { BottomSheet } from "./BottomSheet";
@@ -83,7 +84,7 @@ function filterSummary(f: QuizFilter): string {
   return parts.join(" · ");
 }
 
-export function SentencePractice({ onForSince }: { onForSince: () => void }) {
+export function SentencePractice({ onWrite }: { onWrite: (lessonId: string) => void }) {
   const [filter, setFilter] = useState<QuizFilter>(DEFAULT_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
     generateQuestion(DEFAULT_FILTER),
@@ -319,7 +320,8 @@ export function SentencePractice({ onForSince }: { onForSince: () => void }) {
         title="Filter Sentence Practice"
       >
         <div className="sheet-form">
-          <button type="button" className="btn btn-ghost" onClick={onForSince}>For / since · 6 situasi</button>
+          {WRITING_PACKS.map(pack => <button key={pack.skill} type="button" className="btn btn-ghost"
+            onClick={() => onWrite(pack.lessons[0].id)}>{pack.label} · {pack.lessons.length} situasi</button>)}
           <label>
             <span>Tense</span>
             <select

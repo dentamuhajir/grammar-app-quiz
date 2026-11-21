@@ -15,8 +15,8 @@ import { BottomSheet } from "./BottomSheet";
 import { SuccessBadge } from "./FeedbackIcons";
 import { SpokenSentence } from "./SpokenSentence";
 import { useSwipeCard } from "./useSwipeCard";
-import { FOR_SINCE } from "../grammar/forSince";
-import { useForSinceAttempt } from "./useForSinceAttempt";
+import { WRITING_PACKS } from "../grammar/writingPacks";
+import { useWritingAttempt } from "./useWritingAttempt";
 
 type WritingLink = { onWrite: (lessonId: string) => void };
 
@@ -32,10 +32,10 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
   const question = deck[index];
   const topicGuide = BASICS_TOPIC_GUIDES[question.topic];
   const finished = status === "correct" || status === "revealed";
-  const attempt = useForSinceAttempt();
+  const attempt = useWritingAttempt();
 
   function record(outcome: "correct" | "incorrect" | "revealed") {
-    if (question.skillId === FOR_SINCE) {
+    if (question.skillId) {
       attempt.record({ lessonId: question.id, activity: "basics" }, outcome);
     }
     setStatus(outcome);
@@ -153,8 +153,8 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
             {status === "incorrect" && (
               <div className="feedback feedback-bad basics-feedback">
                 <strong>Belum tepat — coba lagi.</strong>
-                <p className="hint">{question.skillId === FOR_SINCE ? question.hint : mistakeHint(question, input)}</p>
-                {question.skillId !== FOR_SINCE && <p className="basics-explanation">{question.explanation}</p>}
+                <p className="hint">{question.skillId ? question.hint : mistakeHint(question, input)}</p>
+                {!question.skillId && <p className="basics-explanation">{question.explanation}</p>}
               </div>
             )}
             {finished && (
@@ -176,7 +176,7 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
                   <span>Tanpa kata tambahan (ketik -).</span>
                 )}
                 <p className="basics-explanation">{question.explanation}</p>
-                {question.skillId === FOR_SINCE && <button type="button" className="btn btn-primary"
+                {question.skillId && <button type="button" className="btn btn-primary"
                   onClick={() => onWrite(question.id)}>Pakai dalam kalimat</button>}
               </div>
             )}
@@ -259,7 +259,8 @@ export function BasicsPractice({ onWrite }: WritingLink) {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const summary =
-    filter === "all" ? "Campuran · semua topik" : filter === FOR_SINCE ? "For / since" : BASICS_LABELS[filter];
+    filter === "all" ? "Campuran · semua topik" : filter in BASICS_LABELS
+      ? BASICS_LABELS[filter as BasicsTopic] : WRITING_PACKS.find(pack => pack.skill === filter)?.label;
 
   return (
     <>
@@ -306,8 +307,9 @@ export function BasicsPractice({ onWrite }: WritingLink) {
               {BASICS_LABELS[topic]}
             </button>
           ))}
-          <button type="button" className={`topic-pill ${filter === FOR_SINCE ? "active" : ""}`}
-            onClick={() => { setFilter(FOR_SINCE); setFiltersOpen(false); }}>For / since · 6 soal</button>
+          {WRITING_PACKS.map(pack => <button key={pack.skill} type="button"
+            className={`topic-pill ${filter === pack.skill ? "active" : ""}`}
+            onClick={() => { setFilter(pack.skill); setFiltersOpen(false); }}>{pack.label} · {pack.lessons.length} soal</button>)}
         </div>
       </BottomSheet>
     </>

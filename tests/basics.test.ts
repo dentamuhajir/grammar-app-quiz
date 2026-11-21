@@ -5,7 +5,9 @@ import { BASICS_LABELS } from "../src/grammar/labels";
 import { checkAnswer } from "../src/grammar/check";
 import { DEFAULT_FILTER, generateQuestion } from "../src/grammar/generator";
 import { FOR_SINCE, FOR_SINCE_LESSONS, checkForSinceWriting, referenceSentence } from "../src/grammar/forSince";
-import { dueReviews, reviewLesson, saveAttempt } from "../src/grammar/forSinceReview";
+import { dueReviews, reviewLesson, saveAttempt } from "../src/grammar/writingReview";
+import { INTERESTED_IN, INTEREST_LESSONS, checkInterestWriting } from "../src/grammar/interestedIn";
+import { packForLesson } from "../src/grammar/writingPacks";
 
 function question(id: string) {
   const result = BASICS_POOL.find((q) => q.id === id);
@@ -41,6 +43,38 @@ test("writing accepts natural variants and preserves duration, polarity, subject
   assert.equal(checkForSinceWriting(know, "I've been knowing Rina for two years.").status, "retry");
 });
 
+test("interest pack links six blanks to six guided sentences and keeps both original topic entries", () => {
+  const deck = createDeck(INTERESTED_IN);
+  assert.equal(deck.length, 6);
+  const pack = packForLesson("prep-adj-interested-in");
+  assert.deepEqual(new Set(deck.map(q => q.id)), new Set(pack.lessons.map(q => q.id)));
+  assert.equal(question("prep-adj-interested-in").topic, "prepositions");
+  assert.equal(question("gerund-prep-in-learn").topic, "gerunds");
+  for (const lesson of pack.lessons) {
+    const blank = question(lesson.id);
+    assert.equal(checkBasicsAnswer(blank, blank.answer), "correct");
+    assert.ok(!blank.hint.toLowerCase().split(/\W+/).includes(blank.answer));
+    assert.equal(lesson.check(lesson.reference).status, "correct");
+    assert.equal(lesson.check(" ").status, "empty");
+  }
+});
+
+test("interest feedback covers subject, preposition and activity form while accepting contractions and equivalents", () => {
+  const [japanese, chess, birds, bread] = INTEREST_LESSONS;
+  for (const input of ["I’m interested in learning Japanese.", "I am really interested in learning Japanese."]) {
+    assert.equal(checkInterestWriting(japanese, input).status, "correct");
+  }
+  assert.equal(checkInterestWriting(chess, "She's interested in joining the chess club.").status, "correct");
+  assert.equal(checkInterestWriting(bread, "Rina’s interested in baking her own bread.").status, "correct");
+  const alternate = checkInterestWriting(birds, "We're interested in photographing birds.");
+  assert.equal(alternate.status, "correct");
+  assert.match(alternate.message, /photographing birds/);
+  for (const input of ["She is interested in learning Japanese.", "I am not interested in learning Japanese.",
+    "I am interesting in learning Japanese.", "I am interested on learning Japanese.", "I am interested in learn Japanese.",
+    "I am interested in learning Korean."]) assert.equal(checkInterestWriting(japanese, input).status, "retry", input);
+  assert.match(checkInterestWriting(japanese, "I'm interested in learn Japanese.").message, /kegiatan/);
+});
+
 test("local review keeps the first attempt, waits three days, changes situation and clears only on unaided review", t => {
   const entries = new Map<string, string>();
   const storage = { getItem: (key: string) => entries.get(key) ?? null,
@@ -61,7 +95,7 @@ test("local review keeps the first attempt, waits three days, changes situation 
   const [due] = dueReviews(threeDays);
   const fresh = reviewLesson(due);
   assert.notEqual(fresh.id, slot.lessonId);
-  assert.equal(fresh.preposition, FOR_SINCE_LESSONS[0].preposition);
+  assert.equal(fresh.group, FOR_SINCE_LESSONS[0].preposition);
   const writing = { lessonId: fresh.id, activity: "sentence" } as const;
   saveAttempt(writing, "correct", "correct", true, due, threeDays);
   assert.equal(dueReviews(threeDays).length, 0);
@@ -70,6 +104,19 @@ test("local review keeps the first attempt, waits three days, changes situation 
   assert.notEqual(next.id, fresh.id);
   saveAttempt({ ...writing, lessonId: next.id }, "correct", "correct", false, again, 2 * threeDays);
   assert.equal(dueReviews(3 * threeDays).length, 0);
+
+  // Existing for/since schedules and the second pack share a queue but retain independent storage keys.
+  storage.setItem("grammar-drill.for_since.v1.basics." + slot.lessonId,
+    JSON.stringify({ ...slot, practicedId: slot.lessonId, dueAt: threeDays }));
+  const interest = { lessonId: INTEREST_LESSONS[0].id, activity: "basics" } as const;
+  saveAttempt(interest, "revealed", "revealed", false, undefined, 1);
+  const both = dueReviews(threeDays + 1);
+  assert.deepEqual(both.map(row => row.lessonId), [slot.lessonId, interest.lessonId]);
+  const otherInterest = reviewLesson(both[1]);
+  assert.notEqual(otherInterest.id, interest.lessonId);
+  assert.equal(packForLesson(otherInterest.id).skill, INTERESTED_IN);
+  saveAttempt({ lessonId: otherInterest.id, activity: "sentence" }, "correct", "correct", false, both[1], threeDays + 2);
+  assert.deepEqual(dueReviews(threeDays + 2).map(row => row.lessonId), [slot.lessonId]);
 });
 
 test("all generated questions have one blank, hints, and unique IDs", () => {
