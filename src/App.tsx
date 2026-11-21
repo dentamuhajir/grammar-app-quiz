@@ -248,7 +248,7 @@ export default function App() {
       </div>}
       {writing ? <SkillWriting session={writing} onExit={exitWriting} />
       : practice === "sentences" ? (
-        <SentencePractice onWrite={lessonId => openWriting({ from: "sentences", lessonId })} />
+        <SentencePractice />
       ) : practice === "basics" ? null : practice === "articles" ? (
         <ArticlePractice />
       ) : practice === "story" ? (

@@ -529,6 +529,16 @@ body {
   gap: 0.65rem;
 }
 
+.sentence-reading-guide {
+  margin-block: .8rem;
+  text-align: left;
+  font-size: .92rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.sentence-reading-guide summary { width: fit-content; padding-block: .35rem; cursor: pointer; font-weight: 700; }
+.sentence-reading-guide p { margin: .25rem 0; }
+
 .spoken-word {
   display: inline-block;
   padding: 0.04rem 0.18rem;

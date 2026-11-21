@@ -13,7 +13,6 @@ import {
   TENSE_ORDER,
 } from "../grammar/labels";
 import { implicitContextCue } from "../grammar/explanations";
-import { WRITING_PACKS } from "../grammar/writingPacks";
 import type { Mode, Question, SentenceForm } from "../grammar/types";
 import { SentenceExplanation } from "./SentenceExplanation";
 import { BottomSheet } from "./BottomSheet";
@@ -21,7 +20,7 @@ import { useSwipeCard } from "./useSwipeCard";
 import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
-import { SpokenSentence } from "./SpokenSentence";
+import { SentencePlayback } from "./SentencePlayback";
 import { TensesExplorer } from "./TensesExplorer";
 import { VoiceInputBar } from "./VoiceInputBar";
 
@@ -84,7 +83,7 @@ function filterSummary(f: QuizFilter): string {
   return parts.join(" · ");
 }
 
-export function SentencePractice({ onWrite }: { onWrite: (lessonId: string) => void }) {
+export function SentencePractice() {
   const [filter, setFilter] = useState<QuizFilter>(DEFAULT_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
     generateQuestion(DEFAULT_FILTER),
@@ -250,7 +249,7 @@ export function SentencePractice({ onWrite }: { onWrite: (lessonId: string) => v
               <SuccessBadge />
               <span>{praise}</span>
             </span>
-            <SpokenSentence text={question.answer} />
+            <SentencePlayback text={question.answer} question={question} />
             {result.alternativeOrder && (
               <p className="basics-explanation">
                 Letak keterangan waktu di awal kalimat juga diterima. Di atas
@@ -283,7 +282,7 @@ export function SentencePractice({ onWrite }: { onWrite: (lessonId: string) => v
 
         {revealed && !result?.correct && (
           <div className="feedback feedback-reveal">
-            <SpokenSentence text={question.answer} />
+            <SentencePlayback text={question.answer} question={question} />
             <button
               type="button"
               className="inline-popup-link"
@@ -320,8 +319,6 @@ export function SentencePractice({ onWrite }: { onWrite: (lessonId: string) => v
         title="Filter Sentence Practice"
       >
         <div className="sheet-form">
-          {WRITING_PACKS.map(pack => <button key={pack.skill} type="button" className="btn btn-ghost"
-            onClick={() => onWrite(pack.lessons[0].id)}>{pack.label} · {pack.lessons.length} situasi</button>)}
           <label>
             <span>Tense</span>
             <select
@@ -412,6 +409,7 @@ export function SentencePractice({ onWrite }: { onWrite: (lessonId: string) => v
 
       <BottomSheet
         open={guideOpen}
+        closeButtonOnly
         onClose={() => setGuideOpen(false)}
         title={solved ? "Rumus & Penjelasan Jawaban" : "Rumus & Pola Kalimat"}
       >
@@ -424,6 +422,7 @@ export function SentencePractice({ onWrite }: { onWrite: (lessonId: string) => v
 
       <BottomSheet
         open={explorerOpen}
+        closeButtonOnly
         onClose={() => setExplorerOpen(false)}
         title="🧭 Tenses Explorer & Garis Waktu"
       >

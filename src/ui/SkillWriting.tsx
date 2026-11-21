@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { packForLesson, type WritingResult } from "../grammar/writingPacks";
 import type { ReviewSlot } from "../grammar/writingReview";
-import { SpokenSentence } from "./SpokenSentence";
+import { SentencePlayback } from "./SentencePlayback";
 import { VoiceInputBar } from "./VoiceInputBar";
 import { useWritingAttempt } from "./useWritingAttempt";
 
@@ -69,7 +69,7 @@ export function SkillWriting({ session, onExit }: { session: WritingSession; onE
       <div aria-live="polite">
         {result?.status === "correct" || revealed ? <div className="feedback basics-feedback">
           <strong>{revealed ? "Contoh jawaban" : "Tepat!"}</strong>
-          <SpokenSentence text={revealed ? lesson.reference : input.trim()} />
+          <SentencePlayback text={revealed ? lesson.reference : input.trim()} />
           <p>{result?.status === "correct" ? result.message : lesson.explanation}</p>
         </div> : result ? <p className="hint">{result.message}</p> : hint && <p className="hint">{lesson.hint}</p>}
       </div>
