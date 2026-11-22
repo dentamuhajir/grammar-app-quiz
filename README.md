@@ -8,6 +8,12 @@ dan menulis kalimat berdasarkan situasi baru.
 
 ## Fitur utama
 
+### Tema tampilan
+
+Ikon di kanan logo menyediakan pilihan **Ikuti perangkat**, **Terang**, dan
+**Gelap**. Tema awal mengikuti perangkat dan pilihan terakhir disimpan secara lokal.
+Tema berlaku pada seluruh fitur, kartu soal, kotak jawaban, modal, dan navigasi.
+
 ### Sentence Practice
 
 Halaman awal untuk berlatih menulis kalimat lengkap. Generator mencakup 12 tense,
