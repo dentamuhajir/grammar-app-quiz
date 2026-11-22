@@ -12,6 +12,7 @@ import { dueReviews, reviewLesson } from "./grammar/writingReview";
 import { SkillWriting, type WritingSession } from "./ui/SkillWriting";
 import { TensesExplorer } from "./ui/TensesExplorer";
 import type { Question } from "./grammar/types";
+import { ThemePicker } from "./ui/ThemePicker";
 
 type PracticeMode = keyof typeof PRACTICE_LABELS;
 type ExtraPracticeMode = "articles" | "story" | "qa" | "explorer";
@@ -261,6 +262,7 @@ export default function App() {
             Dr<span className="brand-i">i</span>ll
           </span>
         </h1>
+        <ThemePicker />
       </header>
 
       {isCorePractice && !writing && <WritingReviewLink key={practice} from={practice} onOpen={openWriting} />}

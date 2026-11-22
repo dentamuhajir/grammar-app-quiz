@@ -178,13 +178,13 @@ export function TensesExplorer({ source, onBack }: { source?: Question; onBack: 
       <details className="tenses-timeline-card">
         <summary>Garis waktu</summary>
         <svg viewBox="0 0 600 140" className="tenses-timeline-svg" role="img" aria-label="Garis waktu konseptual">
-          <line x1="35" y1="70" x2="565" y2="70" stroke="#64748b" strokeWidth="3" />
-          <path d="M565 70 l-10 -6 v12 z" fill="#64748b" />
+          <line x1="35" y1="70" x2="565" y2="70" stroke="var(--timeline-line)" strokeWidth="3" />
+          <path d="M565 70 l-10 -6 v12 z" fill="var(--timeline-line)" />
           <rect x={barX}
-            y="55" width={barWidth} height="30" rx="6" fill="#0d9488" />
+            y="55" width={barWidth} height="30" rx="6" fill="var(--timeline-activity)" />
           <line x1={anchor}
             x2={anchor}
-            y1="30" y2="95" stroke="#b45309" strokeWidth="3" strokeDasharray="5 4" />
+            y1="30" y2="95" stroke="var(--timeline-anchor)" strokeWidth="3" strokeDasharray="5 4" />
           <text x="80" y="120">Past</text><text x="275" y="120">Present</text><text x="465" y="120">Future</text>
         </svg>
         <p className="tenses-timeline-note">
