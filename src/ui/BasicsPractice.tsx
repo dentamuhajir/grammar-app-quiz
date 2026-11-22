@@ -29,6 +29,7 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
   >(null);
   const [hintOpen, setHintOpen] = useState(false);
   const [topicGuideOpen, setTopicGuideOpen] = useState(false);
+  const [hasIncorrectAttempt, setHasIncorrectAttempt] = useState(false);
   const question = deck[index];
   const topicGuide = BASICS_TOPIC_GUIDES[question.topic];
   const finished = status === "correct" || status === "revealed";
@@ -39,9 +40,11 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
       attempt.record({ lessonId: question.id, activity: "basics" }, outcome);
     }
     setStatus(outcome);
+    if (outcome === "incorrect") setHasIncorrectAttempt(true);
   }
 
   function openHint() {
+    if (!hasIncorrectAttempt && !finished) return;
     attempt.hint();
     setHintOpen(true);
   }
@@ -57,6 +60,7 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
     setStatus(null);
     setHintOpen(false);
     setTopicGuideOpen(false);
+    setHasIncorrectAttempt(false);
   }
 
   function change(value: string) {
@@ -88,14 +92,14 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
               ⓘ
             </span>
           </button>
-          <button
+          {(hasIncorrectAttempt || finished) && <button
             type="button"
             className="tag tag-hint-btn"
             onClick={openHint}
             title="Lihat petunjuk soal ini"
           >
             💡 Hint
-          </button>
+          </button>}
         </div>
 
         {question.context && (
@@ -112,6 +116,7 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
         )}
 
         <form
+          className="basics-answer-form"
           onSubmit={(event) => {
             event.preventDefault();
             if (finished) next();
@@ -122,27 +127,28 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
             }
           }}
         >
-          <div className="answer-input">
+          <div className="sentence-answer-block">
+          <label className="sentence-answer-label" htmlFor="basics-answer">Jawaban Anda</label>
+          <div className={`qa-composer basics-composer ${status === "correct" ? "is-correct" : status === "incorrect" ? "is-incorrect" : ""}`}>
             <input
               id="basics-answer"
               value={input}
               readOnly={finished}
               aria-label="Jawaban"
               onChange={(event) => change(event.target.value)}
-              placeholder="Ketik jawaban…"
+              placeholder="Ketik kata atau frasa…"
               autoComplete="off"
               autoCapitalize="off"
               spellCheck={false}
               aria-describedby="basics-question"
               aria-invalid={status === "incorrect"}
-              className={
-                status === "correct"
-                  ? "ok"
-                  : status === "incorrect"
-                    ? "bad"
-                    : ""
-              }
             />
+            {!finished && <div className="qa-composer-tools">
+              <button className="btn btn-primary qa-send" type="submit">
+                Periksa jawaban <span aria-hidden="true">↗</span>
+              </button>
+            </div>}
+          </div>
           </div>
           <div aria-live="polite" aria-atomic="true">
             {status === "empty" && (
@@ -181,28 +187,22 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
               </div>
             )}
           </div>
-          <div className="actions basics-actions">
+          {!finished && hasIncorrectAttempt && <button type="button" className="inline-popup-link"
+            onClick={() => record("revealed")}>Lihat contoh jawaban</button>}
+          {finished && <div className="actions basics-actions">
             <button className="btn btn-primary" type="submit">
-              {finished ? "Soal berikutnya →" : "Periksa jawaban"}
+              Soal berikutnya →
             </button>
-            {!finished && (
-              <button
-                className="btn btn-ghost"
-                type="button"
-                onClick={() => record("revealed")}
-              >
-                Lihat jawaban
-              </button>
-            )}
-          </div>
+          </div>}
         </form>
         <p className="swipe-hint">
-          ← Geser kiri: soal baru · Geser kanan: hint →
+          ← Geser kiri: soal baru{hasIncorrectAttempt || finished ? " · Geser kanan: hint →" : ""}
         </p>
       </main>
 
       <BottomSheet
         open={hintOpen}
+        closeButtonOnly
         onClose={() => setHintOpen(false)}
         title="Hint & Aturan Soal"
       >
@@ -212,6 +212,10 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
             <span className="tag">{question.rule}</span>
           </div>
           <p className="note">💡 {question.hint}</p>
+          {!finished && <button type="button" className="inline-popup-link" onClick={() => {
+            record("revealed");
+            setHintOpen(false);
+          }}>Lihat contoh jawaban</button>}
           {finished && (
             <p className="basics-explanation">{question.explanation}</p>
           )}
@@ -220,6 +224,7 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
 
       <BottomSheet
         open={topicGuideOpen}
+        closeButtonOnly
         onClose={() => setTopicGuideOpen(false)}
         title={`Panduan: ${BASICS_LABELS[question.topic]}`}
       >

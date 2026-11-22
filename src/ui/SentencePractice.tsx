@@ -12,7 +12,7 @@ import {
   TENSE_LABELS,
   TENSE_ORDER,
 } from "../grammar/labels";
-import { implicitContextCue } from "../grammar/explanations";
+import { implicitContextCue, sentenceGuide } from "../grammar/explanations";
 import type { Question } from "../grammar/types";
 import { SentenceFilters } from "./SentenceFilters";
 import { SentenceExplanation } from "./SentenceExplanation";
@@ -26,6 +26,7 @@ import { VoiceInputBar } from "./VoiceInputBar";
 import { loadPracticeMode, savePracticeMode, PRACTICE_MODE_LABELS, type SentencePracticeMode } from "../grammar/practiceMode";
 import { sentenceTranslation, checkTranslationAnswer } from "../grammar/translation";
 import { PracticeModePicker } from "./PracticeModePicker";
+import { useAutoResizeTextarea } from "./useAutoResizeTextarea";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
@@ -102,6 +103,8 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
   const [practiceMode, setPracticeMode] = useState(loadPracticeMode);
   const [modeOpen, setModeOpen] = useState(false);
   const [showWordHint, setShowWordHint] = useState(false);
+  const [hasIncorrectAttempt, setHasIncorrectAttempt] = useState(false);
+  const answerRef = useAutoResizeTextarea(input);
   const translation = practiceMode === "translate" ? sentenceTranslation(question) : null;
 
   const next = useCallback(() => {
@@ -112,6 +115,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
     setPraise("");
     setGuideOpen(false);
     setShowWordHint(false);
+    setHasIncorrectAttempt(false);
   }, []);
 
   const solved = revealed || result?.correct === true;
@@ -128,6 +132,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
       return;
     }
     setResult(r);
+    if (!r.correct) setHasIncorrectAttempt(true);
     if (r.correct) {
       setPraise(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
       setConfetti((c) => c + 1);
@@ -150,7 +155,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
 
   const { swipeHandlers, cardStyle, cardClass } = useSwipeCard({
     onSwipeLeft: next,
-    onSwipeRight: () => setGuideOpen(true),
+    onSwipeRight: () => { if (hasIncorrectAttempt || solved) setGuideOpen(true); },
   });
 
   return (
@@ -223,39 +228,47 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
             {translation?.text ?? "Terjemahan soal ini belum tersedia. Buka petunjuk kata untuk melanjutkan latihan."}
           </p>
           <p className="note">{translation?.context ?? implicitContextCue(question)}</p>
-          <button type="button" className="btn btn-ghost" aria-expanded={showWordHint}
+          {!solved && hasIncorrectAttempt && <button type="button" className="btn btn-ghost" aria-expanded={showWordHint}
             onClick={() => setShowWordHint(value => !value)}>
             {showWordHint ? "Sembunyikan petunjuk kata" : "Petunjuk kata"}
-          </button>
-          {showWordHint && <PromptChips q={question} />}
+          </button>}
+          {showWordHint && <>
+            <PromptChips q={question} />
+          </>}
         </section> : <PromptChips q={question} />}
 
-        <div className="answer-input">
-          <input
-            type="text"
+        <div className="sentence-answer-block">
+        <label className="sentence-answer-label" htmlFor="sentence-answer">Jawaban Anda</label>
+        <form className={`qa-composer sentence-composer ${result && !result.empty ? result.correct ? "is-correct" : "is-incorrect" : ""}`}
+          onSubmit={event => { event.preventDefault(); check(); }}>
+          <textarea
+            ref={answerRef}
+            rows={2}
             value={input}
             id="sentence-answer"
             aria-label="Jawabanmu"
-            placeholder="Tulis atau ucapkan kalimat lengkap dalam bahasa Inggris…"
+            placeholder="Tulis kalimat dalam bahasa Inggris…"
+            readOnly={solved}
+            aria-invalid={Boolean(result && !result.correct && !result.empty)}
+            aria-describedby={result?.empty ? "sentence-empty-error" : undefined}
             spellCheck={false}
             autoComplete="off"
             autoCapitalize="off"
-            className={
-              result && !result.empty ? (result.correct ? "ok" : "bad") : ""
-            }
             onChange={(e) => {
               setInput(e.target.value);
               if (result) setResult(null);
               setPraise("");
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 check();
               }
             }}
           />
-          <VoiceInputBar
+          {!solved && <div className="qa-composer-tools">
+            <VoiceInputBar
+            compact
             value={input}
             disabled={solved}
             onChange={(nextVal) => {
@@ -263,8 +276,18 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
               if (result) setResult(null);
               setPraise("");
             }}
-          />
+            />
+            <button type="submit" className="btn btn-primary qa-send">
+              Periksa jawaban <span aria-hidden="true">↗</span>
+            </button>
+          </div>}
+        </form>
         </div>
+
+        {!solved && hasIncorrectAttempt && practiceMode !== "translate" && <details key={question.answer} className="sentence-start-hint">
+          <summary>Petunjuk</summary>
+          <p className="sentence-formula">{sentenceGuide(question).formula}</p>
+        </details>}
 
         {result?.correct && (
           <div className="feedback feedback-ok" role="status">
@@ -298,13 +321,14 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
         )}
 
         {result?.empty && (
-          <p className="hint hint-plain">
+          <p id="sentence-empty-error" className="hint hint-plain" role="status">
             Tulis kalimatmu terlebih dahulu, lalu periksa jawabannya.
           </p>
         )}
 
         {revealed && !result?.correct && (
           <div className="feedback feedback-reveal">
+            <strong>Contoh jawaban</strong>
             <SentencePlayback text={question.answer} question={question} />
             <button
               type="button"
@@ -317,22 +341,14 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
           </div>
         )}
 
-        <div className="actions">
-          <button className="btn btn-primary" onClick={check}>
-            {solved ? "Soal berikutnya →" : "Periksa jawaban"}
-          </button>
-          {!solved && (
-            <button
-              className="btn btn-ghost"
-              onClick={() => setRevealed(true)}
-            >
-              Lihat jawaban
-            </button>
-          )}
-        </div>
+        {!solved && hasIncorrectAttempt && <button type="button" className="inline-popup-link"
+          onClick={() => setRevealed(true)}>Lihat contoh jawaban</button>}
+        {solved && <div className="actions">
+          <button type="button" className="btn btn-primary" onClick={next}>Soal berikutnya →</button>
+        </div>}
 
         <p className="swipe-hint">
-          ← Geser kiri: soal baru · Geser kanan: rumus →
+          ← Geser kiri: soal baru{hasIncorrectAttempt || solved ? " · Geser kanan: rumus →" : ""}
         </p>
       </main>
 

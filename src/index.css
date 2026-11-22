@@ -1313,6 +1313,101 @@ button:focus-visible {
 .qa-composer-tools .voice-mic-btn, .qa-composer-tools .voice-aux-btn { min-height: 38px; box-shadow: none; border: 1px solid var(--line); }
 .qa-composer-tools .voice-mic-btn:not(.listening) { background: var(--paper); }
 .qa-composer-tools .qa-send { flex: 0 1 auto; display: inline-flex; align-items: center; gap: .55rem; margin: 0 0 3px auto; padding: .55rem .85rem; min-height: 42px; border-radius: 10px; font-size: .9rem; box-shadow: 0 3px 0 var(--ink); }
+
+.sentence-answer-label {
+  display: block;
+  margin: 1rem 0 0.4rem;
+  font-weight: 700;
+}
+
+.sentence-answer-block {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.sentence-answer-block .sentence-answer-label {
+  margin: 0;
+}
+
+.writing-answer-form,
+.basics-answer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.writing-answer-form .basics-feedback,
+.basics-answer-form .basics-feedback,
+.basics-answer-form .basics-actions {
+  margin-top: 0;
+}
+
+.writing-answer-form #writing-feedback:empty,
+.basics-answer-form [aria-live]:empty {
+  display: none;
+}
+
+.learning-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.learning-help-actions .inline-popup-link,
+.basics-answer-form > .inline-popup-link {
+  margin: 0;
+}
+
+.sentence-composer textarea:focus-visible,
+.basics-composer input:focus-visible {
+  outline: none;
+}
+
+.sentence-composer textarea {
+  resize: none;
+  max-height: 240px;
+}
+
+.sentence-composer.is-correct,
+.basics-composer.is-correct {
+  border-color: #15803d;
+}
+
+.sentence-composer.is-incorrect,
+.basics-composer.is-incorrect {
+  border-color: #b91c1c;
+}
+
+.basics-composer input {
+  display: block;
+  width: 100%;
+  min-height: 3.3rem;
+  padding: 0.85rem 1rem;
+  border: 0;
+  border-radius: 14px 14px 0 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.05rem;
+}
+
+.writing-hint p {
+  margin: 0;
+}
+
+.writing-hint {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.sentence-start-hint {
+  margin-top: 0.8rem;
+}
+
+.sentence-start-hint summary {
+  cursor: pointer;
+  font-weight: 700;
+}
 .qa-session-actions .btn { flex: 0 1 auto; padding: .4rem .2rem; background: transparent; border: 0; box-shadow: none; color: var(--muted); text-decoration: underline; text-underline-offset: .2em; font-size: .82rem; }
 .qa-clarification { flex-direction: column; }
 .qa-clarification .btn { white-space: normal; text-align: left; }
