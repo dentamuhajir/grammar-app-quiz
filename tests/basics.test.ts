@@ -10,6 +10,23 @@ import { INTERESTED_IN, INTEREST_LESSONS, checkInterestWriting } from "../src/gr
 import { packForLesson, WRITING_PACKS } from "../src/grammar/writingPacks";
 import { ARTICLE_WRITING, ARTICLE_LESSONS, checkArticleWriting } from "../src/grammar/articleWriting";
 import { TOPIC_WRITING_LESSONS, checkTopicWriting } from "../src/grammar/topicWriting";
+import { normalize } from "../src/grammar/check/normalize";
+
+test("writing applies the rule to a new sentence and rejects copying the recognition answer", () => {
+  for (const pack of WRITING_PACKS) for (const lesson of pack.lessons) {
+    const source = question(lesson.id);
+    const previous = completedSentence(source).replace(/\([^)]*\)/g, "").trim();
+    assert.notEqual(normalize(lesson.reference), normalize(previous), lesson.id);
+    assert.equal(lesson.check(previous).status, "retry", lesson.id);
+    assert.equal(lesson.check(lesson.reference).status, "correct", lesson.id);
+  }
+  const pack = packForLesson("write-collocations-decision");
+  const lesson = pack.lessons.find(item => item.id === "write-collocations-decision")!;
+  assert.equal(lesson.reference, "Olivia needs to make a decision before Friday.");
+  assert.equal(question(lesson.id).prompt, "We need to ___ a decision.");
+  assert.equal(lesson.check("Olivia need to make a decision before Friday.").status, "retry");
+  assert.match(lesson.explanation, /needs/);
+});
 
 test("guided topics link their writing situations to blank questions and accept curated alternatives", () => {
   assert.equal(TOPIC_WRITING_LESSONS.length, 60);
@@ -35,25 +52,25 @@ test("guided topics link their writing situations to blank questions and accept 
 
 test("guided writing rejects mistakes in grammar and meaning while accepting contractions", () => {
   const cases = [
-    ["write-plurals-books", "I have two book"],
-    ["write-pronouns-her", "This is she bag"],
-    ["write-quantifiers-many", "How much apples do you need"],
-    ["write-comparatives-taller", "Maya is tallest than Rina"],
-    ["write-adjectives-carefully", "She drives careful"],
-    ["write-relatives-who", "The woman who live next door is a doctor"],
-    ["write-modals-rest", "You should to rest"],
-    ["write-conjunctions-because", "I stayed home so I was sick"],
-    ["write-conditionals-rain", "If it will rain I will stay home"],
-    ["write-collocations-decision", "We need to do a decision"],
+    ["write-plurals-books", "Emma has three book"],
+    ["write-pronouns-her", "This is she bicycle"],
+    ["write-quantifiers-many", "How much notebooks do you need"],
+    ["write-comparatives-taller", "James is tallest than Daniel"],
+    ["write-adjectives-carefully", "He walks careful"],
+    ["write-relatives-who", "The man who work at the library is a teacher"],
+    ["write-modals-rest", "He should to rest"],
+    ["write-conjunctions-because", "She stayed home so she was tired"],
+    ["write-conditionals-rain", "If it will rain Emma will take the bus"],
+    ["write-collocations-decision", "Olivia needs to do a decision before Friday"],
   ];
   for (const [id, input] of cases) {
     const lesson = TOPIC_WRITING_LESSONS.find(item => item.id === id)!;
     assert.equal(checkTopicWriting(lesson, input).status, "retry", input);
   }
   for (const [id, input] of [
-    ["write-quantifiers-much", "I don't have much time."],
-    ["write-conditionals-rich", "If I were rich, I'd travel the world."],
-    ["write-conditionals-rain", "I'll stay home if it rains."],
+    ["write-quantifiers-much", "I don't have much money."],
+    ["write-conditionals-rich", "If he were rich, he'd buy a house."],
+    ["write-conditionals-rain", "Emma will take the bus if it rains."],
   ]) {
     const lesson = TOPIC_WRITING_LESSONS.find(item => item.id === id)!;
     assert.equal(checkTopicWriting(lesson, input).status, "correct", input);
@@ -72,48 +89,48 @@ test("expanded practice covers 371 blanks and 78 writing situations without dupl
 
 test("expanded patterns reject grammar mistakes and changes to the requested meaning", () => {
   const mistakes = [
-    ["write-gerunds-enjoy", "She enjoys to read books"],
-    ["write-gerunds-want", "I want learning English"],
-    ["write-gerunds-avoid", "We avoid to talk during meetings"],
-    ["write-gerunds-decide", "They decided leaving early"],
-    ["write-gerunds-finish", "I finished to write the report yesterday"],
-    ["write-gerunds-hope", "We hope seeing you soon"],
-    ["write-quantifiers-a-few", "I have few friends here"],
-    ["write-quantifiers-few", "I have a few friends here"],
-    ["write-quantifiers-a-little", "We have little time left"],
-    ["write-quantifiers-little", "We have a little time left"],
-    ["write-pronouns-his", "This is him jacket"],
-    ["write-pronouns-hers", "This jacket is her"],
-    ["write-pronouns-ours", "This house is our"],
-    ["write-pronouns-him", "I will help he"],
-    ["write-modals-could", "She could swam when she was five"],
-    ["write-modals-may", "He may comes tomorrow"],
-    ["write-modals-must-not", "You do not have to touch this wire"],
-    ["write-modals-cannot", "I can open this jar"],
-    ["write-conditionals-third", "If I studied harder I would pass the exam"],
-    ["write-conditionals-third-negative", "If we had left earlier we would have missed the train"],
-    ["write-conditionals-first-negative", "If it will not rain we will go outside"],
-    ["write-conditionals-second-negative", "If I were you I will not buy that car"],
-    ["write-comparatives-as", "Rina is as taller as Maya"],
-    ["write-comparatives-less", "This bag is least expensive than that one"],
-    ["write-relatives-whose", "The boy who bike is red is my brother"],
-    ["write-relatives-which", "The bus which stop here goes to the station"],
-    ["write-conjunctions-although", "Although it was raining but we went outside"],
-    ["write-conjunctions-unless", "You will miss the bus unless you do not hurry"],
-    ["write-plurals-uncountable", "This information are useful"],
-    ["write-collocations-attention", "Please pay attention the instructions"],
+    ["write-gerunds-enjoy", "They enjoy to cook dinner"],
+    ["write-gerunds-want", "She wants visiting London"],
+    ["write-gerunds-avoid", "I avoid to drive at night"],
+    ["write-gerunds-decide", "We decided staying home"],
+    ["write-gerunds-finish", "She finished to clean the kitchen yesterday"],
+    ["write-gerunds-hope", "I hope visiting you soon"],
+    ["write-quantifiers-a-few", "We have few questions"],
+    ["write-quantifiers-few", "A few students understood the lesson"],
+    ["write-quantifiers-a-little", "She has little money left"],
+    ["write-quantifiers-little", "There is a little water left"],
+    ["write-pronouns-his", "This is him notebook"],
+    ["write-pronouns-hers", "This bicycle is her"],
+    ["write-pronouns-ours", "These seats are our"],
+    ["write-pronouns-him", "We invited he yesterday"],
+    ["write-modals-could", "I could rode a bike when I was seven"],
+    ["write-modals-may", "They may arrives late"],
+    ["write-modals-must-not", "You do not have to park here"],
+    ["write-modals-cannot", "She can reach the shelf"],
+    ["write-conditionals-third", "If she left earlier she would catch the bus"],
+    ["write-conditionals-third-negative", "If I had set the alarm I would have been late"],
+    ["write-conditionals-first-negative", "If we will not hurry we will miss the bus"],
+    ["write-conditionals-second-negative", "If I were you I will not eat that food"],
+    ["write-comparatives-as", "This room is as larger as that one"],
+    ["write-comparatives-less", "This coat is least expensive than that jacket"],
+    ["write-relatives-whose", "The woman who dog is brown is my neighbor"],
+    ["write-relatives-which", "The train which leave at nine goes to London"],
+    ["write-conjunctions-although", "Although she was nervous but she gave the presentation"],
+    ["write-conjunctions-unless", "I will stay home unless the weather does not improve"],
+    ["write-plurals-uncountable", "This advice are useful"],
+    ["write-collocations-attention", "Please pay attention the teacher"],
   ];
   for (const [id, input] of mistakes) {
     const lesson = TOPIC_WRITING_LESSONS.find(item => item.id === id)!;
     assert.equal(checkTopicWriting(lesson, input).status, "retry", input);
   }
   for (const [id, input] of [
-    ["write-modals-must-not", "You mustn't touch this wire."],
-    ["write-modals-cannot", "I can't open this jar."],
-    ["write-conditionals-third", "I'd have passed the exam if I'd studied harder."],
-    ["write-conditionals-third-negative", "If we'd left earlier, we wouldn't have missed the train."],
-    ["write-conditionals-first-negative", "We'll go outside if it doesn't rain."],
-    ["write-conditionals-second-negative", "If I were you, I wouldn't buy that car."],
+    ["write-modals-must-not", "You mustn't park here."],
+    ["write-modals-cannot", "She can't reach the shelf."],
+    ["write-conditionals-third", "She'd have caught the bus if she'd left earlier."],
+    ["write-conditionals-third-negative", "If I'd set the alarm, I wouldn't have been late."],
+    ["write-conditionals-first-negative", "We'll miss the bus if we don't hurry."],
+    ["write-conditionals-second-negative", "If I were you, I wouldn't eat that food."],
   ]) {
     const lesson = TOPIC_WRITING_LESSONS.find(item => item.id === id)!;
     assert.equal(checkTopicWriting(lesson, input).status, "correct", input);

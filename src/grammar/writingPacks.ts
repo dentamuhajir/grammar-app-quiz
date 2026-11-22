@@ -25,8 +25,8 @@ export const WRITING_PACKS: WritingPack[] = [
     instruction: "Tulis satu kalimat sesuai situasi",
     lessons: TOPIC_WRITING_LESSONS.filter(lesson => lesson.topic === topic).map(lesson => ({
       id: lesson.id, group: topic, situation: lesson.situation, cues: lesson.cues,
-      reference: lesson.variants[0] + ".", hint: lesson.explanation,
-      explanation: lesson.explanation, check: (input: string) => checkTopicWriting(lesson, input),
+      reference: lesson.variants[0] + ".", hint: lesson.writingExplanation,
+      explanation: lesson.writingExplanation, check: (input: string) => checkTopicWriting(lesson, input),
     })),
   })),
   {
