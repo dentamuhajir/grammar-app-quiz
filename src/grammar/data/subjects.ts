@@ -3,7 +3,7 @@ import type { Subject } from "../types";
 /**
  * Subjects spanning every person/number so the engine exercises all
  * subject-verb agreement branches. `entity` prevents nonsense pairings
- * (e.g. a dog becoming a teacher). Text is lowercase except "I" so the
+ * (e.g. a dog becoming a teacher). Text preserves proper names so the
  * renderer can capitalize only the first word of a sentence.
  */
 export const SUBJECTS: Subject[] = [
@@ -26,6 +26,25 @@ export const SUBJECTS: Subject[] = [
   { text: "the children", person: 3, number: "plural", entity: "person" },
   { text: "my parents", person: 3, number: "plural", entity: "person" },
   { text: "the workers", person: 3, number: "plural", entity: "person" },
+
+  { text: "Emma", person: 3, number: "singular", entity: "person" },
+  { text: "James", person: 3, number: "singular", entity: "person" },
+  { text: "Olivia", person: 3, number: "singular", entity: "person" },
+  { text: "Daniel", person: 3, number: "singular", entity: "person" },
+  { text: "Emma and James", person: 3, number: "plural", entity: "person" },
+  { text: "Olivia and Daniel", person: 3, number: "plural", entity: "person" },
+  { text: "James and Olivia", person: 3, number: "plural", entity: "person" },
+
+  { text: "the boy with two dogs", head: "boy", person: 3, number: "singular", entity: "person" },
+  { text: "the teacher near the windows", head: "teacher", person: 3, number: "singular", entity: "person" },
+  { text: "the girl with the red bag", head: "girl", person: 3, number: "singular", entity: "person" },
+  { text: "the students in this class", head: "students", person: 3, number: "plural", entity: "person" },
+  { text: "the children near the door", head: "children", person: 3, number: "plural", entity: "person" },
+  { text: "the workers in the office", head: "workers", person: 3, number: "plural", entity: "person" },
+
+  { text: "the phone", person: 3, number: "singular", entity: "thing" },
+  { text: "the computer", person: 3, number: "singular", entity: "thing" },
+  { text: "the machines", person: 3, number: "plural", entity: "thing" },
 ];
 
 /** Person subjects only (used for passive "by ..." agents). */

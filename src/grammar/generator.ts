@@ -79,7 +79,7 @@ const SIMPLE_TENSES: Tense[] = ["presentSimple", "pastSimple", "futureSimple"];
 const BEING_TENSES: Tense[] = ["presentContinuous", "pastContinuous"];
 
 /** Manner adverbs answer "How" (run fast -> How does he run?). */
-const MANNER_OBJECTS = new Set(["fast", "well", "hard"]);
+const MANNER_OBJECTS = new Set(["fast", "well", "hard", "smoothly"]);
 
 /** People-objects take "Who", not "What" (What is she helping? -> wrong). */
 const PERSON_OBJECTS = new Set([
@@ -96,7 +96,20 @@ const ANIMAL_VERBS = new Set(["sleep", "run", "swim", "eat", "catch", "find", "p
 
 /** Complements that fit animal / thing subjects. */
 const ANIMAL_COMPLEMENTS = new Set(["happy", "tired", "sick", "noisy", "here", "at home"]);
-const THING_COMPLEMENTS = new Set(["noisy", "here", "at home", "in the office"]);
+const THING_COMPLEMENTS = new Set(["noisy", "ready", "here", "at home", "in the office"]);
+
+// These objects suit devices as well as the unspecified thing referred to by it.
+const THING_OBJECTS: Record<string, string> = {
+  work: "well",
+  run: "smoothly",
+  make: "a noise",
+  produce: "heat",
+  show: "the results",
+};
+const THING_ACTIONS = VERBS.filter(verb => verb.base in THING_OBJECTS)
+  .map(verb => ({ ...verb, object: THING_OBJECTS[verb.base] }));
+const IT_SUBJECT = SUBJECTS.find(subject => subject.text === "it")!;
+const DEVICE_SUBJECTS = SUBJECTS.filter(subject => subject.entity === "thing" && subject.text !== "it");
 
 // ---------- time signals ----------
 
@@ -209,8 +222,14 @@ function pickSubjectForComplement(comp: Complement, being: boolean): Subject {
 
 function buildVerbal(tense: Tense, form: SentenceForm, allowStative: boolean): Question {
   const pool = isContinuous(tense) || !allowStative ? DYNAMIC_VERBS : VERBS;
-  const verb = pick(pool);
-  const subject = pickSubjectFor(verb);
+  const useThing = Math.random() < 0.2;
+  const verb = pick(useThing ? THING_ACTIONS : pool);
+  let subject: Subject;
+  if (useThing) {
+    subject = Math.random() < 0.5 ? IT_SUBJECT : pick(DEVICE_SUBJECTS);
+  } else {
+    subject = pickSubjectFor(verb);
+  }
   const choice = form === "whQuestion" ? whForVerbal(tense, verb) : undefined;
   const wh = choice?.wh;
 

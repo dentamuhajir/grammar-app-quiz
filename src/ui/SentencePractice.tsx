@@ -47,7 +47,7 @@ function PromptChips({ q }: { q: Question }) {
   const object = q.mode === "verbal" ? q.verb?.object : undefined;
   const replacesObject =
     q.whWord === "What" ||
-    (q.whWord === "How" && ["fast", "well", "hard"].includes(object ?? ""));
+    (q.whWord === "How" && ["fast", "well", "hard", "smoothly"].includes(object ?? ""));
 
   return (
     <div className="prompt">

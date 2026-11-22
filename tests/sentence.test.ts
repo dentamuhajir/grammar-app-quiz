@@ -21,6 +21,59 @@ function verbal(tense: Tense, form: SentenceForm, timeSignal?: string): Question
     answer: conjugateVerbal(tense, she, work, form, { tail: timeSignal }) };
 }
 
+test("names, coordinated names and modified subjects keep singular and plural agreement", () => {
+  for (const [text, positive, question, perfect, nominal] of [
+    ["Emma", "Emma works.", "Does Emma work?", "Emma has worked.", "Emma is ready."],
+    ["Emma and James", "Emma and James work.", "Do Emma and James work?", "Emma and James have worked.", "Emma and James are ready."],
+    ["the boy with two dogs", "The boy with two dogs works.", "Does the boy with two dogs work?", "The boy with two dogs has worked.", "The boy with two dogs is ready."],
+    ["the students in this class", "The students in this class work.", "Do the students in this class work?", "The students in this class have worked.", "The students in this class are ready."],
+  ]) {
+    const subject = SUBJECTS.find(item => item.text === text)!;
+    assert.ok(subject);
+    assert.equal(conjugateVerbal("presentSimple", subject, work, "positive"), positive);
+    assert.equal(conjugateVerbal("presentSimple", subject, work, "yesNoQuestion"), question);
+    assert.equal(conjugateVerbal("presentPerfect", subject, work, "positive"), perfect);
+    assert.equal(conjugateNominal("presentSimple", subject, {text: "ready", kind: "adjective"}, "positive"), nominal);
+    const q: Question = {...verbal("presentSimple", "positive"), subject, answer: positive};
+    assert.equal(checkAnswer(q, positive).correct, true);
+    if (subject.head) assert.ok(sentenceGuide(q).reasons.some(reason => reason.includes(subject.head!)));
+  }
+});
+
+test("generator exposes new subjects and uses suitable device actions across every tense", () => {
+  const originalRandom = Math.random;
+  let seed = 91825;
+  Math.random = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const seen = new Set<string>();
+  const itActions = new Set<string>();
+  try {
+    for (const tense of TENSE_ORDER) {
+      for (const form of ["positive", "negative", "yesNoQuestion", "whQuestion"] as SentenceForm[]) {
+        for (let i = 0; i < 35; i++) {
+          const q = generateQuestion({...DEFAULT_FILTER, mode: "verbal", tense, form});
+          seen.add(q.subject.text);
+          assert.ok(sentenceReading(q.answer), q.answer);
+          assert.equal(checkAnswer(q, q.answer).correct, true);
+          if (q.subject.entity === "thing") {
+            assert.ok(["work", "run", "make", "produce", "show"].includes(q.verb!.base));
+            if (q.subject.text === "it") itActions.add(q.verb!.base);
+          }
+          if (q.whWord === "How") {
+            assert.doesNotMatch(sentenceGuide(q).formula, /Objek/);
+          }
+        }
+      }
+    }
+    for (const subject of SUBJECTS) assert.ok(seen.has(subject.text), subject.text);
+    assert.equal(itActions.size, 5);
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
 test("offline reading guide covers sentence vocabulary, inflections, time expressions and guided packs", () => {
   const corpus = [
     ...VERBS.flatMap(v => [v.base, v.past, v.participle, v.thirdSingular, v.ing, v.object]),

@@ -30,12 +30,14 @@ export type Entity = "person" | "animal" | "thing";
 
 /** Grammatical person + number drives subject-verb agreement. */
 export interface Subject {
-  /** Display text. Stored lowercase except proper words like "I". */
+  /** Display text. Preserves capitalization for proper names and "I". */
   text: string;
   /** 1 = I/we, 2 = you, 3 = he/she/it/they/nouns. */
   person: 1 | 2 | 3;
   number: "singular" | "plural";
   entity: Entity;
+  /** Head noun in a subject with a modifying phrase, used in explanations. */
+  head?: string;
   /**
    * Object pronoun for the passive "by ..." phrase (pronoun subjects only).
    * e.g. He -> "him". Noun subjects reuse their own text.
