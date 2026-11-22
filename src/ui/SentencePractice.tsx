@@ -238,50 +238,50 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
         </section> : <PromptChips q={question} />}
 
         <div className="sentence-answer-block">
-        <label className="sentence-answer-label" htmlFor="sentence-answer">Jawaban Anda</label>
-        <form className={`qa-composer sentence-composer ${result && !result.empty ? result.correct ? "is-correct" : "is-incorrect" : ""}`}
-          onSubmit={event => { event.preventDefault(); check(); }}>
-          <textarea
-            ref={answerRef}
-            rows={2}
-            value={input}
-            id="sentence-answer"
-            aria-label="Jawabanmu"
-            placeholder="Tulis kalimat dalam bahasa Inggris…"
-            readOnly={solved}
-            aria-invalid={Boolean(result && !result.correct && !result.empty)}
-            aria-describedby={result?.empty ? "sentence-empty-error" : undefined}
-            spellCheck={false}
-            autoComplete="off"
-            autoCapitalize="off"
-            onChange={(e) => {
-              setInput(e.target.value);
-              if (result) setResult(null);
-              setPraise("");
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                check();
-              }
-            }}
-          />
-          {!solved && <div className="qa-composer-tools">
-            <VoiceInputBar
-            compact
-            value={input}
-            disabled={solved}
-            onChange={(nextVal) => {
-              setInput(nextVal);
-              if (result) setResult(null);
-              setPraise("");
-            }}
+          <label className="sentence-answer-label" htmlFor="sentence-answer">Jawaban Anda</label>
+          <form className={`qa-composer sentence-composer ${result && !result.empty ? result.correct ? "is-correct" : "is-incorrect" : ""}`}
+            onSubmit={event => { event.preventDefault(); check(); }}>
+            <textarea
+              ref={answerRef}
+              rows={2}
+              value={input}
+              id="sentence-answer"
+              aria-label="Jawabanmu"
+              placeholder="Tulis kalimat dalam bahasa Inggris…"
+              readOnly={solved}
+              aria-invalid={Boolean(result && !result.correct && !result.empty)}
+              aria-describedby={result?.empty ? "sentence-empty-error" : undefined}
+              spellCheck={false}
+              autoComplete="off"
+              autoCapitalize="off"
+              onChange={(e) => {
+                setInput(e.target.value);
+                if (result) setResult(null);
+                setPraise("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  check();
+                }
+              }}
             />
-            <button type="submit" className="btn btn-primary qa-send">
-              Periksa jawaban <span aria-hidden="true">↗</span>
-            </button>
-          </div>}
-        </form>
+            {!solved && <div className="qa-composer-tools">
+              <VoiceInputBar
+              compact
+              value={input}
+              disabled={solved}
+              onChange={(nextVal) => {
+                setInput(nextVal);
+                if (result) setResult(null);
+                setPraise("");
+              }}
+              />
+              <button type="submit" className="btn btn-primary qa-send">
+                Periksa jawaban <span aria-hidden="true">↗</span>
+              </button>
+            </div>}
+          </form>
         </div>
 
         {!solved && hasIncorrectAttempt && practiceMode !== "translate" && <details key={question.answer} className="sentence-start-hint">

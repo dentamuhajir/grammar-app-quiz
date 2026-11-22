@@ -69,27 +69,27 @@ export function SkillWriting({ session, onExit }: { session: WritingSession; onE
     <p className="basics-cue">{pack.instruction}.</p>
     <form className="writing-answer-form" onSubmit={event => { event.preventDefault(); submit(); }}>
       <div className="sentence-answer-block">
-      <label className="sentence-answer-label" htmlFor="writing-answer">Jawaban Anda</label>
-      <div className={`qa-composer sentence-composer ${result?.status === "correct" ? "is-correct" : result?.status === "retry" ? "is-incorrect" : ""}`}>
-        <textarea ref={answerRef} id="writing-answer" rows={pack.multiline ? 3 : 2}
-          aria-label="Kalimat Anda" value={input} onChange={e => edit(e.target.value)}
-          readOnly={solved} autoComplete="off" autoCapitalize="off" spellCheck={false}
-          aria-invalid={result?.status === "retry"}
-          aria-describedby={result ? "writing-feedback" : undefined}
-          placeholder={pack.multiline ? "Tulis dua kalimat dalam bahasa Inggris…" : "Tulis kalimat dalam bahasa Inggris…"}
-          onKeyDown={event => {
-            if (!pack.multiline && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-              event.preventDefault();
-              submit();
-            }
-          }} />
-        {!solved && <div className="qa-composer-tools">
-          <VoiceInputBar compact value={input} multiline={pack.multiline} onChange={edit} />
-          <button className="btn btn-primary qa-send" type="submit">
-            Periksa jawaban <span aria-hidden="true">↗</span>
-          </button>
-        </div>}
-      </div>
+        <label className="sentence-answer-label" htmlFor="writing-answer">Jawaban Anda</label>
+        <div className={`qa-composer sentence-composer ${result?.status === "correct" ? "is-correct" : result?.status === "retry" ? "is-incorrect" : ""}`}>
+          <textarea ref={answerRef} id="writing-answer" rows={pack.multiline ? 3 : 2}
+            aria-label="Kalimat Anda" value={input} onChange={e => edit(e.target.value)}
+            readOnly={solved} autoComplete="off" autoCapitalize="off" spellCheck={false}
+            aria-invalid={result?.status === "retry"}
+            aria-describedby={result ? "writing-feedback" : undefined}
+            placeholder={pack.multiline ? "Tulis dua kalimat dalam bahasa Inggris…" : "Tulis kalimat dalam bahasa Inggris…"}
+            onKeyDown={event => {
+              if (!pack.multiline && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                submit();
+              }
+            }} />
+          {!solved && <div className="qa-composer-tools">
+            <VoiceInputBar compact value={input} multiline={pack.multiline} onChange={edit} />
+            <button className="btn btn-primary qa-send" type="submit">
+              Periksa jawaban <span aria-hidden="true">↗</span>
+            </button>
+          </div>}
+        </div>
       </div>
       <div id="writing-feedback" aria-live="polite">
         {result?.status === "correct" || revealed ? <div className="feedback basics-feedback">

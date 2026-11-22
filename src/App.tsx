@@ -15,7 +15,7 @@ import type { Question } from "./grammar/types";
 
 type PracticeMode = keyof typeof PRACTICE_LABELS;
 type ExtraPracticeMode = "articles" | "story" | "qa" | "explorer";
-const DEFAULT_MODE: ExtraPracticeMode = "qa";
+const DEFAULT_MODE: PracticeMode = "sentences";
 
 function ModeIcon({ mode }: { mode: PracticeMode }) {
   if (mode === "sentences") {
@@ -204,7 +204,7 @@ function WritingReviewLink({ from, onOpen }: {
 
 export default function App() {
   const [practice, setPractice] = useState<PracticeMode>(DEFAULT_MODE);
-  const [extraMode, setExtraMode] = useState<ExtraPracticeMode>(DEFAULT_MODE);
+  const [extraMode, setExtraMode] = useState<ExtraPracticeMode>("qa");
   const [extraOpen, setExtraOpen] = useState(false);
   const [writing, setWriting] = useState<WritingSession | null>(null);
   const [explorer, setExplorer] = useState<{source?: Question; from: PracticeMode; scrollY: number} | null>(null);

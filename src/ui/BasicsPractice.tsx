@@ -128,27 +128,27 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
           }}
         >
           <div className="sentence-answer-block">
-          <label className="sentence-answer-label" htmlFor="basics-answer">Jawaban Anda</label>
-          <div className={`qa-composer basics-composer ${status === "correct" ? "is-correct" : status === "incorrect" ? "is-incorrect" : ""}`}>
-            <input
-              id="basics-answer"
-              value={input}
-              readOnly={finished}
-              aria-label="Jawaban"
-              onChange={(event) => change(event.target.value)}
-              placeholder="Ketik kata atau frasa…"
-              autoComplete="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              aria-describedby="basics-question"
-              aria-invalid={status === "incorrect"}
-            />
-            {!finished && <div className="qa-composer-tools">
-              <button className="btn btn-primary qa-send" type="submit">
-                Periksa jawaban <span aria-hidden="true">↗</span>
-              </button>
-            </div>}
-          </div>
+            <label className="sentence-answer-label" htmlFor="basics-answer">Jawaban Anda</label>
+            <div className={`qa-composer basics-composer ${status === "correct" ? "is-correct" : status === "incorrect" ? "is-incorrect" : ""}`}>
+              <input
+                id="basics-answer"
+                value={input}
+                readOnly={finished}
+                aria-label="Jawaban"
+                onChange={(event) => change(event.target.value)}
+                placeholder="Ketik kata atau frasa…"
+                autoComplete="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                aria-describedby="basics-question"
+                aria-invalid={status === "incorrect"}
+              />
+              {!finished && <div className="qa-composer-tools">
+                <button className="btn btn-primary qa-send" type="submit">
+                  Periksa jawaban <span aria-hidden="true">↗</span>
+                </button>
+              </div>}
+            </div>
           </div>
           <div aria-live="polite" aria-atomic="true">
             {status === "empty" && (
