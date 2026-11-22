@@ -1,10 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { checkAnswer, type CheckResult } from "../grammar/check";
 import {
-  DEFAULT_FILTER,
+  DEFAULT_MULTI_FILTER,
   displayCap,
-  generateQuestion,
-  type QuizFilter,
+  createQuestionCycle,
+  type MultiQuizFilter,
 } from "../grammar/generator";
 import {
   FORM_LABELS,
@@ -13,7 +13,8 @@ import {
   TENSE_ORDER,
 } from "../grammar/labels";
 import { implicitContextCue } from "../grammar/explanations";
-import type { Mode, Question, SentenceForm } from "../grammar/types";
+import type { Question } from "../grammar/types";
+import { SentenceFilters } from "./SentenceFilters";
 import { SentenceExplanation } from "./SentenceExplanation";
 import { BottomSheet } from "./BottomSheet";
 import { useSwipeCard } from "./useSwipeCard";
@@ -69,23 +70,24 @@ function PromptChips({ q }: { q: Question }) {
 
 const PRAISE = ["Benar!", "Tepat!", "Jawabanmu sesuai!"];
 
-function filterSummary(f: QuizFilter): string {
+function filterSummary(f: MultiQuizFilter): string {
   const parts = [
-    f.tense === "all" ? "Semua tense" : TENSE_LABELS[f.tense],
-    f.mode === "all"
-      ? "Semua jenis"
-      : MODE_LABELS[f.mode].replace(/\s*\(.*\)/, ""),
-    f.form === "all"
-      ? "Semua bentuk"
-      : FORM_LABELS[f.form].replace(/\s*\(.*\)/, ""),
+    f.tenses.length === TENSE_ORDER.length ? "Semua tense"
+      : f.tenses.length === 1 ? TENSE_LABELS[f.tenses[0]] : `${f.tenses.length} tense`,
+    f.modes.length === 3 ? "Semua jenis"
+      : f.modes.length === 1 ? MODE_LABELS[f.modes[0]].replace(/\s*\(.*\)/, "") : `${f.modes.length} jenis`,
+    f.forms.length === 4 ? "Semua bentuk"
+      : f.forms.length === 1 ? FORM_LABELS[f.forms[0]].replace(/\s*\(.*\)/, "") : `${f.forms.length} bentuk`,
   ];
   return parts.join(" · ");
 }
 
 export function SentencePractice({ onExplore }: { onExplore: (question: Question) => void }) {
-  const [filter, setFilter] = useState<QuizFilter>(DEFAULT_FILTER);
+  const [filter, setFilter] = useState<MultiQuizFilter>(DEFAULT_MULTI_FILTER);
+  const cycle = useRef<ReturnType<typeof createQuestionCycle> | null>(null);
+  if (!cycle.current) cycle.current = createQuestionCycle(DEFAULT_MULTI_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
-    generateQuestion(DEFAULT_FILTER),
+    cycle.current!(),
   );
   const [input, setInput] = useState("");
   const [result, setResult] = useState<CheckResult | null>(null);
@@ -96,8 +98,8 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
   const [guideOpen, setGuideOpen] = useState(false);
   const [implicitMode, setImplicitMode] = useState(false);
 
-  const next = useCallback((f: QuizFilter) => {
-    setQuestion(generateQuestion(f));
+  const next = useCallback(() => {
+    setQuestion(cycle.current!());
     setInput("");
     setResult(null);
     setRevealed(false);
@@ -109,7 +111,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
 
   const check = useCallback(() => {
     if (solved) {
-      next(filter);
+      next();
       return;
     }
     const r = checkAnswer(question, input);
@@ -122,16 +124,18 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
       setPraise(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
       setConfetti((c) => c + 1);
     }
-  }, [filter, input, next, question, solved]);
+  }, [input, next, question, solved]);
 
-  function updateFilter(patch: Partial<QuizFilter>) {
-    const merged = { ...filter, ...patch };
-    setFilter(merged);
-    next(merged);
+  function applyFilter(selected: MultiQuizFilter, context: boolean) {
+    cycle.current = createQuestionCycle(selected);
+    setFilter(selected);
+    setImplicitMode(context);
+    next();
+    setFiltersOpen(false);
   }
 
   const { swipeHandlers, cardStyle, cardClass } = useSwipeCard({
-    onSwipeLeft: () => next(filter),
+    onSwipeLeft: next,
     onSwipeRight: () => setGuideOpen(true),
   });
 
@@ -310,99 +314,12 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
         </p>
       </main>
 
-      <BottomSheet
-        open={filtersOpen}
+      {filtersOpen && <SentenceFilters
+        filter={filter}
+        implicitMode={implicitMode}
         onClose={() => setFiltersOpen(false)}
-        title="Filter Sentence Practice"
-      >
-        <div className="sheet-form">
-          <label>
-            <span>Tense</span>
-            <select
-              value={filter.tense}
-              onChange={(e) =>
-                updateFilter({ tense: e.target.value as QuizFilter["tense"] })
-              }
-            >
-              <option value="all">Semua tense</option>
-              {TENSE_ORDER.map((t) => (
-                <option key={t} value={t}>
-                  {TENSE_LABELS[t]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span>Jenis Kalimat</span>
-            <select
-              value={filter.mode}
-              onChange={(e) =>
-                updateFilter({ mode: e.target.value as QuizFilter["mode"] })
-              }
-            >
-              <option value="all">Semua jenis</option>
-              {(["verbal", "nominal", "passive"] as Mode[]).map((m) => (
-                <option key={m} value={m}>
-                  {MODE_LABELS[m]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span>Bentuk Kalimat</span>
-            <select
-              value={filter.form}
-              onChange={(e) =>
-                updateFilter({ form: e.target.value as QuizFilter["form"] })
-              }
-            >
-              <option value="all">Semua bentuk</option>
-              {(
-                [
-                  "positive",
-                  "negative",
-                  "yesNoQuestion",
-                  "whQuestion",
-                ] as SentenceForm[]
-              ).map((f) => (
-                <option key={f} value={f}>
-                  {FORM_LABELS[f]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="rare-toggle">
-            <input
-              type="checkbox"
-              checked={implicitMode}
-              onChange={(e) => setImplicitMode(e.target.checked)}
-            />
-            <span>
-              🧠 Mode Konteks (Sembunyikan nama Tense &amp; tampilkan situasi)
-            </span>
-          </label>
-
-          <label className="rare-toggle">
-            <input
-              type="checkbox"
-              checked={filter.includeRare}
-              onChange={(e) => updateFilter({ includeRare: e.target.checked })}
-            />
-            <span>Sertakan bentuk langka &amp; kata kerja keadaan</span>
-          </label>
-
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setFiltersOpen(false)}
-          >
-            Terapkan Filter
-          </button>
-        </div>
-      </BottomSheet>
+        onApply={applyFilter}
+      />}
 
       <BottomSheet
         open={guideOpen}

@@ -11,12 +11,70 @@ import { WRITING_PACKS } from "../src/grammar/writingPacks";
 import { TOPIC_WRITING_LESSONS } from "../src/grammar/topicWriting";
 import { changeExplorerQuestion, EXPLORER_VERBS, EXPLORER_COMPLEMENTS, explorerRestriction, initialExplorerQuestion } from "../src/grammar/explorer";
 import { sentenceReading } from "../src/grammar/sentenceReadings";
-import { DEFAULT_FILTER, generateQuestion, generateStativeTrap } from "../src/grammar/generator";
+import { DEFAULT_FILTER, DEFAULT_MULTI_FILTER, createQuestionCycle, quizCombinations, generateQuestion, generateStativeTrap, type MultiQuizFilter } from "../src/grammar/generator";
 import { TENSE_LABELS, TENSE_ORDER } from "../src/grammar/labels";
 import type { Mode, Question, SentenceForm, Subject, Tense } from "../src/grammar/types";
 
 const she: Subject = { text: "she", person: 3, number: "singular", entity: "person", objectForm: "her" };
 const work = { ...VERBS.find(v => v.base === "work")!, object: "" };
+
+test("multi-filter cycles cover exactly the selected supported combinations and avoid boundary repeats", () => {
+  const filter: MultiQuizFilter = {
+    tenses: ["presentSimple", "pastSimple"],
+    modes: ["verbal", "nominal"], forms: ["yesNoQuestion", "whQuestion"], includeRare: false,
+  };
+  const combinations = quizCombinations(filter);
+  assert.equal(combinations.length, 8);
+  const cycle = createQuestionCycle(filter);
+  let previous = "";
+  for (let round = 0; round < 4; round++) {
+    const seen = new Set<string>();
+    for (let index = 0; index < combinations.length; index++) {
+      const q = cycle();
+      const key = [q.tense, q.mode, q.form].join("/");
+      if (index === 0 && previous) assert.notEqual(key, previous);
+      seen.add(key);
+      assert.ok(filter.tenses.includes(q.tense));
+      assert.ok(filter.modes.includes(q.mode));
+      assert.ok(filter.forms.includes(q.form));
+      assert.equal(checkAnswer(q, q.answer).correct, true);
+      previous = key;
+    }
+    assert.equal(seen.size, combinations.length);
+  }
+});
+
+test("multi-filter blocks unsupported nominal and rare passive combinations without unrelated fallback questions", () => {
+  const unsupported: MultiQuizFilter = {
+    tenses: ["futureContinuous", "presentPerfectContinuous"],
+    modes: ["nominal"], forms: ["positive"], includeRare: false,
+  };
+  assert.equal(quizCombinations(unsupported).length, 0);
+  assert.throws(() => createQuestionCycle(unsupported), RangeError);
+  for (const key of ["tenses", "modes", "forms"] as const) {
+    assert.equal(quizCombinations({...DEFAULT_MULTI_FILTER, [key]: []}).length, 0);
+  }
+  const rare: MultiQuizFilter = {
+    tenses: ["presentPerfectContinuous"], modes: ["passive"],
+    forms: ["negative", "whQuestion"], includeRare: false,
+  };
+  assert.equal(quizCombinations(rare).length, 0);
+  rare.includeRare = true;
+  assert.equal(quizCombinations(rare).length, 2);
+  const cycle = createQuestionCycle(rare);
+  for (let i = 0; i < 4; i++) {
+    const q = cycle();
+    assert.equal(q.mode, "passive");
+    assert.equal(q.tense, "presentPerfectContinuous");
+    assert.equal(q.rare, true);
+  }
+  const all = createQuestionCycle(DEFAULT_MULTI_FILTER);
+  for (let i = 0; i < quizCombinations(DEFAULT_MULTI_FILTER).length; i++) {
+    const q = all();
+    assert.equal(sentenceGuide(q).notes.length, 0, q.answer);
+    assert.ok(sentenceReading(q.answer), q.answer);
+  }
+});
 
 test("Explorer compares irregular verbs and four forms with correct auxiliary agreement", () => {
   const initial = initialExplorerQuestion();

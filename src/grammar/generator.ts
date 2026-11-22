@@ -48,6 +48,54 @@ export const DEFAULT_FILTER: QuizFilter = {
   includeRare: false,
 };
 
+export interface MultiQuizFilter {
+  tenses: Tense[];
+  modes: Mode[];
+  forms: SentenceForm[];
+  includeRare: boolean;
+}
+
+export const DEFAULT_MULTI_FILTER: MultiQuizFilter = {
+  tenses: [...TENSE_ORDER],
+  modes: ["verbal", "nominal", "passive"],
+  forms: [...FORMS],
+  includeRare: false,
+};
+
+export function quizCombinations(filter: MultiQuizFilter) {
+  return filter.tenses.flatMap(tense => filter.modes.flatMap(mode => {
+    if (mode === "nominal" && (isPerfectContinuous(tense) || tense === "futureContinuous")) return [];
+    if (mode === "passive" && isRarePassive(tense) && !filter.includeRare) return [];
+    return filter.forms.map(form => ({tense, mode, form}));
+  }));
+}
+
+/** Every supported combination appears once per cycle, in a shuffled order. */
+export function createQuestionCycle(filter: MultiQuizFilter): () => Question {
+  const combinations = quizCombinations(filter);
+  if (!combinations.length) throw new RangeError("Filter has no supported combinations");
+  let remaining: typeof combinations = [];
+  let previous: typeof combinations[number] | undefined;
+  return () => {
+    if (!remaining.length) {
+      remaining = [...combinations];
+      for (let i = remaining.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
+      }
+      if (remaining.length > 1 && remaining[remaining.length - 1] === previous) {
+        [remaining[0], remaining[remaining.length - 1]] = [remaining[remaining.length - 1], remaining[0]];
+      }
+    }
+    const combination = remaining.pop()!;
+    previous = combination;
+    const {tense, mode, form} = combination;
+    if (mode === "verbal") return buildVerbal(tense, form, filter.includeRare);
+    if (mode === "nominal") return buildNominal(tense, form);
+    return buildPassive(tense, form);
+  };
+}
+
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }

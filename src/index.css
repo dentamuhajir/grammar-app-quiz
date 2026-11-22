@@ -1027,6 +1027,42 @@ button:focus-visible {
   gap: 1rem;
 }
 
+.sentence-filter-group {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.sentence-filter-group legend,
+.sentence-tense-picker summary {
+  font-weight: 800;
+  margin-bottom: 0.6rem;
+}
+
+.sentence-filter-group .inline-popup-link {
+  margin: 0 0 0.7rem;
+}
+
+.sentence-tense-picker summary {
+  cursor: pointer;
+}
+
+.sentence-tense-options {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+}
+
+.sentence-tense-options .rare-toggle {
+  min-height: 2rem;
+}
+
+.sheet-form .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .sheet-form label:not(.rare-toggle) {
   display: flex;
   flex-direction: column;
