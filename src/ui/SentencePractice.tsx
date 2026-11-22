@@ -36,8 +36,11 @@ function PromptChips({ q }: { q: Question }) {
     return (
       <div className="prompt">
         <span className="prompt-label">
-          Ubah kalimat ini menjadi passive voice:
+          {q.whWord
+            ? "Buat pertanyaan passive voice dengan kata tanya berikut:"
+            : "Ubah kalimat ini menjadi passive voice:"}
         </span>
+        {q.whWord && <span className="chip chip-wh">{q.whWord}</span>}
         <span className="chip chip-active">{q.activePrompt}</span>
         {q.timeSignal && <span className="chip chip-time">{q.timeSignal}</span>}
       </div>
