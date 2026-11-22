@@ -22,7 +22,9 @@ export const BASICS_LABELS = {
   modals: "Modals",
   conjunctions: "Conjunctions",
   conditionals: "Conditionals (If)",
-  collocations: "Collocations",
+  collocations: "Collocations & Chunks",
+  phrasalVerbs: "Phrasal Verbs & Everyday Expressions",
+  causatives: "Causative Verbs",
 };
 
 export const TENSE_LABELS: Record<Tense, string> = {

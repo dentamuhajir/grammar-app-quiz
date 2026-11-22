@@ -52,12 +52,14 @@ dan fungsi bagian kalimat, lalu dilanjutkan dengan **Soal berikutnya**.
 ### Grammar Basics
 
 Latihan isian untuk mengenali aturan sebelum menerapkannya dalam kalimat.
-Tersedia **371 soal pada 13 topik**, yang dapat dikerjakan per topik atau dalam
+Tersedia **403 soal pada 15 topik**, yang dapat dikerjakan per topik atau dalam
 mode Campuran.
 
 Topiknya meliputi Articles, Prepositions, Singular & Plural, Pronouns & Possessives,
 Quantifiers, Comparatives & Superlatives, Adjectives & Adverbs, Gerund & Infinitive,
-Relative Pronouns, Modals, Conjunctions, Conditionals, dan Collocations.
+Relative Pronouns, Modals, Conjunctions, Conditionals, Collocations & Chunks,
+Phrasal Verbs & Everyday Expressions, dan Causative Verbs. Di Collocations & Chunks,
+latihan *Common Verbs in Context* membahas makna get, have, take, dan go.
 
 | Contoh soal | Jawaban | Yang dipelajari |
 | --- | --- | --- |
@@ -71,7 +73,7 @@ tepat. Badge topik membuka panduan aturan dan contoh materi.
 
 ### Pakai dalam kalimat
 
-Sebanyak **78 soal terkait** menyediakan tombol **Pakai dalam kalimat** setelah
+Sebanyak **110 soal terkait** menyediakan tombol **Pakai dalam kalimat** setelah
 soal isian diselesaikan. Pengguna mendapat situasi baru untuk menerapkan pola
 yang baru dipelajari.
 

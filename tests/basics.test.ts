@@ -29,9 +29,9 @@ test("writing applies the rule to a new sentence and rejects copying the recogni
 });
 
 test("guided topics link their writing situations to blank questions and accept curated alternatives", () => {
-  assert.equal(TOPIC_WRITING_LESSONS.length, 60);
+  assert.equal(TOPIC_WRITING_LESSONS.length, 92);
   const topics = new Set(TOPIC_WRITING_LESSONS.map(lesson => lesson.topic));
-  assert.equal(topics.size, 11);
+  assert.equal(topics.size, 13);
   for (const topic of topics) {
     assert.ok(TOPIC_WRITING_LESSONS.filter(lesson => lesson.topic === topic).length >= 3);
   }
@@ -77,10 +77,10 @@ test("guided writing rejects mistakes in grammar and meaning while accepting con
   }
 });
 
-test("expanded practice covers 371 blanks and 78 writing situations without duplicate IDs", () => {
-  assert.equal(BASICS_POOL.length, 371);
+test("expanded practice covers 403 blanks and 110 writing situations without duplicate IDs", () => {
+  assert.equal(BASICS_POOL.length, 403);
   const writing = WRITING_PACKS.flatMap(pack => pack.lessons);
-  assert.equal(writing.length, 78);
+  assert.equal(writing.length, 110);
   assert.equal(new Set(writing.map(lesson => lesson.id)).size, writing.length);
   for (const topic of Object.keys(BASICS_LABELS)) {
     assert.ok(BASICS_POOL.some(q => q.topic === topic && q.skillId));
@@ -89,6 +89,14 @@ test("expanded practice covers 371 blanks and 78 writing situations without dupl
 
 test("expanded patterns reject grammar mistakes and changes to the requested meaning", () => {
   const mistakes = [
+    ["write-gerunds-remember-memory", "I remember to meet Ana"],
+    ["write-gerunds-remember-task", "Please remember calling Ana later"],
+    ["write-gerunds-stop-purpose", "I stopped eating lunch"],
+    ["write-gerunds-try-method", "Try to read a book"],
+    ["write-phrasalVerbs-figure", "We finally figured out it"],
+    ["write-causatives-get-person", "I will get a mechanic check my car"],
+    ["write-causatives-have-thing", "I had my bike repair yesterday"],
+    ["write-collocations-mind", "Would you mind to close the door?"],
     ["write-gerunds-enjoy", "They enjoy to cook dinner"],
     ["write-gerunds-want", "She wants visiting London"],
     ["write-gerunds-avoid", "I avoid to drive at night"],
@@ -126,6 +134,8 @@ test("expanded patterns reject grammar mistakes and changes to the requested mea
   }
   for (const [id, input] of [
     ["write-modals-must-not", "You mustn't park here."],
+    ["write-causatives-have-person", "I'll have a mechanic check my car."],
+    ["write-causatives-help", "Ana helped me to carry the bag yesterday."],
     ["write-modals-cannot", "She can't reach the shelf."],
     ["write-conditionals-third", "She'd have caught the bus if she'd left earlier."],
     ["write-conditionals-third-negative", "If I'd set the alarm, I wouldn't have been late."],

@@ -1108,7 +1108,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
       rule: `Setelah preposisi (${item.prep} + V-ing)`,
       prompt: item.prompt,
       cue: item.base,
-      hint: `Perhatikan kata depan (preposisi) “${item.prep}” tepat sebelum bagian kosong. Setelah preposisi selalu diikuti V-ing.`,
+      hint: `Kata setelah “${item.prep}” menyatakan kegiatan. Pakai bentuk -ing dari kata dasar yang diberikan.`,
       answer: item.ing,
       explanation: `Setelah preposisi “${item.prep}”, kata kerja wajib berbentuk gerund (-ing): ${item.ing}.`,
     });
@@ -2050,8 +2050,9 @@ export function buildQuestionPool(): BasicsQuestion[] {
     add({
       id: lesson.id, skillId: `writing_${lesson.topic}`, topic: lesson.topic,
       rule: BASICS_LABELS[lesson.topic], prompt: lesson.prompt,
-      answer: lesson.answer,
-      hint: "Perhatikan kata di sekitar bagian kosong dan makna kalimatnya. Buka panduan topik jika perlu.",
+      context: lesson.context, cue: lesson.cue,
+      answer: lesson.answer, acceptedAnswers: lesson.acceptedAnswers,
+      hint: lesson.hint ?? "Perhatikan kata di sekitar bagian kosong dan makna kalimatnya. Buka panduan topik jika perlu.",
       explanation: lesson.explanation,
     });
   }
@@ -2087,6 +2088,7 @@ export function completedSentence(q: BasicsQuestion): string {
 }
 
 export function mistakeHint(q: BasicsQuestion, input: string): string {
+  if (q.skillId === `writing_${q.topic}`) return q.explanation;
   const word = input.trim().toLowerCase().replace(/\s+/g, " ");
   if (q.topic === "articles") {
     if (word === "the") return "The menunjuk sesuatu yang sudah spesifik/dapat diidentifikasi. Periksa apakah konteks ini menyebut sesuatu secara umum.";
@@ -2326,14 +2328,19 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
     ],
   },
   gerunds: {
-    summary: "Gerund (V-ing) dan To-Infinitive (to + V1) adalah bentuk kata kerja yang berfungsi sebagai kata benda atau pelengkap kata kerja lain.",
+    summary: "Perhatikan posisi kegiatan dalam kalimat. Bentuk -ing dapat mengisi posisi subjek atau mengikuti preposisi. Bentuk to + V1 dapat menjelaskan tugas, tujuan, atau kata sifat. Setelah beberapa kata kerja, pilihan bentuk juga menentukan makna.",
     rules: [
-      { label: "Gerund (V-ing) sebagai Subjek / setelah Preposisi", detail: "Gunakan V-ing di awal kalimat sebagai subjek (Swimming is healthy) atau setelah preposisi (interested in learning, without saying)." },
+      { label: "Gerund sebagai subjek atau setelah preposisi", detail: "Swimming is healthy memakai swimming sebagai subjek. Setelah for, perhatikan apa yang disebut. For the team menyebut kelompok, for them memakai kata ganti, dan responsible for ensuring the data is accurate menyebut kegiatan." },
       { label: "Verb + Gerund (V-ing)", detail: "Kata kerja yang wajib diikuti V-ing: enjoy, finish, avoid, mind, keep, suggest (enjoy reading, finish working)." },
       { label: "Verb + To-Infinitive (to + V1)", detail: "Kata kerja yang diikuti to + V1: want, decide, plan, hope, promise, agree, need (decide to buy, plan to visit)." },
+      { label: "Tugas atau tujuan + be + to V1", detail: "Dalam My responsibility was to ensure the data was accurate, to ensure menjelaskan isi tanggung jawab saya. Pola yang sama muncul dalam My job is to build websites dan My goal is to finish the course." },
+      { label: "Adjective + to V1", detail: "Happy to help menyatakan kesediaan. This guide is easy to follow menjelaskan tingkat kesulitan mengikuti panduan. It is important to check the data menyatakan pentingnya tindakan itu." },
+      { label: "Stop, remember, try", detail: "Stop talking berarti mengakhiri pembicaraan. Stop to talk berarti menjeda kegiatan lain untuk berbicara. Remember locking berarti ingat pernah mengunci. Remember to lock berarti ingat untuk mengunci. Try restarting mengusulkan solusi. Try to restart menyatakan upaya." },
     ],
     examples: [
       "Swimming every morning keeps my body fit.",
+      "I was responsible for ensuring the data was accurate.",
+      "My responsibility was to ensure the data was accurate.",
       "I enjoy learning English, and I have finished reading this chapter.",
       "They decided to move to a bigger office next month.",
     ],
@@ -2396,17 +2403,41 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
     ],
   },
   collocations: {
-    summary: "Collocations adalah pasangan kata alami yang selalu digunakan bersama oleh penutur asli (native speakers). Menghafal collocation membuat bahasa Inggris terdengar natural tanpa menerjemahkan kata per kata.",
+    summary: "Pelajari kata yang sering muncul bersama dan potongan kalimat yang bisa dipakai kembali. Saat menemukan get, have, take, atau go, lihat kata sesudahnya untuk memahami makna seluruh ungkapan.",
     rules: [
       { label: "make + hasil / keputusan / kemajuan", detail: "make a decision, make progress, make a mistake, make an effort." },
       { label: "do + tugas / aktivitas / bantuan", detail: "do homework, do an assignment, do your best, do someone a favor." },
       { label: "take + tindakan / jeda / tanggung jawab", detail: "take responsibility, take a break, take notes, take a risk." },
       { label: "Ungkapan penting lainnya", detail: "give feedback, pay attention, gain experience, keep a promise, meet a deadline, break a habit, save time." },
+      { label: "Chunks untuk merespons", detail: "It depends on the weather menyebut faktor penentu. Would you mind closing the door? meminta bantuan dengan sopan. Ganti kegiatan setelah mind untuk membuat permintaan baru." },
+      { label: "Common Verbs in Context · get", detail: "Get tired berarti menjadi lelah, get home berarti sampai di rumah, dan I get it berarti saya paham. Dalam I got a ticket at the station, get bisa berarti memperoleh atau membeli." },
+      { label: "Common Verbs in Context · have, take, go", detail: "Pada have a chat dan take a look, kata benda menyebut tindakan utamanya. Go for a walk berarti pergi berjalan kaki. Pelajari seluruh frasa agar bisa memakainya dalam situasi baru." },
     ],
     examples: [
       "You will make great progress if you practice every day.",
       "Our team worked hard to meet the project deadline.",
       "Please pay attention and take notes during the presentation.",
     ],
+  },
+  phrasalVerbs: {
+    summary: "Pelajari ungkapan percakapan sebagai satu kesatuan. Perhatikan maknanya serta posisi benda atau orang yang dibicarakan.",
+    rules: [
+      { label: "Figure out dan find out", detail: "Figure out berarti menemukan jawaban lewat pemikiran. Find out berarti memperoleh informasi. Dengan figure out, kata benda bisa di tengah atau di akhir (figure the answer out, figure out the answer). Kata ganti berada di tengah (figure it out)." },
+      { label: "Run out of + benda", detail: "We ran out of milk berarti persediaan susu habis. Seluruh rangkaian run out of mendahului bendanya. Dengan kata ganti, gunakan run out of it." },
+      { label: "Go ahead", detail: "Saat seseorang meminta izin, Go ahead berarti silakan. Dalam Go ahead and start, pembicara mempersilakan orang lain untuk mulai." },
+      { label: "Be into dan be up to", detail: "I’m into jazz menyatakan minat. What are you up to? menanyakan kegiatan seseorang. Dalam It’s up to you, up to menyatakan siapa yang menentukan pilihan." },
+      { label: "Be about to + V1", detail: "The train is about to leave berarti kereta akan segera berangkat. Tindakan itu belum dimulai." },
+    ],
+    examples: ["I figured it out on the bus.", "We ran out of milk this morning.", "What are you up to this weekend?"],
+  },
+  causatives: {
+    summary: "Untuk menceritakan pekerjaan yang dilakukan orang lain, pilih apakah Anda ingin menyebut pelakunya atau benda yang dikerjakan.",
+    rules: [
+      { label: "Have + orang + V1", detail: "I’ll have IT check the laptop berarti saya akan meminta tim IT memeriksa laptop. Sesudah pelaku, gunakan kata kerja dasar." },
+      { label: "Get + orang + to V1", detail: "I’ll get IT to check the laptop menyatakan bahwa saya akan mengusahakan agar tim IT memeriksanya. Setelah orang yang diminta, gunakan to + kata kerja dasar." },
+      { label: "Have atau get + benda + V3", detail: "I had my bike repaired dan I got my bike repaired menceritakan perbaikan oleh orang lain. My bike menerima tindakan sehingga repair menjadi repaired." },
+      { label: "Make, let, help + orang", detail: "Make me wait menyatakan paksaan dan let me leave menyatakan izin. Keduanya memakai V1 dalam kalimat aktif. Help me carry dan help me to carry sama-sama menyatakan bantuan." },
+    ],
+    examples: ["I’ll have IT check the laptop.", "I’ll get IT to check the laptop.", "I’ll have the laptop checked."],
   },
 };

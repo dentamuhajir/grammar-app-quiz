@@ -1,14 +1,19 @@
 import { BASICS_LABELS } from "./labels";
 import { expandVariants, normalize } from "./check/normalize";
 import type { WritingResult } from "./writingPacks";
+import { PATTERN_LESSONS } from "./patternLessons";
 
 type NewWritingTopic = Exclude<keyof typeof BASICS_LABELS, "articles" | "prepositions">;
 
-interface TopicWritingLesson {
+export interface TopicWritingLesson {
   id: string;
   topic: NewWritingTopic;
   prompt: string;
+  cue?: string;
+  context?: string;
+  hint?: string;
   answer: string;
+  acceptedAnswers?: string[];
   situation: string;
   cues: string;
   variants: string[];
@@ -499,6 +504,7 @@ export const TOPIC_WRITING_LESSONS: TopicWritingLesson[] = [
     writingExplanation: "Gunakan pasangan pay attention to, diikuti the teacher sebagai yang diperhatikan.",
     explanation: "Pasangan kata yang alami adalah pay attention to. Jangan gunakan make attention atau menghilangkan to sebelum objek.",
   },
+  ...PATTERN_LESSONS,
 ];
 
 export function checkTopicWriting(lesson: TopicWritingLesson, input: string): WritingResult {
