@@ -2813,6 +2813,61 @@ button:focus-visible {
   gap: 0.9rem;
 }
 
+.explorer-page h2 {
+  margin: 0;
+}
+
+.explorer-page .tenses-control-group select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--paper);
+  font: inherit;
+  color: var(--ink);
+}
+
+.explorer-page .tenses-control-split > * {
+  min-width: 0;
+}
+
+.explorer-page button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.explorer-page summary {
+  cursor: pointer;
+  font-weight: 800;
+  padding-block: 0.4rem;
+}
+
+.explorer-verb-form {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.explorer-verb-form.active {
+  background: var(--yellow-card);
+  border-color: var(--ink);
+}
+
+.explorer-parts {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.explorer-parts td,
+.explorer-parts th {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
 .tenses-explorer-intro {
   margin: 0;
   font-size: 0.86rem;

@@ -1,13 +1,14 @@
 import { sentenceGuide } from "../grammar/explanations";
 import type { Question } from "../grammar/types";
-import { TensesExplorer } from "./TensesExplorer";
 
 export function SentenceExplanation({
   question,
   solved,
+  onExplore,
 }: {
   question: Question;
   solved: boolean;
+  onExplore: () => void;
 }) {
   const guide = sentenceGuide(question);
   return (
@@ -64,18 +65,9 @@ export function SentenceExplanation({
             ))}
           </section>
 
-          <section
-            className="sentence-explorer-section"
-            aria-label="Visualisasi 12 Tenses"
-          >
-            <h3 className="sentence-explorer-heading">
-              🧭 Tenses Explorer &amp; Garis Waktu
-            </h3>
-            <TensesExplorer
-              initialTense={question.tense}
-              initialSubject={question.subject.text}
-            />
-          </section>
+          <button type="button" className="btn btn-ghost" onClick={onExplore}>
+            Buka di Tenses Explorer
+          </button>
         </>
       )}
     </div>

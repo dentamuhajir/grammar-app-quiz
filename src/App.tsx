@@ -10,9 +10,11 @@ import { InstallPrompt } from "./ui/InstallPrompt";
 import { packForLesson } from "./grammar/writingPacks";
 import { dueReviews, reviewLesson } from "./grammar/writingReview";
 import { SkillWriting, type WritingSession } from "./ui/SkillWriting";
+import { TensesExplorer } from "./ui/TensesExplorer";
+import type { Question } from "./grammar/types";
 
 type PracticeMode = keyof typeof PRACTICE_LABELS;
-type ExtraPracticeMode = "articles" | "story" | "qa";
+type ExtraPracticeMode = "articles" | "story" | "qa" | "explorer";
 const DEFAULT_MODE: ExtraPracticeMode = "qa";
 
 function ModeIcon({ mode }: { mode: PracticeMode }) {
@@ -161,6 +163,10 @@ const EXTRA_MODES: Array<{
   description: string;
 }> = [
   {
+    mode: "explorer",
+    description: "Bandingkan verbal, nominal, dan bentuk pertanyaan dengan perubahan kata kerja serta garis waktu.",
+  },
+  {
     mode: "qa",
     description:
       "Latihan merespons pertanyaan percakapan (Yes/No & WH-Questions).",
@@ -201,6 +207,7 @@ export default function App() {
   const [extraMode, setExtraMode] = useState<ExtraPracticeMode>(DEFAULT_MODE);
   const [extraOpen, setExtraOpen] = useState(false);
   const [writing, setWriting] = useState<WritingSession | null>(null);
+  const [explorer, setExplorer] = useState<{source?: Question; from: PracticeMode; scrollY: number} | null>(null);
   const isCorePractice = practice === "basics" || practice === "sentences";
 
   function openWriting(session: WritingSession) {
@@ -214,20 +221,34 @@ export default function App() {
   }
 
   const isExtraActive =
-    practice === "articles" || practice === "story" || practice === "qa";
+    practice === "articles" || practice === "story" || practice === "qa" || practice === "explorer";
+
+  function openExplorer(source?: Question) {
+    setExtraMode("explorer");
+    setExplorer({source, from: practice === "explorer" ? "qa" : practice, scrollY: window.scrollY});
+    setPractice("explorer");
+    window.scrollTo(0, 0);
+  }
+
+  function exitExplorer() {
+    const previous = explorer;
+    setPractice(previous?.from ?? "qa");
+    setExplorer(null);
+    requestAnimationFrame(() => window.scrollTo(0, previous?.scrollY ?? 0));
+  }
 
   function handleExtraNavClick() {
-    setWriting(null);
-    if (isExtraActive) {
-      setExtraOpen(true);
-    } else {
-      setPractice(extraMode);
-    }
+    setExtraOpen(true);
   }
 
   function selectExtraMode(mode: ExtraPracticeMode) {
+    setWriting(null);
     setExtraMode(mode);
-    setPractice(mode);
+    if (mode === "explorer") openExplorer();
+    else {
+      setPractice(mode);
+      setExplorer(null);
+    }
     setExtraOpen(false);
   }
 
@@ -246,10 +267,15 @@ export default function App() {
       {(practice === "basics" || writing?.from === "basics") && <div style={{display: writing ? "none" : "contents"}}>
         <BasicsPractice onWrite={lessonId => openWriting({ from: "basics", lessonId })} />
       </div>}
+      {!writing && (practice === "sentences" || explorer?.from === "sentences") && (
+        <div style={{display: practice === "sentences" ? "contents" : "none"}}>
+          <SentencePractice onExplore={openExplorer} />
+        </div>
+      )}
       {writing ? <SkillWriting session={writing} onExit={exitWriting} />
-      : practice === "sentences" ? (
-        <SentencePractice />
-      ) : practice === "basics" ? null : practice === "articles" ? (
+      : practice === "explorer" ? (
+        <TensesExplorer key={explorer?.source?.answer ?? "free"} source={explorer?.source} onBack={exitExplorer} />
+      ) : practice === "sentences" || practice === "basics" ? null : practice === "articles" ? (
         <ArticlePractice />
       ) : practice === "story" ? (
         <StoryChallengePractice />
@@ -267,7 +293,7 @@ export default function App() {
               type="button"
               className="bottom-nav-item"
               aria-pressed={practice === mode}
-              onClick={() => { setWriting(null); setPractice(mode); }}
+              onClick={() => { setWriting(null); setExplorer(null); setPractice(mode); }}
             >
               <ModeIcon mode={mode} />
               <span>{PRACTICE_LABELS[mode]}</span>

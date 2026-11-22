@@ -9,6 +9,7 @@ import { COMPLEMENTS } from "../src/grammar/data/complements";
 import { TIME_SIGNALS } from "../src/grammar/data/timeSignals";
 import { WRITING_PACKS } from "../src/grammar/writingPacks";
 import { TOPIC_WRITING_LESSONS } from "../src/grammar/topicWriting";
+import { changeExplorerQuestion, EXPLORER_VERBS, EXPLORER_COMPLEMENTS, explorerRestriction, initialExplorerQuestion } from "../src/grammar/explorer";
 import { sentenceReading } from "../src/grammar/sentenceReadings";
 import { DEFAULT_FILTER, generateQuestion, generateStativeTrap } from "../src/grammar/generator";
 import { TENSE_LABELS, TENSE_ORDER } from "../src/grammar/labels";
@@ -16,6 +17,74 @@ import type { Mode, Question, SentenceForm, Subject, Tense } from "../src/gramma
 
 const she: Subject = { text: "she", person: 3, number: "singular", entity: "person", objectForm: "her" };
 const work = { ...VERBS.find(v => v.base === "work")!, object: "" };
+
+test("Explorer compares irregular verbs and four forms with correct auxiliary agreement", () => {
+  const initial = initialExplorerQuestion();
+  assert.equal(initial.answer, "Emma writes a letter every day.");
+  for (const verb of EXPLORER_VERBS) {
+    for (const tense of TENSE_ORDER) {
+      for (const form of ["positive", "negative", "yesNoQuestion", "whQuestion"] as SentenceForm[]) {
+        const q = changeExplorerQuestion(initial, {verb, tense, form});
+        assert.equal(checkAnswer(q, q.answer).correct, true);
+        assert.ok(sentenceReading(q.answer), q.answer);
+        assert.ok(!q.answer.includes("undefined"), q.answer);
+      }
+    }
+  }
+  const past = changeExplorerQuestion(initial, {tense: "pastSimple"});
+  assert.equal(past.answer, "Emma wrote a letter yesterday.");
+  assert.equal(changeExplorerQuestion(past, {form: "negative"}).answer, "Emma did not write a letter yesterday.");
+  assert.equal(changeExplorerQuestion(past, {form: "yesNoQuestion"}).answer, "Did Emma write a letter yesterday?");
+  assert.equal(changeExplorerQuestion(past, {form: "whQuestion"}).answer, "What did Emma write yesterday?");
+});
+
+test("Explorer preserves source context and offers suitable nominal patterns and questions", () => {
+  const subject = SUBJECTS.find(s => s.text === "the students in this class")!;
+  const source: Question = {
+    subject, tense: "presentPerfect", mode: "nominal", form: "whQuestion",
+    whWord: "How", complement: {text:"careful",kind:"adjective",behavioral:true},
+    timeSignal: "recently", answer: "How have the students in this class been recently?",
+  };
+  assert.deepEqual(initialExplorerQuestion(source), source);
+  let q = changeExplorerQuestion(initialExplorerQuestion(), {mode:"nominal"});
+  assert.equal(q.answer, "Emma is tired every day.");
+  q = changeExplorerQuestion(q, {form:"yesNoQuestion"});
+  assert.equal(q.answer, "Is Emma tired every day?");
+  q = changeExplorerQuestion(q, {form:"whQuestion"});
+  assert.equal(q.answer, "Why is Emma tired every day?");
+  q = changeExplorerQuestion(q, {complement:EXPLORER_COMPLEMENTS.find(c=>c.text==="at home")!});
+  assert.equal(q.answer, "Where is Emma every day?");
+  assert.ok(explorerRestriction(q, "presentContinuous"));
+  q = changeExplorerQuestion(q, {complement:EXPLORER_COMPLEMENTS.find(c=>c.text==="careful")!, tense:"presentContinuous",form:"positive"});
+  assert.equal(q.answer, "Emma is being careful right now.");
+  assert.ok(explorerRestriction(q, "presentPerfectContinuous"));
+  const unsupported = initialExplorerQuestion({...q,tense:"presentPerfectContinuous"});
+  assert.equal(unsupported.tense,"presentPerfect");
+  assert.ok(!unsupported.answer.includes("being"));
+  for (const comp of EXPLORER_COMPLEMENTS) for (const tense of TENSE_ORDER) {
+    const candidate = {...q,complement:comp};
+    if (explorerRestriction(candidate,tense)) continue;
+    for (const form of ["positive","negative","yesNoQuestion","whQuestion"] as SentenceForm[]) {
+      const result = changeExplorerQuestion(candidate,{tense,form});
+      assert.equal(result.tense,tense);
+      assert.equal(checkAnswer(result,result.answer).correct,true);
+    }
+  }
+});
+
+test("Explorer handles imported mid-adverbs, it and passive questions", () => {
+  const source: Question = {...verbal("presentPerfect","positive"),timeSignal:"already",
+    answer:"She has already worked."};
+  assert.equal(initialExplorerQuestion(source).answer,source.answer);
+  assert.equal(changeExplorerQuestion(source,{form:"negative"}).answer,"She has not worked.");
+  const it = SUBJECTS.find(s=>s.text==="it")!;
+  assert.equal(changeExplorerQuestion(initialExplorerQuestion(),{subject:it}).answer,"It works well every day.");
+  const passive: Question = {...initialExplorerQuestion(),mode:"passive"};
+  const p = changeExplorerQuestion(passive,{form:"whQuestion"});
+  assert.equal(p.answer,"Why is a letter written by Emma every day?");
+  const active = changeExplorerQuestion(p,{mode:"verbal",verb:EXPLORER_VERBS[3]});
+  assert.equal(changeExplorerQuestion(active,{mode:"passive"}).verb?.base,"write");
+});
 function verbal(tense: Tense, form: SentenceForm, timeSignal?: string): Question {
   return { tense, form, mode: "verbal", subject: she, verb: work, timeSignal,
     answer: conjugateVerbal(tense, she, work, form, { tail: timeSignal }) };

@@ -21,7 +21,6 @@ import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
 import { SentencePlayback } from "./SentencePlayback";
-import { TensesExplorer } from "./TensesExplorer";
 import { VoiceInputBar } from "./VoiceInputBar";
 
 /** The chips shown as the puzzle prompt. */
@@ -83,7 +82,7 @@ function filterSummary(f: QuizFilter): string {
   return parts.join(" · ");
 }
 
-export function SentencePractice() {
+export function SentencePractice({ onExplore }: { onExplore: (question: Question) => void }) {
   const [filter, setFilter] = useState<QuizFilter>(DEFAULT_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
     generateQuestion(DEFAULT_FILTER),
@@ -95,7 +94,6 @@ export function SentencePractice() {
   const [praise, setPraise] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const [explorerOpen, setExplorerOpen] = useState(false);
   const [implicitMode, setImplicitMode] = useState(false);
 
   const next = useCallback((f: QuizFilter) => {
@@ -105,7 +103,6 @@ export function SentencePractice() {
     setRevealed(false);
     setPraise("");
     setGuideOpen(false);
-    setExplorerOpen(false);
   }, []);
 
   const solved = revealed || result?.correct === true;
@@ -166,7 +163,7 @@ export function SentencePractice() {
             <button
               type="button"
               className="tag tag-tense tag-clickable"
-              onClick={() => setExplorerOpen(true)}
+              onClick={() => onExplore(question)}
               title="Klik untuk membuka Tenses Explorer & Visualisasi Waktu"
             >
               {TENSE_LABELS[question.tense]}{" "}
@@ -417,20 +414,10 @@ export function SentencePractice() {
           key={question.answer}
           question={question}
           solved={solved}
+          onExplore={() => { setGuideOpen(false); onExplore(question); }}
         />
       </BottomSheet>
 
-      <BottomSheet
-        open={explorerOpen}
-        closeButtonOnly
-        onClose={() => setExplorerOpen(false)}
-        title="🧭 Tenses Explorer & Garis Waktu"
-      >
-        <TensesExplorer
-          initialTense={question.tense}
-          initialSubject={question.subject.text}
-        />
-      </BottomSheet>
     </>
   );
 }
