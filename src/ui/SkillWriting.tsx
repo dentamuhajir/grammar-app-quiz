@@ -4,6 +4,7 @@ import type { ReviewSlot } from "../grammar/writingReview";
 import { SentencePlayback } from "./SentencePlayback";
 import { VoiceInputBar } from "./VoiceInputBar";
 import { useWritingAttempt } from "./useWritingAttempt";
+import { useAutoResizeTextarea } from "./useAutoResizeTextarea";
 
 export interface WritingSession {
   lessonId: string;
@@ -17,6 +18,8 @@ export function SkillWriting({ session, onExit }: { session: WritingSession; onE
   const [result, setResult] = useState<WritingResult | null>(null);
   const [hint, setHint] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [hasIncorrectAttempt, setHasIncorrectAttempt] = useState(false);
+  const answerRef = useAutoResizeTextarea(input);
   const attempt = useWritingAttempt();
   const pack = packForLesson(session.lessonId);
   const start = pack.lessons.findIndex(lesson => lesson.id === session.lessonId);
@@ -39,47 +42,76 @@ export function SkillWriting({ session, onExit }: { session: WritingSession; onE
       edit("");
       setHint(false);
       setRevealed(false);
+      setHasIncorrectAttempt(false);
       attempt.reset();
       return;
     }
     const checked = lesson.check(input);
     setResult(checked);
+    if (checked.status === "retry") setHasIncorrectAttempt(true);
     if (checked.status !== "empty") {
       attempt.record(slot, checked.status === "correct" ? "correct" : "incorrect", session.review);
     }
   }
 
-  return <main className="card basics-card" aria-label={`Sentence Practice · ${pack.label}`}>
+  function reveal() {
+    attempt.record(slot, "revealed", session.review);
+    setRevealed(true);
+    setHint(false);
+  }
+
+  return <main className="card basics-card writing-practice" aria-label={`Sentence Practice · ${pack.label}`}>
     <div className="tags"><span className="tag tag-tense">{pack.label}</span>
       {series && <span className="tag">{step + 1} / {pack.lessons.length}</span>}
       {session.review && <span className="tag">Latihan ulang</span>}
     </div>
     <p className="basics-prompt">{lesson.situation}</p>
-    <p className="basics-cue">{pack.instruction} dan kata panduan <strong>{lesson.cues}</strong>.</p>
-    <form onSubmit={event => { event.preventDefault(); submit(); }}>
-      <div className="answer-input">
-        {pack.multiline ? (
-          <textarea className="writing-pair" rows={3} aria-label="Kalimat Anda" value={input}
-            onChange={e => edit(e.target.value)} readOnly={solved} autoComplete="off" spellCheck={false}
-            placeholder="Tulis dua kalimat dalam bahasa Inggris…" />
-        ) : <input aria-label="Kalimat Anda" value={input} onChange={e => edit(e.target.value)} readOnly={solved}
-          placeholder="Tulis kalimat dalam bahasa Inggris…" autoComplete="off" spellCheck={false} />}
-        <VoiceInputBar value={input} disabled={solved} multiline={pack.multiline} onChange={edit} />
+    <p className="basics-cue">{pack.instruction}.</p>
+    <form className="writing-answer-form" onSubmit={event => { event.preventDefault(); submit(); }}>
+      <div className="sentence-answer-block">
+        <label className="sentence-answer-label" htmlFor="writing-answer">Jawaban Anda</label>
+        <div className={`qa-composer sentence-composer ${result?.status === "correct" ? "is-correct" : result?.status === "retry" ? "is-incorrect" : ""}`}>
+          <textarea ref={answerRef} id="writing-answer" rows={pack.multiline ? 3 : 2}
+            aria-label="Kalimat Anda" value={input} onChange={e => edit(e.target.value)}
+            readOnly={solved} autoComplete="off" autoCapitalize="off" spellCheck={false}
+            aria-invalid={result?.status === "retry"}
+            aria-describedby={result ? "writing-feedback" : undefined}
+            placeholder={pack.multiline ? "Tulis dua kalimat dalam bahasa Inggris…" : "Tulis kalimat dalam bahasa Inggris…"}
+            onKeyDown={event => {
+              if (!pack.multiline && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                submit();
+              }
+            }} />
+          {!solved && <div className="qa-composer-tools">
+            <VoiceInputBar compact value={input} multiline={pack.multiline} onChange={edit} />
+            <button className="btn btn-primary qa-send" type="submit">
+              Periksa jawaban <span aria-hidden="true">↗</span>
+            </button>
+          </div>}
+        </div>
       </div>
-      <div aria-live="polite">
+      <div id="writing-feedback" aria-live="polite">
         {result?.status === "correct" || revealed ? <div className="feedback basics-feedback">
           <strong>{revealed ? "Contoh jawaban" : "Tepat!"}</strong>
           <SentencePlayback text={revealed ? lesson.reference : input.trim()} />
           <p>{result?.status === "correct" ? result.message : lesson.explanation}</p>
-        </div> : result ? <p className="hint">{result.message}</p> : hint && <p className="hint">{lesson.hint}</p>}
+        </div> : result?.status === "retry" ? <div className="feedback feedback-bad basics-feedback">
+          <strong>Belum tepat, coba lagi.</strong><p className="hint">{result.message}</p>
+        </div> : result ? <p className="hint hint-plain">{result.message}</p> : null}
       </div>
-      <div className="actions">
-        <button className="btn btn-primary" type="submit">{solved ? hasNext ? "Situasi berikutnya" : back : "Periksa jawaban"}</button>
-        {!solved && <>
-          <button className="btn btn-ghost" type="button" onClick={() => { attempt.hint(); setHint(true); setResult(null); }}>Petunjuk</button>
-          <button className="btn btn-ghost" type="button" onClick={() => { attempt.record(slot, "revealed", session.review); setRevealed(true); }}>Lihat jawaban</button>
-        </>}
-      </div>
+      {!solved && hasIncorrectAttempt && <div className="learning-help-actions">
+        <button className="inline-popup-link" type="button"
+          aria-expanded={hint} onClick={() => { attempt.hint(); setHint(value => !value); }}>Petunjuk</button>
+        <button className="inline-popup-link" type="button" onClick={reveal}>Lihat contoh jawaban</button>
+      </div>}
+      {hint && hasIncorrectAttempt && !solved && <div className="note writing-hint">
+        <p><strong>Kata panduan</strong> · {lesson.cues}</p>
+        <p>{lesson.hint}</p>
+      </div>}
+      {solved && <div className="actions">
+        <button className="btn btn-primary" type="submit">{hasNext ? "Situasi berikutnya" : back}</button>
+      </div>}
     </form>
     {(!solved || hasNext) && <button type="button" className="inline-popup-link" onClick={onExit}>{back}</button>}
   </main>;

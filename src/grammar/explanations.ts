@@ -80,8 +80,11 @@ export function sentenceGuide(q: Question): SentenceGuide {
     : [q.form === "whQuestion" ? q.whWord : "", cluster.aux, subjectLabel, cluster.afterAux];
   if (q.mode === "passive") formulaParts.push("V3", "by + pelaku");
   if (q.mode === "nominal" && !["What", "Where", "How"].includes(q.whWord ?? "")) formulaParts.push("Pelengkap");
-  if (q.mode === "verbal" && q.verb?.object && q.whWord !== "What" && !(q.whWord === "How" && ["fast", "well", "hard"].includes(q.verb.object))) formulaParts.push("Objek / pelengkap");
+  if (q.mode === "verbal" && q.verb?.object && q.whWord !== "What" && !(q.whWord === "How" && ["fast", "well", "hard", "smoothly"].includes(q.verb.object))) formulaParts.push("Objek / pelengkap");
   const reasons = [USES[tense]];
+  if (q.mode !== "passive" && q.subject.head) {
+    reasons.push(`Kata inti subjek “${q.subject.text}” adalah “${q.subject.head}”. Subjek ini ${q.subject.number === "singular" ? "tunggal" : "jamak"} sehingga bentuk kata kerja dan kata bantu mengikuti kata inti tersebut.`);
+  }
   if (q.mode === "passive") {
     reasons.push(`Dalam passive, “${agreement.text}” menjadi subjek penerima tindakan. Kata bantu mengikuti subjek ini, bukan pelaku “${q.subject.text}”. Kata kerja utama memakai V3${q.verb ? `: ${q.verb.participle}` : ""}.`);
   } else if (q.mode === "nominal") {

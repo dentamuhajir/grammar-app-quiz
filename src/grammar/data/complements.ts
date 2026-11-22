@@ -24,6 +24,7 @@ export const COMPLEMENTS: Complement[] = [
   { text: "silly", kind: "adjective", behavioral: true },
 
   // state adjectives -> never use "being"
+  { text: "ready", kind: "adjective", behavioral: false },
   { text: "happy", kind: "adjective", behavioral: false },
   { text: "tired", kind: "adjective", behavioral: false },
   { text: "busy", kind: "adjective", behavioral: false },

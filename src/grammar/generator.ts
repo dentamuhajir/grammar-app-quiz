@@ -48,6 +48,54 @@ export const DEFAULT_FILTER: QuizFilter = {
   includeRare: false,
 };
 
+export interface MultiQuizFilter {
+  tenses: Tense[];
+  modes: Mode[];
+  forms: SentenceForm[];
+  includeRare: boolean;
+}
+
+export const DEFAULT_MULTI_FILTER: MultiQuizFilter = {
+  tenses: [...TENSE_ORDER],
+  modes: ["verbal", "nominal", "passive"],
+  forms: [...FORMS],
+  includeRare: false,
+};
+
+export function quizCombinations(filter: MultiQuizFilter) {
+  return filter.tenses.flatMap(tense => filter.modes.flatMap(mode => {
+    if (mode === "nominal" && (isPerfectContinuous(tense) || tense === "futureContinuous")) return [];
+    if (mode === "passive" && isRarePassive(tense) && !filter.includeRare) return [];
+    return filter.forms.map(form => ({tense, mode, form}));
+  }));
+}
+
+/** Every supported combination appears once per cycle, in a shuffled order. */
+export function createQuestionCycle(filter: MultiQuizFilter): () => Question {
+  const combinations = quizCombinations(filter);
+  if (!combinations.length) throw new RangeError("Filter has no supported combinations");
+  let remaining: typeof combinations = [];
+  let previous: typeof combinations[number] | undefined;
+  return () => {
+    if (!remaining.length) {
+      remaining = [...combinations];
+      for (let i = remaining.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
+      }
+      if (remaining.length > 1 && remaining[remaining.length - 1] === previous) {
+        [remaining[0], remaining[remaining.length - 1]] = [remaining[remaining.length - 1], remaining[0]];
+      }
+    }
+    const combination = remaining.pop()!;
+    previous = combination;
+    const {tense, mode, form} = combination;
+    if (mode === "verbal") return buildVerbal(tense, form, filter.includeRare);
+    if (mode === "nominal") return buildNominal(tense, form);
+    return buildPassive(tense, form);
+  };
+}
+
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -79,7 +127,7 @@ const SIMPLE_TENSES: Tense[] = ["presentSimple", "pastSimple", "futureSimple"];
 const BEING_TENSES: Tense[] = ["presentContinuous", "pastContinuous"];
 
 /** Manner adverbs answer "How" (run fast -> How does he run?). */
-const MANNER_OBJECTS = new Set(["fast", "well", "hard"]);
+const MANNER_OBJECTS = new Set(["fast", "well", "hard", "smoothly"]);
 
 /** People-objects take "Who", not "What" (What is she helping? -> wrong). */
 const PERSON_OBJECTS = new Set([
@@ -96,7 +144,20 @@ const ANIMAL_VERBS = new Set(["sleep", "run", "swim", "eat", "catch", "find", "p
 
 /** Complements that fit animal / thing subjects. */
 const ANIMAL_COMPLEMENTS = new Set(["happy", "tired", "sick", "noisy", "here", "at home"]);
-const THING_COMPLEMENTS = new Set(["noisy", "here", "at home", "in the office"]);
+const THING_COMPLEMENTS = new Set(["noisy", "ready", "here", "at home", "in the office"]);
+
+// These objects suit devices as well as the unspecified thing referred to by it.
+const THING_OBJECTS: Record<string, string> = {
+  work: "well",
+  run: "smoothly",
+  make: "a noise",
+  produce: "heat",
+  show: "the results",
+};
+const THING_ACTIONS = VERBS.filter(verb => verb.base in THING_OBJECTS)
+  .map(verb => ({ ...verb, object: THING_OBJECTS[verb.base] }));
+const IT_SUBJECT = SUBJECTS.find(subject => subject.text === "it")!;
+const DEVICE_SUBJECTS = SUBJECTS.filter(subject => subject.entity === "thing" && subject.text !== "it");
 
 // ---------- time signals ----------
 
@@ -209,8 +270,14 @@ function pickSubjectForComplement(comp: Complement, being: boolean): Subject {
 
 function buildVerbal(tense: Tense, form: SentenceForm, allowStative: boolean): Question {
   const pool = isContinuous(tense) || !allowStative ? DYNAMIC_VERBS : VERBS;
-  const verb = pick(pool);
-  const subject = pickSubjectFor(verb);
+  const useThing = Math.random() < 0.2;
+  const verb = pick(useThing ? THING_ACTIONS : pool);
+  let subject: Subject;
+  if (useThing) {
+    subject = Math.random() < 0.5 ? IT_SUBJECT : pick(DEVICE_SUBJECTS);
+  } else {
+    subject = pickSubjectFor(verb);
+  }
   const choice = form === "whQuestion" ? whForVerbal(tense, verb) : undefined;
   const wh = choice?.wh;
 

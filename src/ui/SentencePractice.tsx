@@ -1,10 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { checkAnswer, type CheckResult } from "../grammar/check";
 import {
-  DEFAULT_FILTER,
+  DEFAULT_MULTI_FILTER,
   displayCap,
-  generateQuestion,
-  type QuizFilter,
+  createQuestionCycle,
+  type MultiQuizFilter,
 } from "../grammar/generator";
 import {
   FORM_LABELS,
@@ -12,8 +12,9 @@ import {
   TENSE_LABELS,
   TENSE_ORDER,
 } from "../grammar/labels";
-import { implicitContextCue } from "../grammar/explanations";
-import type { Mode, Question, SentenceForm } from "../grammar/types";
+import { implicitContextCue, sentenceGuide } from "../grammar/explanations";
+import type { Question } from "../grammar/types";
+import { SentenceFilters } from "./SentenceFilters";
 import { SentenceExplanation } from "./SentenceExplanation";
 import { BottomSheet } from "./BottomSheet";
 import { useSwipeCard } from "./useSwipeCard";
@@ -21,8 +22,11 @@ import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
 import { SentencePlayback } from "./SentencePlayback";
-import { TensesExplorer } from "./TensesExplorer";
 import { VoiceInputBar } from "./VoiceInputBar";
+import { loadPracticeMode, savePracticeMode, PRACTICE_MODE_LABELS, type SentencePracticeMode } from "../grammar/practiceMode";
+import { sentenceTranslation, checkTranslationAnswer } from "../grammar/translation";
+import { PracticeModePicker } from "./PracticeModePicker";
+import { useAutoResizeTextarea } from "./useAutoResizeTextarea";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
@@ -47,7 +51,7 @@ function PromptChips({ q }: { q: Question }) {
   const object = q.mode === "verbal" ? q.verb?.object : undefined;
   const replacesObject =
     q.whWord === "What" ||
-    (q.whWord === "How" && ["fast", "well", "hard"].includes(object ?? ""));
+    (q.whWord === "How" && ["fast", "well", "hard", "smoothly"].includes(object ?? ""));
 
   return (
     <div className="prompt">
@@ -70,23 +74,24 @@ function PromptChips({ q }: { q: Question }) {
 
 const PRAISE = ["Benar!", "Tepat!", "Jawabanmu sesuai!"];
 
-function filterSummary(f: QuizFilter): string {
+function filterSummary(f: MultiQuizFilter): string {
   const parts = [
-    f.tense === "all" ? "Semua tense" : TENSE_LABELS[f.tense],
-    f.mode === "all"
-      ? "Semua jenis"
-      : MODE_LABELS[f.mode].replace(/\s*\(.*\)/, ""),
-    f.form === "all"
-      ? "Semua bentuk"
-      : FORM_LABELS[f.form].replace(/\s*\(.*\)/, ""),
+    f.tenses.length === TENSE_ORDER.length ? "Semua tense"
+      : f.tenses.length === 1 ? TENSE_LABELS[f.tenses[0]] : `${f.tenses.length} tense`,
+    f.modes.length === 3 ? "Semua jenis"
+      : f.modes.length === 1 ? MODE_LABELS[f.modes[0]].replace(/\s*\(.*\)/, "") : `${f.modes.length} jenis`,
+    f.forms.length === 4 ? "Semua bentuk"
+      : f.forms.length === 1 ? FORM_LABELS[f.forms[0]].replace(/\s*\(.*\)/, "") : `${f.forms.length} bentuk`,
   ];
   return parts.join(" · ");
 }
 
-export function SentencePractice() {
-  const [filter, setFilter] = useState<QuizFilter>(DEFAULT_FILTER);
+export function SentencePractice({ onExplore }: { onExplore: (question: Question) => void }) {
+  const [filter, setFilter] = useState<MultiQuizFilter>(DEFAULT_MULTI_FILTER);
+  const cycle = useRef<ReturnType<typeof createQuestionCycle> | null>(null);
+  if (!cycle.current) cycle.current = createQuestionCycle(DEFAULT_MULTI_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
-    generateQuestion(DEFAULT_FILTER),
+    cycle.current!(),
   );
   const [input, setInput] = useState("");
   const [result, setResult] = useState<CheckResult | null>(null);
@@ -95,47 +100,62 @@ export function SentencePractice() {
   const [praise, setPraise] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const [explorerOpen, setExplorerOpen] = useState(false);
-  const [implicitMode, setImplicitMode] = useState(false);
+  const [practiceMode, setPracticeMode] = useState(loadPracticeMode);
+  const [modeOpen, setModeOpen] = useState(false);
+  const [showWordHint, setShowWordHint] = useState(false);
+  const [hasIncorrectAttempt, setHasIncorrectAttempt] = useState(false);
+  const answerRef = useAutoResizeTextarea(input);
+  const translation = practiceMode === "translate" ? sentenceTranslation(question) : null;
 
-  const next = useCallback((f: QuizFilter) => {
-    setQuestion(generateQuestion(f));
+  const next = useCallback(() => {
+    setQuestion(cycle.current!());
     setInput("");
     setResult(null);
     setRevealed(false);
     setPraise("");
     setGuideOpen(false);
-    setExplorerOpen(false);
+    setShowWordHint(false);
+    setHasIncorrectAttempt(false);
   }, []);
 
   const solved = revealed || result?.correct === true;
+  const showBadges = practiceMode === "arrange" || solved;
 
   const check = useCallback(() => {
     if (solved) {
-      next(filter);
+      next();
       return;
     }
-    const r = checkAnswer(question, input);
+    const r = practiceMode === "translate" ? checkTranslationAnswer(question, input) : checkAnswer(question, input);
     if (r.empty) {
       setResult(r);
       return;
     }
     setResult(r);
+    if (!r.correct) setHasIncorrectAttempt(true);
     if (r.correct) {
       setPraise(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
       setConfetti((c) => c + 1);
     }
-  }, [filter, input, next, question, solved]);
+  }, [input, next, practiceMode, question, solved]);
 
-  function updateFilter(patch: Partial<QuizFilter>) {
-    const merged = { ...filter, ...patch };
-    setFilter(merged);
-    next(merged);
+  function selectPracticeMode(mode: SentencePracticeMode) {
+    setPracticeMode(mode);
+    savePracticeMode(mode);
+    setShowWordHint(false);
+  }
+
+  function applyFilter(selected: MultiQuizFilter, mode: SentencePracticeMode) {
+    cycle.current = createQuestionCycle(selected);
+    setFilter(selected);
+    selectPracticeMode(mode);
+    next();
+    setFiltersOpen(false);
   }
 
   const { swipeHandlers, cardStyle, cardClass } = useSwipeCard({
-    onSwipeLeft: () => next(filter),
-    onSwipeRight: () => setGuideOpen(true),
+    onSwipeLeft: next,
+    onSwipeRight: () => { if (hasIncorrectAttempt || solved) setGuideOpen(true); },
   });
 
   return (
@@ -160,13 +180,11 @@ export function SentencePractice() {
         {...swipeHandlers}
       >
         <div className="tags">
-          {implicitMode && !solved ? (
-            <span className="tag tag-tense">❓ Tebak Tense</span>
-          ) : (
+          {showBadges && (
             <button
               type="button"
               className="tag tag-tense tag-clickable"
-              onClick={() => setExplorerOpen(true)}
+              onClick={() => onExplore(question)}
               title="Klik untuk membuka Tenses Explorer & Visualisasi Waktu"
             >
               {TENSE_LABELS[question.tense]}{" "}
@@ -175,73 +193,101 @@ export function SentencePractice() {
               </span>
             </button>
           )}
-          {(!implicitMode || solved || question.mode === "passive") && (
+          {showBadges && (
             <span className="tag tag-mode">
               {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
             </span>
           )}
-          {(!implicitMode || solved || question.form !== "whQuestion") && (
+          {showBadges && (
             <span className="tag tag-form">
               {FORM_LABELS[question.form].replace(/\s*\(.*\)/, "")}
             </span>
           )}
-          {question.rare && (
+          {showBadges && question.rare && (
             <span className="tag tag-rare">⚠ jarang digunakan</span>
           )}
           <button
             type="button"
-            className={`tag tag-implicit-toggle ${implicitMode ? "active" : ""}`}
-            aria-pressed={implicitMode}
-            onClick={() => setImplicitMode((v) => !v)}
-            title="Sembunyikan nama Tense agar berlatih memilih Tense dari konteks situasi"
+            className="tag tag-implicit-toggle"
+            aria-haspopup="dialog"
+            aria-expanded={modeOpen}
+            onClick={() => setModeOpen(true)}
           >
-            {implicitMode ? "🧠 Mode Konteks: ON" : "🧠 Mode Konteks"}
+            Mode · {PRACTICE_MODE_LABELS[practiceMode]} ▾
           </button>
         </div>
 
-        {implicitMode && (
+        {practiceMode === "context" && (
           <p className="implicit-context-box">
             🧭 <strong>{implicitContextCue(question)}</strong>
           </p>
         )}
 
-        <PromptChips q={question} />
+        {practiceMode === "translate" ? <section className="translation-prompt" aria-label="Terjemahkan ke bahasa Inggris">
+          <p className="basics-prompt" lang="id">
+            {translation?.text ?? "Terjemahan soal ini belum tersedia. Buka petunjuk kata untuk melanjutkan latihan."}
+          </p>
+          <p className="note">{translation?.context ?? implicitContextCue(question)}</p>
+          {!solved && hasIncorrectAttempt && <button type="button" className="btn btn-ghost" aria-expanded={showWordHint}
+            onClick={() => setShowWordHint(value => !value)}>
+            {showWordHint ? "Sembunyikan petunjuk kata" : "Petunjuk kata"}
+          </button>}
+          {showWordHint && <>
+            <PromptChips q={question} />
+          </>}
+        </section> : <PromptChips q={question} />}
 
-        <div className="answer-input">
-          <input
-            type="text"
-            value={input}
-            id="sentence-answer"
-            aria-label="Jawabanmu"
-            placeholder="Tulis atau ucapkan kalimat lengkap dalam bahasa Inggris…"
-            spellCheck={false}
-            autoComplete="off"
-            autoCapitalize="off"
-            className={
-              result && !result.empty ? (result.correct ? "ok" : "bad") : ""
-            }
-            onChange={(e) => {
-              setInput(e.target.value);
-              if (result) setResult(null);
-              setPraise("");
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                check();
-              }
-            }}
-          />
-          <VoiceInputBar
-            value={input}
-            disabled={solved}
-            onChange={(nextVal) => {
-              setInput(nextVal);
-              if (result) setResult(null);
-              setPraise("");
-            }}
-          />
+        <div className="sentence-answer-block">
+          <label className="sentence-answer-label" htmlFor="sentence-answer">Jawaban Anda</label>
+          <form className={`qa-composer sentence-composer ${result && !result.empty ? result.correct ? "is-correct" : "is-incorrect" : ""}`}
+            onSubmit={event => { event.preventDefault(); check(); }}>
+            <textarea
+              ref={answerRef}
+              rows={2}
+              value={input}
+              id="sentence-answer"
+              aria-label="Jawabanmu"
+              placeholder="Tulis kalimat dalam bahasa Inggris…"
+              readOnly={solved}
+              aria-invalid={Boolean(result && !result.correct && !result.empty)}
+              aria-describedby={result?.empty ? "sentence-empty-error" : undefined}
+              spellCheck={false}
+              autoComplete="off"
+              autoCapitalize="off"
+              onChange={(e) => {
+                setInput(e.target.value);
+                if (result) setResult(null);
+                setPraise("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  check();
+                }
+              }}
+            />
+            {!solved && <div className="qa-composer-tools">
+              <VoiceInputBar
+              compact
+              value={input}
+              disabled={solved}
+              onChange={(nextVal) => {
+                setInput(nextVal);
+                if (result) setResult(null);
+                setPraise("");
+              }}
+              />
+              <button type="submit" className="btn btn-primary qa-send">
+                Periksa jawaban <span aria-hidden="true">↗</span>
+              </button>
+            </div>}
+          </form>
         </div>
+
+        {!solved && hasIncorrectAttempt && practiceMode !== "translate" && <details key={question.answer} className="sentence-start-hint">
+          <summary>Petunjuk</summary>
+          <p className="sentence-formula">{sentenceGuide(question).formula}</p>
+        </details>}
 
         {result?.correct && (
           <div className="feedback feedback-ok" role="status">
@@ -249,7 +295,7 @@ export function SentencePractice() {
               <SuccessBadge />
               <span>{praise}</span>
             </span>
-            <SentencePlayback text={question.answer} question={question} />
+            <SentencePlayback text={practiceMode === "translate" ? input.trim() : question.answer} question={question} />
             {result.alternativeOrder && (
               <p className="basics-explanation">
                 Letak keterangan waktu di awal kalimat juga diterima. Di atas
@@ -275,13 +321,14 @@ export function SentencePractice() {
         )}
 
         {result?.empty && (
-          <p className="hint hint-plain">
+          <p id="sentence-empty-error" className="hint hint-plain" role="status">
             Tulis kalimatmu terlebih dahulu, lalu periksa jawabannya.
           </p>
         )}
 
         {revealed && !result?.correct && (
           <div className="feedback feedback-reveal">
+            <strong>Contoh jawaban</strong>
             <SentencePlayback text={question.answer} question={question} />
             <button
               type="button"
@@ -294,117 +341,29 @@ export function SentencePractice() {
           </div>
         )}
 
-        <div className="actions">
-          <button className="btn btn-primary" onClick={check}>
-            {solved ? "Soal berikutnya →" : "Periksa jawaban"}
-          </button>
-          {!solved && (
-            <button
-              className="btn btn-ghost"
-              onClick={() => setRevealed(true)}
-            >
-              Lihat jawaban
-            </button>
-          )}
-        </div>
+        {!solved && hasIncorrectAttempt && <button type="button" className="inline-popup-link"
+          onClick={() => setRevealed(true)}>Lihat contoh jawaban</button>}
+        {solved && <div className="actions">
+          <button type="button" className="btn btn-primary" onClick={next}>Soal berikutnya →</button>
+        </div>}
 
         <p className="swipe-hint">
-          ← Geser kiri: soal baru · Geser kanan: rumus →
+          ← Geser kiri: soal baru{hasIncorrectAttempt || solved ? " · Geser kanan: rumus →" : ""}
         </p>
       </main>
 
-      <BottomSheet
-        open={filtersOpen}
+      {filtersOpen && <SentenceFilters
+        filter={filter}
+        practiceMode={practiceMode}
         onClose={() => setFiltersOpen(false)}
-        title="Filter Sentence Practice"
-      >
-        <div className="sheet-form">
-          <label>
-            <span>Tense</span>
-            <select
-              value={filter.tense}
-              onChange={(e) =>
-                updateFilter({ tense: e.target.value as QuizFilter["tense"] })
-              }
-            >
-              <option value="all">Semua tense</option>
-              {TENSE_ORDER.map((t) => (
-                <option key={t} value={t}>
-                  {TENSE_LABELS[t]}
-                </option>
-              ))}
-            </select>
-          </label>
+        onApply={applyFilter}
+      />}
 
-          <label>
-            <span>Jenis Kalimat</span>
-            <select
-              value={filter.mode}
-              onChange={(e) =>
-                updateFilter({ mode: e.target.value as QuizFilter["mode"] })
-              }
-            >
-              <option value="all">Semua jenis</option>
-              {(["verbal", "nominal", "passive"] as Mode[]).map((m) => (
-                <option key={m} value={m}>
-                  {MODE_LABELS[m]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span>Bentuk Kalimat</span>
-            <select
-              value={filter.form}
-              onChange={(e) =>
-                updateFilter({ form: e.target.value as QuizFilter["form"] })
-              }
-            >
-              <option value="all">Semua bentuk</option>
-              {(
-                [
-                  "positive",
-                  "negative",
-                  "yesNoQuestion",
-                  "whQuestion",
-                ] as SentenceForm[]
-              ).map((f) => (
-                <option key={f} value={f}>
-                  {FORM_LABELS[f]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="rare-toggle">
-            <input
-              type="checkbox"
-              checked={implicitMode}
-              onChange={(e) => setImplicitMode(e.target.checked)}
-            />
-            <span>
-              🧠 Mode Konteks (Sembunyikan nama Tense &amp; tampilkan situasi)
-            </span>
-          </label>
-
-          <label className="rare-toggle">
-            <input
-              type="checkbox"
-              checked={filter.includeRare}
-              onChange={(e) => updateFilter({ includeRare: e.target.checked })}
-            />
-            <span>Sertakan bentuk langka &amp; kata kerja keadaan</span>
-          </label>
-
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setFiltersOpen(false)}
-          >
-            Terapkan Filter
-          </button>
-        </div>
+      <BottomSheet open={modeOpen} closeButtonOnly onClose={() => setModeOpen(false)} title="Mode latihan">
+        <PracticeModePicker value={practiceMode} onChange={mode => {
+          selectPracticeMode(mode);
+          setModeOpen(false);
+        }} />
       </BottomSheet>
 
       <BottomSheet
@@ -417,20 +376,10 @@ export function SentencePractice() {
           key={question.answer}
           question={question}
           solved={solved}
+          onExplore={() => { setGuideOpen(false); onExplore(question); }}
         />
       </BottomSheet>
 
-      <BottomSheet
-        open={explorerOpen}
-        closeButtonOnly
-        onClose={() => setExplorerOpen(false)}
-        title="🧭 Tenses Explorer & Garis Waktu"
-      >
-        <TensesExplorer
-          initialTense={question.tense}
-          initialSubject={question.subject.text}
-        />
-      </BottomSheet>
     </>
   );
 }

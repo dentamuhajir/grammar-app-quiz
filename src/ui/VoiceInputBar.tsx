@@ -246,7 +246,7 @@ export function VoiceInputBar({
             {listening ? "⏹" : "🎙️"}
           </span>
           <span>
-            {compact ? (listening ? "Berhenti" : hasText ? "Sambung suara" : "Dikte") : listening
+            {compact ? (listening ? "Berhenti" : "Dikte") : listening
               ? "Mendengarkan… (Klik untuk selesai)"
               : hasText
                 ? "Sambung Suara"
@@ -271,8 +271,9 @@ export function VoiceInputBar({
             className="voice-aux-btn"
             onClick={handleRepeatFromScratch}
             title="Hapus semua dan ulangi dari awal"
+            aria-label="Hapus teks dan ulangi"
           >
-            ↺ Ulangi
+            {compact ? "↺" : "↺ Ulangi"}
           </button>
         )}
       </div>

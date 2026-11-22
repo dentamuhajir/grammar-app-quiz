@@ -6,6 +6,7 @@ export const PRACTICE_LABELS = {
   articles: "Article Lab",
   story: "Story Challenge",
   qa: "Question & Answer",
+  explorer: "Tenses Explorer",
 };
 
 export const BASICS_LABELS = {

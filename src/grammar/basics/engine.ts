@@ -3,6 +3,7 @@ import { FOR_SINCE, FOR_SINCE_LESSONS, timeExplanation, timeHint } from "../forS
 import { INTERESTED_IN, INTEREST_LESSONS, activityHint, prepositionHint } from "../interestedIn";
 import { ARTICLE_WRITING, ARTICLE_LESSONS, knownHint, soundHint } from "../articleWriting";
 import type { WritingSkill } from "../writingPacks";
+import { TOPIC_WRITING_LESSONS } from "../topicWriting";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
 export type BasicsFilter = BasicsTopic | "all" | WritingSkill;
@@ -2045,6 +2046,15 @@ export function buildQuestionPool(): BasicsQuestion[] {
     });
   }
 
+  for (const lesson of TOPIC_WRITING_LESSONS) {
+    add({
+      id: lesson.id, skillId: `writing_${lesson.topic}`, topic: lesson.topic,
+      rule: BASICS_LABELS[lesson.topic], prompt: lesson.prompt,
+      answer: lesson.answer,
+      hint: "Perhatikan kata di sekitar bagian kosong dan makna kalimatnya. Buka panduan topik jika perlu.",
+      explanation: lesson.explanation,
+    });
+  }
   return pool;
 }
 
