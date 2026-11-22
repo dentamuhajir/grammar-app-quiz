@@ -34,6 +34,7 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
   const [followUp, setFollowUp] = useState("");
   const pendingTutor = useRef<AbortController | null>(null);
   const [answer, setAnswer] = useState("");
+  const [submittedAnswer, setSubmittedAnswer] = useState("");
   const [evaluation, setEvaluation] = useState<DialogueTurnEvaluation | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -78,7 +79,10 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     const controller = new AbortController();
     pendingTutor.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 25_000);
+    setSubmittedAnswer(answer.trim());
+    setAnswer("");
     setBusy(true);
+    followLatest.current = true;
     let reason = "Tutor AI sedang tidak tersedia.";
     try {
       const response = await fetch("/api/roleplay", {
@@ -119,6 +123,7 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
       setAnswer("");
     } catch {
       if (token !== request.current) return;
+      setAnswer(answer);
       setUseTutor(false);
       setFollowUp("");
       if (!followUp && node) setEvaluation(evaluateDialogueTurn(node, answer));
@@ -128,7 +133,10 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     } finally {
       window.clearTimeout(timeout);
       if (pendingTutor.current === controller) pendingTutor.current = null;
-      if (token === request.current) setBusy(false);
+      if (token === request.current) {
+        setBusy(false);
+        setSubmittedAnswer("");
+      }
     }
   }
 
@@ -169,6 +177,7 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     pendingTutor.current?.abort();
     setFollowUp("");
     setBusy(false);
+    setSubmittedAnswer("");
     setNodeId(openingId);
     setUseTutor(tutorAvailable);
     followLatest.current = true;
@@ -237,7 +246,16 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
           <p>{node && !followUp ? node.grammarHint : scenario.goal}</p>
         </details>
       </section>
-      {busy && <p className="qa-chat-wait" role="status">Tutor sedang menyiapkan balasan…</p>}
+      {busy && <>
+        <article className="qa-chat-message qa-chat-user">
+          <strong className="qa-chat-author">Anda</strong>
+          <p lang="en">{submittedAnswer}</p>
+        </article>
+        <article className="qa-chat-message qa-chat-coach" role="status">
+          <strong className="qa-chat-author">Tutor AI</strong>
+          <p>Sedang menyiapkan balasan…</p>
+        </article>
+      </>}
       </>}
     </div>
     {hasNewMessages && <button type="button" className="btn qa-latest" onClick={showLatest}>Pesan terbaru ↓</button>}
@@ -246,7 +264,7 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
       <form className="qa-answer-form" onSubmit={check}>
         <label htmlFor="dialogue-answer">Jawaban Anda</label>
         <div className="qa-composer">
-          <textarea ref={inputRef} id="dialogue-answer" rows={2} maxLength={1500} value={answer} onChange={e => edit(e.target.value)} placeholder="Balas dalam bahasa Inggris…" />
+          <textarea ref={inputRef} id="dialogue-answer" rows={2} maxLength={1500} value={answer} disabled={busy} onChange={e => edit(e.target.value)} placeholder="Balas dalam bahasa Inggris…" />
           <div className="qa-composer-tools">
             <VoiceInputBar compact value={answer} disabled={busy} onChange={edit} />
             <button type="submit" className="btn btn-primary qa-send" disabled={busy}>{busy ? "Menunggu…" : useTutor ? "Kirim" : node ? "Periksa jawaban" : "Simpan jawaban"}{!busy && <span aria-hidden="true">↗</span>}</button>

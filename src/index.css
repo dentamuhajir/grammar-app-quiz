@@ -3908,8 +3908,15 @@ button:focus-visible {
 .qa-chat-author { display: block; margin-bottom: .45rem; font-size: .8rem; color: inherit; }
 .qa-chat-message p { margin: .4rem 0 0; white-space: pre-wrap; }
 .qa-chat-character { align-self: flex-start; background: var(--lavender-50); color: var(--ink-navy); }
-.qa-chat-user { align-self: flex-end; border-radius: 18px 4px 18px 18px; background: var(--brand); color: #fff; border-color: var(--brand); }
-.qa-chat-coach { align-self: flex-start; background: var(--paper); color: var(--ink); border-left: 3px solid var(--brand); }
+.qa-chat .qa-chat-message.qa-chat-user {
+  align-self: flex-end; border-radius: 18px 4px 18px 18px;
+  background: #dff3e9; color: #204b3c; border-color: #b9ddcc;
+}
+.qa-chat .qa-chat-message.qa-chat-coach {
+  --line: #e8cbb6;
+  align-self: flex-start; background: #fff0e3; color: #593c2c;
+  border-color: #e8cbb6; border-left: 3px solid #c78961;
+}
 .qa-chat .spoken-sentence-block { align-items: flex-start; gap: .65rem; }
 .qa-chat .feedback-answer { font-size: 1rem; line-height: 1.5; text-align: left; letter-spacing: normal; color: inherit; }
 .qa-chat .speech-controls { justify-content: flex-start; flex-wrap: wrap; }
