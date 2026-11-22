@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import { evaluateDialogueTurn, type DialogueIntentBranch, type DialogueTurnEvaluation } from "../grammar/qa/dialogue";
 import { ROLEPLAY_STARTERS, SCENARIO_GROUPS, type RoleplayStarter } from "../grammar/qa/starters";
 import { SpokenSentence } from "./SpokenSentence";
@@ -16,7 +16,7 @@ interface ConversationTurn {
 
 function TurnFeedback({ turn }: { turn: ConversationTurn }) {
   return <>
-    {turn.correction && <SpokenSentence text={turn.correction} />}
+    {turn.correction && turn.correction.trim().toLowerCase() !== turn.answer.trim().toLowerCase() && <SpokenSentence text={turn.correction} />}
     <p>{turn.feedback}</p>
     {turn.explanation && <details className="qa-tutor-explanation">
       <summary>Bahas lebih lanjut</summary>
@@ -34,6 +34,7 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
   const [followUp, setFollowUp] = useState("");
   const pendingTutor = useRef<AbortController | null>(null);
   const [answer, setAnswer] = useState("");
+  const [submittedAnswer, setSubmittedAnswer] = useState("");
   const [evaluation, setEvaluation] = useState<DialogueTurnEvaluation | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -43,10 +44,26 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
   const localQuestion = node?.question ?? (nodeId === "follow-up" ? scenario.localFollowUp : scenario.question);
   const translation = node?.translation ?? (nodeId === openingId ? scenario.translation : undefined);
   const question = followUp || localQuestion || "";
-  const latest = history[history.length - 1];
+  const chatRef = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+
+  function showLatest() {
+    const chat = chatRef.current;
+    if (chat) chat.scrollTop = chat.scrollHeight;
+    followLatest.current = true;
+    setHasNewMessages(false);
+  }
 
   useEffect(() => () => { request.current++; pendingTutor.current?.abort(); }, []);
-  useEffect(() => { if (history.length) inputRef.current?.focus(); }, [nodeId, history.length]);
+  useEffect(() => {
+    if (followLatest.current) {
+      showLatest();
+      if (history.length) inputRef.current?.focus({ preventScroll: true });
+    } else {
+      setHasNewMessages(true);
+    }
+  }, [nodeId, history.length, question, busy]);
 
   function edit(value: string) {
     request.current++;
@@ -62,8 +79,11 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     const controller = new AbortController();
     pendingTutor.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 25_000);
+    setSubmittedAnswer(answer.trim());
+    setAnswer("");
     setBusy(true);
-    let reason = "Tutor Gemini sedang tidak tersedia.";
+    followLatest.current = true;
+    let reason = "Tutor AI sedang tidak tersedia.";
     try {
       const response = await fetch("/api/roleplay", {
         method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json" },
@@ -73,13 +93,15 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
           history: history.slice(-3).map(({ question, answer }) => ({ question, answer })),
         }),
       });
-      if (response.status === 429) reason = "Batas penggunaan Gemini tercapai.";
+      if (response.status === 429) reason = "Batas penggunaan tutor AI tercapai.";
       if (!response.ok) {
         const failure = await response.json().catch(() => null);
         if (typeof failure?.message === "string") {
           reason = failure.message;
         } else if (failure?.error === "unconfigured") {
-          reason = "Tutor Gemini belum diaktifkan oleh pengelola aplikasi.";
+          reason = "Tutor AI belum diaktifkan oleh pengelola aplikasi.";
+        } else if (failure?.error === "timeout") {
+          reason = "Tutor AI terlalu lama merespons.";
         }
         throw new Error("Tutor unavailable");
       }
@@ -101,6 +123,7 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
       setAnswer("");
     } catch {
       if (token !== request.current) return;
+      setAnswer(answer);
       setUseTutor(false);
       setFollowUp("");
       if (!followUp && node) setEvaluation(evaluateDialogueTurn(node, answer));
@@ -110,7 +133,10 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     } finally {
       window.clearTimeout(timeout);
       if (pendingTutor.current === controller) pendingTutor.current = null;
-      if (token === request.current) setBusy(false);
+      if (token === request.current) {
+        setBusy(false);
+        setSubmittedAnswer("");
+      }
     }
   }
 
@@ -151,8 +177,11 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     pendingTutor.current?.abort();
     setFollowUp("");
     setBusy(false);
+    setSubmittedAnswer("");
     setNodeId(openingId);
     setUseTutor(tutorAvailable);
+    followLatest.current = true;
+    setHasNewMessages(false);
     setHistory([]);
     setAnswer("");
     setEvaluation(null);
@@ -166,8 +195,11 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     </header>
     {nodeId && tutorAvailable && <div className="qa-tutor">
       <span className="qa-tutor-icon" aria-hidden="true">✦</span>
-      <div><label htmlFor="qa-tutor-switch">Tutor Gemini</label>
-        <p id="qa-tutor-description">{useTutor ? "Gemini menerima jawaban untuk koreksi dan tanya jawab." : "Mode lokal aktif. Nyalakan untuk berlatih dengan Gemini."}</p>
+      <div><label htmlFor="qa-tutor-switch">Tutor AI</label>
+        <p id="qa-tutor-description">{useTutor ? "Koreksi otomatis aktif" : "Latihan lokal aktif"}</p>
+        <details className="qa-tutor-about"><summary>Tentang tutor</summary>
+          <p>Jawaban dan hingga tiga giliran terakhir dikirim ke Groq atau penyedia cadangan Gemini untuk koreksi dan pertanyaan lanjutan.</p>
+        </details>
       </div>
       <input id="qa-tutor-switch" type="checkbox" role="switch" aria-describedby="qa-tutor-description" checked={useTutor} disabled={busy} onChange={event => {
         setUseTutor(event.target.checked);
@@ -176,20 +208,34 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
         setNotice("");
       }} />
     </div>}
-    {history.length > 0 && <details className="qa-history" open={!nodeId}><summary>Riwayat percakapan ({history.length} giliran)</summary>
-      <ol>{history.map((item, index) => <li key={index}>
-        <p><strong>{item.speaker}:</strong> {item.question}</p>
-        <p><strong>Anda:</strong> {item.answer}</p>
-        {item.correction !== undefined ? <TurnFeedback turn={item} /> : <small>{item.feedback}</small>}
-        {item.reaction && <SpokenSentence text={item.reaction} />}
-      </li>)}</ol>
-    </details>}
-    {nodeId ? <>
-      {latest && <div className="feedback feedback-reveal" role="status">{latest.reaction
-        ? <SpokenSentence text={latest.reaction} />
-        : <><strong>{latest.correction !== undefined ? "Umpan balik tutor" : "Latihan mandiri"}</strong><TurnFeedback key={history.length} turn={latest} /></>}
-      </div>}
-      <section className="qa-dialogue-question" aria-label="Pertanyaan saat ini">
+    <div className="qa-chat-wrap">
+    <div className="qa-chat" ref={chatRef} role="region" aria-label="Percakapan"
+      tabIndex={0} onScroll={() => {
+        const chat = chatRef.current;
+        if (!chat) return;
+        followLatest.current = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
+        if (followLatest.current) setHasNewMessages(false);
+      }}>
+      {history.map((item, index) => <Fragment key={index}>
+        <article className="qa-chat-message qa-chat-character">
+          <strong className="qa-chat-author">{item.speaker}</strong>
+          <SpokenSentence text={item.question} />
+        </article>
+        <article className="qa-chat-message qa-chat-user">
+          <strong className="qa-chat-author">Anda</strong>
+          <p lang="en">{item.answer}</p>
+        </article>
+        <article className="qa-chat-message qa-chat-coach">
+          <strong className="qa-chat-author">{item.correction !== undefined ? "Tutor AI" : "Latihan lokal"}</strong>
+          <TurnFeedback turn={item} />
+        </article>
+        {item.reaction && <article className="qa-chat-message qa-chat-character">
+          <strong className="qa-chat-author">{item.speaker}</strong>
+          <SpokenSentence text={item.reaction} />
+        </article>}
+      </Fragment>)}
+      {nodeId && <>
+      <section className="qa-dialogue-question qa-chat-message qa-chat-character" aria-label="Pertanyaan saat ini">
         <div className="qa-interlocutor">
           <span className="qa-avatar" aria-hidden="true">{scenario.speaker.charAt(0)}</span>
           <div><strong>{scenario.speaker}</strong><span lang="en">{scenario.role}</span></div>
@@ -200,13 +246,28 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
           <p>{node && !followUp ? node.grammarHint : scenario.goal}</p>
         </details>
       </section>
+      {busy && <>
+        <article className="qa-chat-message qa-chat-user">
+          <strong className="qa-chat-author">Anda</strong>
+          <p lang="en">{submittedAnswer}</p>
+        </article>
+        <article className="qa-chat-message qa-chat-coach" role="status">
+          <strong className="qa-chat-author">Tutor AI</strong>
+          <p>Sedang menyiapkan balasan…</p>
+        </article>
+      </>}
+      </>}
+    </div>
+    {hasNewMessages && <button type="button" className="btn qa-latest" onClick={showLatest}>Pesan terbaru ↓</button>}
+    </div>
+    {nodeId ? <>
       <form className="qa-answer-form" onSubmit={check}>
         <label htmlFor="dialogue-answer">Jawaban Anda</label>
         <div className="qa-composer">
-          <textarea ref={inputRef} id="dialogue-answer" rows={2} maxLength={1500} value={answer} onChange={e => edit(e.target.value)} placeholder="Balas dalam bahasa Inggris…" />
+          <textarea ref={inputRef} id="dialogue-answer" rows={2} maxLength={1500} value={answer} disabled={busy} onChange={e => edit(e.target.value)} placeholder="Balas dalam bahasa Inggris…" />
           <div className="qa-composer-tools">
             <VoiceInputBar compact value={answer} disabled={busy} onChange={edit} />
-            <button type="submit" className="btn btn-primary qa-send" disabled={busy}>{busy ? "Menunggu…" : useTutor ? "Kirim jawaban" : node ? "Periksa jawaban" : "Simpan jawaban"}{!busy && <span aria-hidden="true">↗</span>}</button>
+            <button type="submit" className="btn btn-primary qa-send" disabled={busy}>{busy ? "Menunggu…" : useTutor ? "Kirim" : node ? "Periksa jawaban" : "Simpan jawaban"}{!busy && <span aria-hidden="true">↗</span>}</button>
           </div>
         </div>
       </form>
@@ -223,11 +284,11 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
           <small>{evaluation.limitationsNote}</small>
         </div>}
       </div>
-    </> : <div className="feedback feedback-ok" role="status"><strong>Percakapan selesai!</strong><p>Anda menyelesaikan {history.length} giliran. Buka riwayat untuk meninjau jawaban dan struktur yang terdeteksi.</p></div>}
+    </> : <div className="feedback feedback-ok" role="status"><strong>Percakapan selesai!</strong><p>Anda menyelesaikan {history.length} giliran. Gulir percakapan untuk meninjau jawaban dan masukan tutor.</p></div>}
     <div className="actions qa-session-actions">{useTutor && nodeId && history.length > 0 &&
       <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setNodeId(null)}>Akhiri percakapan</button>}
       <button type="button" className="btn btn-ghost" onClick={restart}>Mulai ulang skenario</button></div>
-    {!useTutor && <p className="qa-dialogue-note">Pertanyaan mode lokal berasal dari bank skenario. Koreksi lengkap tersedia melalui tutor Gemini.</p>}
+    {!useTutor && <p className="qa-dialogue-note">Pertanyaan mode lokal berasal dari bank skenario.</p>}
   </main>;
 }
 

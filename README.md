@@ -139,7 +139,8 @@ Roleplay memakai skenario kehidupan sehari-hari, pekerjaan, perjalanan, atau
 belajar. Misalnya, skenario kelompok belajar dimulai dengan
 **“Which topic should we study together first?”**. Pengguna dapat menjawab
 **“We should study past simple first.”** lalu melanjutkan percakapan.
-Tutor Gemini dapat memberi koreksi dan pertanyaan lanjutan berdasarkan respons.
+Tutor AI menggunakan Groq untuk memberi koreksi dan pertanyaan lanjutan. Jika
+Groq tidak tersedia, server mencoba Gemini dengan konteks percakapan yang sama.
 
 ### Article Lab
 
@@ -205,7 +206,7 @@ Buka alamat lokal yang ditampilkan Vite.
 | `npm run build` | Memeriksa TypeScript dan membuat build produksi di `dist/` |
 | `npm run preview` | Membuka build produksi secara lokal |
 
-## Offline, suara, dan tutor Gemini
+## Offline, suara, dan tutor AI
 
 Pemeriksaan Sentence Practice dan Grammar Basics serta materi Tenses Explorer
 berjalan di browser. Aplikasi mendukung instalasi PWA dan cache aset untuk
@@ -215,15 +216,19 @@ Input suara bergantung pada dukungan browser dan perangkat, serta dapat
 memerlukan jaringan. Story Challenge dapat mengunduh model MiniLM saat pertama
 digunakan untuk membantu memperkirakan kesesuaian topik cerita.
 
-Tutor Gemini pada roleplay dan Story Challenge memerlukan koneksi serta API key
-di server. Untuk development, buat file `.env.local` yang diabaikan Git.
+Roleplay memakai Groq (`openai/gpt-oss-20b`) sebagai penyedia utama dan Gemini
+sebagai cadangan. Jika hanya satu kunci tersedia, roleplay memakai penyedia
+tersebut. Jika tutor tidak tersedia, latihan berlanjut dalam mode lokal dan
+jawaban terakhir tetap berada di kotak isian. Story Challenge memakai Gemini.
+Untuk development, simpan kunci di file `.env.local` yang diabaikan Git.
 
 ```dotenv
-GEMINI_API_KEY=isi_api_key_anda
+GROQ_API_KEY=isi_kunci_groq
+GEMINI_API_KEY=isi_kunci_gemini
 ```
 
 Jalankan ulang `npm run dev` setelah mengubah environment. Pada Vercel, tambahkan
-`GEMINI_API_KEY` di Environment Variables untuk deployment yang digunakan, lalu
+kunci yang digunakan di Environment Variables untuk deployment tujuan, lalu
 redeploy. GitHub Pages menjalankan fitur lokal.
 
 ## Pengembangan materi
