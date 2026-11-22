@@ -1058,6 +1058,20 @@ button:focus-visible {
   min-height: 2rem;
 }
 
+.translation-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1rem 0;
+  border-top: 1.5px solid var(--line);
+  border-bottom: 1.5px solid var(--line);
+}
+
+.translation-prompt .basics-prompt,
+.translation-prompt .note {
+  margin: 0;
+}
+
 .sheet-form .btn:disabled {
   opacity: 0.5;
   cursor: default;

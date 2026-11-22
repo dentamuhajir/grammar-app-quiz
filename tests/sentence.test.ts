@@ -14,9 +14,84 @@ import { sentenceReading } from "../src/grammar/sentenceReadings";
 import { DEFAULT_FILTER, DEFAULT_MULTI_FILTER, createQuestionCycle, quizCombinations, generateQuestion, generateStativeTrap, type MultiQuizFilter } from "../src/grammar/generator";
 import { TENSE_LABELS, TENSE_ORDER } from "../src/grammar/labels";
 import type { Mode, Question, SentenceForm, Subject, Tense } from "../src/grammar/types";
+import { sentenceTranslation, checkTranslationAnswer } from "../src/grammar/translation";
+import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode";
 
 const she: Subject = { text: "she", person: 3, number: "singular", entity: "person", objectForm: "her" };
 const work = { ...VERBS.find(v => v.base === "work")!, object: "" };
+
+test("Indonesian prompts cover the full sentence vocabulary and every generated time expression", () => {
+  const base: Question = {...verbal("presentSimple", "positive")};
+  for (const verb of VERBS) {
+    for (const mode of ["verbal", ...(verb.transitive && !verb.oddPassive && !verb.stative ? ["passive"] : [])] as Mode[]) {
+      const translated = sentenceTranslation({...base, verb, mode});
+      assert.ok(translated, mode + "/" + verb.base);
+      assert.ok(!translated.text.includes("undefined"));
+    }
+  }
+  for (const subject of SUBJECTS) {
+    assert.ok(sentenceTranslation({...base, subject}), subject.text);
+    for (const complement of COMPLEMENTS) {
+      assert.ok(sentenceTranslation({...base,subject,complement,mode:"nominal"}), subject.text + "/" + complement.text);
+    }
+  }
+  for (const tense of TENSE_ORDER) {
+    for (const signal of Object.values(TIME_SIGNALS[tense]).flat()) {
+      assert.ok(sentenceTranslation({...base,tense,timeSignal:signal.text}), signal.text);
+    }
+    for (const mode of ["verbal","nominal","passive"] as Mode[]) {
+      for (const form of ["positive","negative","yesNoQuestion","whQuestion"] as SentenceForm[]) {
+        const q = generateQuestion({...DEFAULT_FILTER,tense,mode,form});
+        const translated = sentenceTranslation(q);
+        assert.ok(translated,q.answer);
+        assert.ok(translated.context.length > 10);
+        assert.equal(translated.text.endsWith("?"),form === "yesNoQuestion" || form === "whQuestion");
+      }
+    }
+  }
+  for (const object of ["a noise","heat","smoothly"]) {
+    assert.ok(sentenceTranslation({...base,verb:{...work,object}}));
+  }
+});
+
+test("translation preserves question meaning and accepts only compatible lexical alternatives", () => {
+  const subject = SUBJECTS.find(s=>s.text==="he")!;
+  const verb = VERBS.find(v=>v.base==="prepare")!;
+  const q: Question = {subject,verb,tense:"futureSimple",mode:"verbal",form:"yesNoQuestion",
+    answer:"Will he prepare the meal?"};
+  assert.equal(sentenceTranslation(q)?.text,"Apakah dia laki-laki akan menyiapkan makanan itu?");
+  assert.equal(sentenceTranslation({...q,form:"negative"})?.text,"Dia laki-laki tidak akan menyiapkan makanan itu.");
+  assert.equal(sentenceTranslation({...q,form:"whQuestion",whWord:"What"})?.text,"Apa yang akan disiapkan oleh dia laki-laki?");
+  assert.equal(checkTranslationAnswer(q,"Will he prepare the food?").correct,true);
+  assert.equal(checkTranslationAnswer(q,"Did he prepare the food?").correct,false);
+  assert.equal(checkTranslationAnswer(q,"Will she prepare the food?").correct,false);
+  assert.equal(checkTranslationAnswer(q,"Will he not prepare the food?").correct,false);
+  const nominal: Question = {...q,mode:"nominal",tense:"presentSimple",form:"whQuestion",
+    whWord:"Where",complement:{text:"at home",kind:"adverb"}};
+  assert.equal(sentenceTranslation(nominal)?.text,"Di mana dia laki-laki?");
+  assert.match(sentenceTranslation({...nominal,whWord:"What",complement:{text:"a teacher",kind:"noun",plural:"teachers"}})!.text,/profesi atau peran/);
+});
+
+test("practice mode defaults safely and persists valid choices when storage is available", () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis,"localStorage");
+  let stored: string | null = null;
+  Object.defineProperty(globalThis,"localStorage",{configurable:true,value:{
+    getItem:()=>stored,setItem:(_key:string,value:string)=>{stored=value;},
+  }});
+  try {
+    assert.equal(loadPracticeMode(),"arrange");
+    savePracticeMode("translate");
+    assert.equal(loadPracticeMode(),"translate");
+    stored="invalid";
+    assert.equal(loadPracticeMode(),"arrange");
+    Object.defineProperty(globalThis,"localStorage",{configurable:true,get(){throw new Error("blocked");}});
+    assert.equal(loadPracticeMode(),"arrange");
+    assert.doesNotThrow(()=>savePracticeMode("context"));
+  } finally {
+    if(original)Object.defineProperty(globalThis,"localStorage",original);
+    else Reflect.deleteProperty(globalThis,"localStorage");
+  }
+});
 
 test("multi-filter cycles cover exactly the selected supported combinations and avoid boundary repeats", () => {
   const filter: MultiQuizFilter = {

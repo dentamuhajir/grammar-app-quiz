@@ -3,25 +3,28 @@ import { quizCombinations, type MultiQuizFilter } from "../grammar/generator";
 import { FORM_LABELS, MODE_LABELS, TENSE_LABELS, TENSE_ORDER } from "../grammar/labels";
 import type { Mode, SentenceForm, Tense } from "../grammar/types";
 import { BottomSheet } from "./BottomSheet";
+import type { SentencePracticeMode } from "../grammar/practiceMode";
+import { PracticeModePicker } from "./PracticeModePicker";
 
 function toggle<T>(selected: T[], value: T): T[] {
   return selected.includes(value) ? selected.filter(item => item !== value) : [...selected, value];
 }
 
-export function SentenceFilters({ filter, implicitMode, onClose, onApply }: {
+export function SentenceFilters({ filter, practiceMode, onClose, onApply }: {
   filter: MultiQuizFilter;
-  implicitMode: boolean;
+  practiceMode: SentencePracticeMode;
   onClose: () => void;
-  onApply: (filter: MultiQuizFilter, implicitMode: boolean) => void;
+  onApply: (filter: MultiQuizFilter, practiceMode: SentencePracticeMode) => void;
 }) {
   const [draft, setDraft] = useState(filter);
-  const [context, setContext] = useState(implicitMode);
+  const [mode, setMode] = useState(practiceMode);
   const empty = !draft.tenses.length || !draft.modes.length || !draft.forms.length;
   const supported = quizCombinations(draft).length;
   const total = draft.tenses.length * draft.modes.length * draft.forms.length;
 
   return <BottomSheet open closeButtonOnly onClose={onClose} title="Filter Sentence Practice">
     <div className="sheet-form">
+      <PracticeModePicker value={mode} onChange={setMode} />
       <details className="sentence-tense-picker">
         <summary>Tense · {draft.tenses.length === TENSE_ORDER.length ? "Semua tense" : `${draft.tenses.length} tense dipilih`}</summary>
         <fieldset className="sentence-filter-group" aria-label="Tense">
@@ -71,10 +74,6 @@ export function SentenceFilters({ filter, implicitMode, onClose, onApply }: {
       </fieldset>
 
       <label className="rare-toggle">
-        <input type="checkbox" checked={context} onChange={event => setContext(event.target.checked)} />
-        <span>🧠 Mode Konteks (Sembunyikan nama Tense &amp; tampilkan situasi)</span>
-      </label>
-      <label className="rare-toggle">
         <input type="checkbox" checked={draft.includeRare}
           onChange={event => setDraft({...draft, includeRare: event.target.checked})} />
         <span>Sertakan bentuk langka &amp; kata kerja keadaan</span>
@@ -90,7 +89,7 @@ export function SentenceFilters({ filter, implicitMode, onClose, onApply }: {
           </p> : null}
       </div>
       <button type="button" className="btn btn-primary" disabled={empty || !supported}
-        onClick={() => onApply(draft, context)}>Terapkan Filter</button>
+        onClick={() => onApply(draft, mode)}>Terapkan Filter</button>
     </div>
   </BottomSheet>;
 }

@@ -23,6 +23,9 @@ import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
 import { SentencePlayback } from "./SentencePlayback";
 import { VoiceInputBar } from "./VoiceInputBar";
+import { loadPracticeMode, savePracticeMode, PRACTICE_MODE_LABELS, type SentencePracticeMode } from "../grammar/practiceMode";
+import { sentenceTranslation, checkTranslationAnswer } from "../grammar/translation";
+import { PracticeModePicker } from "./PracticeModePicker";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
@@ -96,7 +99,10 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
   const [praise, setPraise] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const [implicitMode, setImplicitMode] = useState(false);
+  const [practiceMode, setPracticeMode] = useState(loadPracticeMode);
+  const [modeOpen, setModeOpen] = useState(false);
+  const [showWordHint, setShowWordHint] = useState(false);
+  const translation = practiceMode === "translate" ? sentenceTranslation(question) : null;
 
   const next = useCallback(() => {
     setQuestion(cycle.current!());
@@ -105,16 +111,18 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
     setRevealed(false);
     setPraise("");
     setGuideOpen(false);
+    setShowWordHint(false);
   }, []);
 
   const solved = revealed || result?.correct === true;
+  const showBadges = practiceMode === "arrange" || solved;
 
   const check = useCallback(() => {
     if (solved) {
       next();
       return;
     }
-    const r = checkAnswer(question, input);
+    const r = practiceMode === "translate" ? checkTranslationAnswer(question, input) : checkAnswer(question, input);
     if (r.empty) {
       setResult(r);
       return;
@@ -124,12 +132,18 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
       setPraise(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
       setConfetti((c) => c + 1);
     }
-  }, [input, next, question, solved]);
+  }, [input, next, practiceMode, question, solved]);
 
-  function applyFilter(selected: MultiQuizFilter, context: boolean) {
+  function selectPracticeMode(mode: SentencePracticeMode) {
+    setPracticeMode(mode);
+    savePracticeMode(mode);
+    setShowWordHint(false);
+  }
+
+  function applyFilter(selected: MultiQuizFilter, mode: SentencePracticeMode) {
     cycle.current = createQuestionCycle(selected);
     setFilter(selected);
-    setImplicitMode(context);
+    selectPracticeMode(mode);
     next();
     setFiltersOpen(false);
   }
@@ -161,9 +175,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
         {...swipeHandlers}
       >
         <div className="tags">
-          {implicitMode && !solved ? (
-            <span className="tag tag-tense">❓ Tebak Tense</span>
-          ) : (
+          {showBadges && (
             <button
               type="button"
               className="tag tag-tense tag-clickable"
@@ -176,37 +188,47 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
               </span>
             </button>
           )}
-          {(!implicitMode || solved || question.mode === "passive") && (
+          {showBadges && (
             <span className="tag tag-mode">
               {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
             </span>
           )}
-          {(!implicitMode || solved || question.form !== "whQuestion") && (
+          {showBadges && (
             <span className="tag tag-form">
               {FORM_LABELS[question.form].replace(/\s*\(.*\)/, "")}
             </span>
           )}
-          {question.rare && (
+          {showBadges && question.rare && (
             <span className="tag tag-rare">⚠ jarang digunakan</span>
           )}
           <button
             type="button"
-            className={`tag tag-implicit-toggle ${implicitMode ? "active" : ""}`}
-            aria-pressed={implicitMode}
-            onClick={() => setImplicitMode((v) => !v)}
-            title="Sembunyikan nama Tense agar berlatih memilih Tense dari konteks situasi"
+            className="tag tag-implicit-toggle"
+            aria-haspopup="dialog"
+            aria-expanded={modeOpen}
+            onClick={() => setModeOpen(true)}
           >
-            {implicitMode ? "🧠 Mode Konteks: ON" : "🧠 Mode Konteks"}
+            Mode · {PRACTICE_MODE_LABELS[practiceMode]} ▾
           </button>
         </div>
 
-        {implicitMode && (
+        {practiceMode === "context" && (
           <p className="implicit-context-box">
             🧭 <strong>{implicitContextCue(question)}</strong>
           </p>
         )}
 
-        <PromptChips q={question} />
+        {practiceMode === "translate" ? <section className="translation-prompt" aria-label="Terjemahkan ke bahasa Inggris">
+          <p className="basics-prompt" lang="id">
+            {translation?.text ?? "Terjemahan soal ini belum tersedia. Buka petunjuk kata untuk melanjutkan latihan."}
+          </p>
+          <p className="note">{translation?.context ?? implicitContextCue(question)}</p>
+          <button type="button" className="btn btn-ghost" aria-expanded={showWordHint}
+            onClick={() => setShowWordHint(value => !value)}>
+            {showWordHint ? "Sembunyikan petunjuk kata" : "Petunjuk kata"}
+          </button>
+          {showWordHint && <PromptChips q={question} />}
+        </section> : <PromptChips q={question} />}
 
         <div className="answer-input">
           <input
@@ -250,7 +272,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
               <SuccessBadge />
               <span>{praise}</span>
             </span>
-            <SentencePlayback text={question.answer} question={question} />
+            <SentencePlayback text={practiceMode === "translate" ? input.trim() : question.answer} question={question} />
             {result.alternativeOrder && (
               <p className="basics-explanation">
                 Letak keterangan waktu di awal kalimat juga diterima. Di atas
@@ -316,10 +338,17 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
 
       {filtersOpen && <SentenceFilters
         filter={filter}
-        implicitMode={implicitMode}
+        practiceMode={practiceMode}
         onClose={() => setFiltersOpen(false)}
         onApply={applyFilter}
       />}
+
+      <BottomSheet open={modeOpen} closeButtonOnly onClose={() => setModeOpen(false)} title="Mode latihan">
+        <PracticeModePicker value={practiceMode} onChange={mode => {
+          selectPracticeMode(mode);
+          setModeOpen(false);
+        }} />
+      </BottomSheet>
 
       <BottomSheet
         open={guideOpen}
