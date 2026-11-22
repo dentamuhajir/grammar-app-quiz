@@ -63,7 +63,7 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     pendingTutor.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 25_000);
     setBusy(true);
-    let reason = "Tutor Gemini sedang tidak tersedia.";
+    let reason = "Tutor AI sedang tidak tersedia.";
     try {
       const response = await fetch("/api/roleplay", {
         method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json" },
@@ -73,13 +73,15 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
           history: history.slice(-3).map(({ question, answer }) => ({ question, answer })),
         }),
       });
-      if (response.status === 429) reason = "Batas penggunaan Gemini tercapai.";
+      if (response.status === 429) reason = "Batas penggunaan tutor AI tercapai.";
       if (!response.ok) {
         const failure = await response.json().catch(() => null);
         if (typeof failure?.message === "string") {
           reason = failure.message;
         } else if (failure?.error === "unconfigured") {
-          reason = "Tutor Gemini belum diaktifkan oleh pengelola aplikasi.";
+          reason = "Tutor AI belum diaktifkan oleh pengelola aplikasi.";
+        } else if (failure?.error === "timeout") {
+          reason = "Tutor AI terlalu lama merespons.";
         }
         throw new Error("Tutor unavailable");
       }
@@ -166,8 +168,8 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     </header>
     {nodeId && tutorAvailable && <div className="qa-tutor">
       <span className="qa-tutor-icon" aria-hidden="true">✦</span>
-      <div><label htmlFor="qa-tutor-switch">Tutor Gemini</label>
-        <p id="qa-tutor-description">{useTutor ? "Gemini menerima jawaban untuk koreksi dan tanya jawab." : "Mode lokal aktif. Nyalakan untuk berlatih dengan Gemini."}</p>
+      <div><label htmlFor="qa-tutor-switch">Tutor AI</label>
+        <p id="qa-tutor-description">{useTutor ? "Groq atau penyedia cadangan Gemini menerima jawaban dan hingga tiga giliran terakhir untuk memberi koreksi." : "Mode lokal aktif. Nyalakan tutor AI untuk mendapat koreksi dan pertanyaan lanjutan."}</p>
       </div>
       <input id="qa-tutor-switch" type="checkbox" role="switch" aria-describedby="qa-tutor-description" checked={useTutor} disabled={busy} onChange={event => {
         setUseTutor(event.target.checked);
@@ -227,7 +229,7 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
     <div className="actions qa-session-actions">{useTutor && nodeId && history.length > 0 &&
       <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setNodeId(null)}>Akhiri percakapan</button>}
       <button type="button" className="btn btn-ghost" onClick={restart}>Mulai ulang skenario</button></div>
-    {!useTutor && <p className="qa-dialogue-note">Pertanyaan mode lokal berasal dari bank skenario. Koreksi lengkap tersedia melalui tutor Gemini.</p>}
+    {!useTutor && <p className="qa-dialogue-note">Pertanyaan mode lokal berasal dari bank skenario.</p>}
   </main>;
 }
 

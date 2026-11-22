@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
   const base = env.DEPLOY_TARGET === "ghpages" ? "/grammar-app-quiz/" : "/";
   function mountTutorRoutes(server: ViteDevServer | PreviewServer) {
     server.middlewares.use("/api/roleplay", (req, res, next) => {
-      handleRoleplay(req, res, env.GEMINI_API_KEY).catch(next);
+      handleRoleplay(req, res, env.GEMINI_API_KEY, env.GROQ_API_KEY).catch(next);
     });
     server.middlewares.use("/api/story", (req, res, next) => {
       handleStory(req, res, env.GEMINI_API_KEY).catch(next);
