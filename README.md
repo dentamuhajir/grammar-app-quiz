@@ -32,6 +32,10 @@ Filter mendukung beberapa pilihan sekaligus. Pengguna dapat memilih
 Soal bergiliran melalui kombinasi yang didukung, lalu memulai siklus berikutnya.
 Pilihan diterapkan setelah menekan **Terapkan Filter**.
 
+Pada Sentence Practice dan Grammar Basics, geser kartu ke kiri untuk **Skip Soal**
+dan ke kanan untuk **Materi**. Swipe kiri dibatasi saat ada draft yang belum selesai.
+Badge tetap dapat diketuk untuk membuka materi.
+
 Jawaban diperiksa kata demi kata dengan toleransi terhadap kapitalisasi, spasi,
 tanda baca, dan singkatan yang didukung. Contohnya, `doesn't` dapat dikenali
 sebagai `does not`. Umpan balik menunjukkan kata yang salah, kurang, atau berlebih.
@@ -104,7 +108,8 @@ Pilihan Continuous tersedia dengan pelengkap perilaku, misalnya
 **“Emma is being careful.”**, untuk menjelaskan sikap sementara.
 Pola nominal yang membutuhkan konteks khusus dibatasi dan diberi keterangan.
 
-Explorer dapat dibuka dari menu atau dengan menekan label tense pada soal.
+Explorer dapat dibuka dari menu atau melalui tombol di panel materi soal.
+Panel materi dapat dibuka dengan menekan badge atau menggeser kartu ke kanan.
 Saat dibuka dari soal, konteks kalimat ikut terbawa dan draft jawaban tetap
 tersedia saat kembali. Garis waktu, pembagian fungsi kata, dan perbandingan
 tense dapat dibuka sesuai kebutuhan.

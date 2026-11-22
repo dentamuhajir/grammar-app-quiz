@@ -210,6 +210,117 @@ body {
   }
 }
 
+.swipe-card-surface {
+  overflow: clip;
+  padding: 8px;
+  margin: -8px;
+  touch-action: pan-y;
+}
+
+.swipe-card-leaving {
+  animation: swipeCardLeave 180ms cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
+.swipe-card-entering {
+  animation: swipeCardEnter 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  pointer-events: none;
+}
+
+.swipe-card-opening {
+  animation: swipeCardOpen 180ms ease-out both;
+  pointer-events: none;
+}
+
+@keyframes swipeCardLeave {
+  to { transform: translateX(-105%) rotate(-7deg) scale(0.95); opacity: 0; }
+}
+
+@keyframes swipeCardEnter {
+  from { transform: translateX(65%) rotate(4deg) scale(0.96); opacity: 0; }
+  70% { transform: translateX(-5px) rotate(-0.3deg) scale(1); opacity: 1; }
+  to { transform: translateX(0) rotate(0) scale(1); opacity: 1; }
+}
+
+@keyframes swipeCardOpen {
+  to { transform: translateX(40px) rotate(1.5deg) scale(0.985); opacity: 0.75; }
+}
+
+.swipe-guide {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.7rem 0 1rem;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.swipe-guide small {
+  font-weight: 500;
+}
+
+.swipe-feedback {
+  position: fixed;
+  z-index: 90;
+  left: 50%;
+  bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(300px, calc(100% - 32px));
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 0 5px 0 var(--ink);
+  background: #ece5ff;
+  color: var(--ink);
+  pointer-events: none;
+  animation: swipeFeedbackIn 120ms ease-out;
+}
+
+.swipe-feedback-left {
+  background: var(--yellow-card);
+}
+
+.swipe-feedback.is-blocked {
+  background: var(--beige-pill);
+}
+
+.swipe-feedback span {
+  font-size: 0.82rem;
+}
+
+.swipe-feedback-meter {
+  height: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0002;
+}
+
+.swipe-feedback-meter i {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transform-origin: left;
+}
+
+@keyframes swipeFeedbackIn {
+  from { opacity: 0; transform: translate(-50%, 8px) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-card-leaving,
+  .swipe-card-entering,
+  .swipe-card-opening,
+  .swipe-feedback {
+    animation: none;
+  }
+}
+
 .inline-popup-link {
   display: inline-flex;
   align-items: center;

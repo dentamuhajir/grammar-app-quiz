@@ -27,6 +27,8 @@ import { loadPracticeMode, savePracticeMode, PRACTICE_MODE_LABELS, type Sentence
 import { sentenceTranslation, checkTranslationAnswer } from "../grammar/translation";
 import { PracticeModePicker } from "./PracticeModePicker";
 import { useAutoResizeTextarea } from "./useAutoResizeTextarea";
+import { SwipeGuide } from "./SwipeGuide";
+import { SentenceMaterial } from "./SentenceMaterial";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
@@ -100,6 +102,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
   const [praise, setPraise] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [materialOpen, setMaterialOpen] = useState(false);
   const [practiceMode, setPracticeMode] = useState(loadPracticeMode);
   const [modeOpen, setModeOpen] = useState(false);
   const [showWordHint, setShowWordHint] = useState(false);
@@ -114,6 +117,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
     setRevealed(false);
     setPraise("");
     setGuideOpen(false);
+    setMaterialOpen(false);
     setShowWordHint(false);
     setHasIncorrectAttempt(false);
   }, []);
@@ -153,9 +157,12 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
     setFiltersOpen(false);
   }
 
-  const { swipeHandlers, cardStyle, cardClass } = useSwipeCard({
+  const { swipeHandlers, cardStyle, cardClass, swipeDirection, swipeProgress, swipeBlocked } = useSwipeCard({
+    animated: true,
+    questionKey: question.answer,
+    canSkip: !input.trim() || solved,
     onSwipeLeft: next,
-    onSwipeRight: () => { if (hasIncorrectAttempt || solved) setGuideOpen(true); },
+    onSwipeRight: () => setMaterialOpen(true),
   });
 
   return (
@@ -174,183 +181,182 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
         <span className="filter-pill-action">⚙ Ubah</span>
       </button>
 
-      <main
-        className={`card ${cardClass}`}
-        style={cardStyle}
-        {...swipeHandlers}
-      >
-        <div className="tags">
-          {showBadges && (
-            <button
-              type="button"
-              className="tag tag-tense tag-clickable"
-              onClick={() => onExplore(question)}
-              title="Klik untuk membuka Tenses Explorer & Visualisasi Waktu"
-            >
-              {TENSE_LABELS[question.tense]}{" "}
-              <span className="tag-info-icon" aria-hidden="true">
-                ⓘ
-              </span>
-            </button>
-          )}
-          {showBadges && (
-            <span className="tag tag-mode">
-              {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
-            </span>
-          )}
-          {showBadges && (
-            <span className="tag tag-form">
-              {FORM_LABELS[question.form].replace(/\s*\(.*\)/, "")}
-            </span>
-          )}
-          {showBadges && question.rare && (
-            <span className="tag tag-rare">⚠ jarang digunakan</span>
-          )}
-          <button
-            type="button"
-            className="tag tag-implicit-toggle"
-            aria-haspopup="dialog"
-            aria-expanded={modeOpen}
-            onClick={() => setModeOpen(true)}
-          >
-            Mode · {PRACTICE_MODE_LABELS[practiceMode]} ▾
-          </button>
-        </div>
-
-        {practiceMode === "context" && (
-          <p className="implicit-context-box">
-            🧭 <strong>{implicitContextCue(question)}</strong>
-          </p>
-        )}
-
-        {practiceMode === "translate" ? <section className="translation-prompt" aria-label="Terjemahkan ke bahasa Inggris">
-          <p className="basics-prompt" lang="id">
-            {translation?.text ?? "Terjemahan soal ini belum tersedia. Buka petunjuk kata untuk melanjutkan latihan."}
-          </p>
-          <p className="note">{translation?.context ?? implicitContextCue(question)}</p>
-          {!solved && hasIncorrectAttempt && <button type="button" className="btn btn-ghost" aria-expanded={showWordHint}
-            onClick={() => setShowWordHint(value => !value)}>
-            {showWordHint ? "Sembunyikan petunjuk kata" : "Petunjuk kata"}
-          </button>}
-          {showWordHint && <>
-            <PromptChips q={question} />
-          </>}
-        </section> : <PromptChips q={question} />}
-
-        <div className="sentence-answer-block">
-          <label className="sentence-answer-label" htmlFor="sentence-answer">Jawaban Anda</label>
-          <form className={`qa-composer sentence-composer ${result && !result.empty ? result.correct ? "is-correct" : "is-incorrect" : ""}`}
-            onSubmit={event => { event.preventDefault(); check(); }}>
-            <textarea
-              ref={answerRef}
-              rows={2}
-              value={input}
-              id="sentence-answer"
-              aria-label="Jawabanmu"
-              placeholder="Tulis kalimat dalam bahasa Inggris…"
-              readOnly={solved}
-              aria-invalid={Boolean(result && !result.correct && !result.empty)}
-              aria-describedby={result?.empty ? "sentence-empty-error" : undefined}
-              spellCheck={false}
-              autoComplete="off"
-              autoCapitalize="off"
-              onChange={(e) => {
-                setInput(e.target.value);
-                if (result) setResult(null);
-                setPraise("");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  check();
-                }
-              }}
-            />
-            {!solved && <div className="qa-composer-tools">
-              <VoiceInputBar
-              compact
-              value={input}
-              disabled={solved}
-              onChange={(nextVal) => {
-                setInput(nextVal);
-                if (result) setResult(null);
-                setPraise("");
-              }}
-              />
-              <button type="submit" className="btn btn-primary qa-send">
-                Periksa jawaban <span aria-hidden="true">↗</span>
+      <div className="swipe-card-surface" {...swipeHandlers}>
+        <main
+          className={`card ${cardClass}`}
+          style={cardStyle}
+        >
+          <div className="tags">
+            {showBadges && (
+              <button
+                type="button"
+                className="tag tag-tense tag-clickable"
+                onClick={() => setMaterialOpen(true)}
+                title="Buka materi tense dan pola kalimat"
+              >
+                {TENSE_LABELS[question.tense]}{" "}
+                <span className="tag-info-icon" aria-hidden="true">
+                  ⓘ
+                </span>
               </button>
-            </div>}
-          </form>
-        </div>
-
-        {!solved && hasIncorrectAttempt && practiceMode !== "translate" && <details key={question.answer} className="sentence-start-hint">
-          <summary>Petunjuk</summary>
-          <p className="sentence-formula">{sentenceGuide(question).formula}</p>
-        </details>}
-
-        {result?.correct && (
-          <div className="feedback feedback-ok" role="status">
-            <span className="feedback-title">
-              <SuccessBadge />
-              <span>{praise}</span>
-            </span>
-            <SentencePlayback text={practiceMode === "translate" ? input.trim() : question.answer} question={question} />
-            {result.alternativeOrder && (
-              <p className="basics-explanation">
-                Letak keterangan waktu di awal kalimat juga diterima. Di atas
-                adalah susunan acuan.
-              </p>
+            )}
+            {showBadges && (
+              <span className="tag tag-mode">
+                {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
+              </span>
+            )}
+            {showBadges && (
+              <span className="tag tag-form">
+                {FORM_LABELS[question.form].replace(/\s*\(.*\)/, "")}
+              </span>
+            )}
+            {showBadges && question.rare && (
+              <span className="tag tag-rare">⚠ jarang digunakan</span>
             )}
             <button
               type="button"
-              className="inline-popup-link"
-              onClick={() => setGuideOpen(true)}
+              className="tag tag-implicit-toggle"
+              aria-haspopup="dialog"
+              aria-expanded={modeOpen}
+              onClick={() => setModeOpen(true)}
             >
-              <BookIcon />
-              <span>Lihat analisis &amp; bagian kalimat →</span>
+              Mode · {PRACTICE_MODE_LABELS[practiceMode]} ▾
             </button>
           </div>
-        )}
 
-        {result && !result.correct && !result.empty && (
-          <div className="feedback feedback-bad" role="status">
-            <DiffView diff={result.diff} />
-            <p className="hint">💡 {result.hint}</p>
+          {practiceMode === "context" && (
+            <p className="implicit-context-box">
+              🧭 <strong>{implicitContextCue(question)}</strong>
+            </p>
+          )}
+
+          {practiceMode === "translate" ? <section className="translation-prompt" aria-label="Terjemahkan ke bahasa Inggris">
+            <p className="basics-prompt" lang="id">
+              {translation?.text ?? "Terjemahan soal ini belum tersedia. Buka petunjuk kata untuk melanjutkan latihan."}
+            </p>
+            <p className="note">{translation?.context ?? implicitContextCue(question)}</p>
+            {!solved && hasIncorrectAttempt && <button type="button" className="btn btn-ghost" aria-expanded={showWordHint}
+              onClick={() => setShowWordHint(value => !value)}>
+              {showWordHint ? "Sembunyikan petunjuk kata" : "Petunjuk kata"}
+            </button>}
+            {showWordHint && <>
+              <PromptChips q={question} />
+            </>}
+          </section> : <PromptChips q={question} />}
+
+          <div className="sentence-answer-block">
+            <label className="sentence-answer-label" htmlFor="sentence-answer">Jawaban Anda</label>
+            <form className={`qa-composer sentence-composer ${result && !result.empty ? result.correct ? "is-correct" : "is-incorrect" : ""}`}
+              onSubmit={event => { event.preventDefault(); check(); }}>
+              <textarea
+                ref={answerRef}
+                rows={2}
+                value={input}
+                id="sentence-answer"
+                aria-label="Jawabanmu"
+                placeholder="Tulis kalimat dalam bahasa Inggris…"
+                readOnly={solved}
+                aria-invalid={Boolean(result && !result.correct && !result.empty)}
+                aria-describedby={result?.empty ? "sentence-empty-error" : undefined}
+                spellCheck={false}
+                autoComplete="off"
+                autoCapitalize="off"
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  if (result) setResult(null);
+                  setPraise("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    check();
+                  }
+                }}
+              />
+              {!solved && <div className="qa-composer-tools">
+                <VoiceInputBar
+                compact
+                value={input}
+                disabled={solved}
+                onChange={(nextVal) => {
+                  setInput(nextVal);
+                  if (result) setResult(null);
+                  setPraise("");
+                }}
+                />
+                <button type="submit" className="btn btn-primary qa-send">
+                  Periksa jawaban <span aria-hidden="true">↗</span>
+                </button>
+              </div>}
+            </form>
           </div>
-        )}
 
-        {result?.empty && (
-          <p id="sentence-empty-error" className="hint hint-plain" role="status">
-            Tulis kalimatmu terlebih dahulu, lalu periksa jawabannya.
-          </p>
-        )}
+          {!solved && hasIncorrectAttempt && practiceMode !== "translate" && <details key={question.answer} className="sentence-start-hint">
+            <summary>Petunjuk</summary>
+            <p className="sentence-formula">{sentenceGuide(question).formula}</p>
+          </details>}
 
-        {revealed && !result?.correct && (
-          <div className="feedback feedback-reveal">
-            <strong>Contoh jawaban</strong>
-            <SentencePlayback text={question.answer} question={question} />
-            <button
-              type="button"
-              className="inline-popup-link"
-              onClick={() => setGuideOpen(true)}
-            >
-              <BookIcon />
-              <span>Lihat mengapa bentuknya begitu →</span>
-            </button>
-          </div>
-        )}
+          {result?.correct && (
+            <div className="feedback feedback-ok" role="status">
+              <span className="feedback-title">
+                <SuccessBadge />
+                <span>{praise}</span>
+              </span>
+              <SentencePlayback text={practiceMode === "translate" ? input.trim() : question.answer} question={question} />
+              {result.alternativeOrder && (
+                <p className="basics-explanation">
+                  Letak keterangan waktu di awal kalimat juga diterima. Di atas
+                  adalah susunan acuan.
+                </p>
+              )}
+              <button
+                type="button"
+                className="inline-popup-link"
+                onClick={() => setGuideOpen(true)}
+              >
+                <BookIcon />
+                <span>Lihat analisis &amp; bagian kalimat →</span>
+              </button>
+            </div>
+          )}
 
-        {!solved && hasIncorrectAttempt && <button type="button" className="inline-popup-link"
-          onClick={() => setRevealed(true)}>Lihat contoh jawaban</button>}
-        {solved && <div className="actions">
-          <button type="button" className="btn btn-primary" onClick={next}>Soal berikutnya →</button>
-        </div>}
+          {result && !result.correct && !result.empty && (
+            <div className="feedback feedback-bad" role="status">
+              <DiffView diff={result.diff} />
+              <p className="hint">💡 {result.hint}</p>
+            </div>
+          )}
 
-        <p className="swipe-hint">
-          ← Geser kiri: soal baru{hasIncorrectAttempt || solved ? " · Geser kanan: rumus →" : ""}
-        </p>
-      </main>
+          {result?.empty && (
+            <p id="sentence-empty-error" className="hint hint-plain" role="status">
+              Tulis kalimatmu terlebih dahulu, lalu periksa jawabannya.
+            </p>
+          )}
+
+          {revealed && !result?.correct && (
+            <div className="feedback feedback-reveal">
+              <strong>Contoh jawaban</strong>
+              <SentencePlayback text={question.answer} question={question} />
+              <button
+                type="button"
+                className="inline-popup-link"
+                onClick={() => setGuideOpen(true)}
+              >
+                <BookIcon />
+                <span>Lihat mengapa bentuknya begitu →</span>
+              </button>
+            </div>
+          )}
+
+          {!solved && hasIncorrectAttempt && <button type="button" className="inline-popup-link"
+            onClick={() => setRevealed(true)}>Lihat contoh jawaban</button>}
+          {solved && <div className="actions">
+            <button type="button" className="btn btn-primary" onClick={next}>Soal berikutnya →</button>
+          </div>}
+
+        </main>
+        <SwipeGuide direction={swipeDirection} progress={swipeProgress} blocked={swipeBlocked} />
+      </div>
 
       {filtersOpen && <SentenceFilters
         filter={filter}
@@ -364,6 +370,17 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
           selectPracticeMode(mode);
           setModeOpen(false);
         }} />
+      </BottomSheet>
+
+      <BottomSheet
+        open={materialOpen}
+        closeButtonOnly
+        onClose={() => setMaterialOpen(false)}
+        title="Materi kalimat"
+      >
+        <SentenceMaterial question={question} solved={solved} attempted={hasIncorrectAttempt}
+          hint={result && !result.correct && !result.empty ? result.hint : undefined}
+          onExplore={selected => { setMaterialOpen(false); onExplore(selected); }} />
       </BottomSheet>
 
       <BottomSheet

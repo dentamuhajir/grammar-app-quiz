@@ -17,6 +17,7 @@ import { SpokenSentence } from "./SpokenSentence";
 import { useSwipeCard } from "./useSwipeCard";
 import { WRITING_PACKS } from "../grammar/writingPacks";
 import { useWritingAttempt } from "./useWritingAttempt";
+import { SwipeGuide } from "./SwipeGuide";
 
 type WritingLink = { onWrite: (lessonId: string) => void };
 
@@ -49,6 +50,11 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
     setHintOpen(true);
   }
 
+  function openMaterial() {
+    attempt.hint();
+    setTopicGuideOpen(true);
+  }
+
   function next() {
     attempt.reset();
     if (index + 1 < deck.length) setIndex(index + 1);
@@ -68,137 +74,139 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
     setStatus(null);
   }
 
-  const { swipeHandlers, cardStyle, cardClass } = useSwipeCard({
+  const { swipeHandlers, cardStyle, cardClass, swipeDirection, swipeProgress, swipeBlocked } = useSwipeCard({
+    animated: true,
+    questionKey: question.id,
+    canSkip: !input.trim() || finished,
     onSwipeLeft: next,
-    onSwipeRight: openHint,
+    onSwipeRight: openMaterial,
   });
 
   return (
     <>
-      <main
-        className={`card basics-card ${cardClass}`}
-        style={cardStyle}
-        {...swipeHandlers}
-      >
-        <div className="tags">
-          <button
-            type="button"
-            className="tag tag-tense tag-clickable"
-            onClick={() => { attempt.hint(); setTopicGuideOpen(true); }}
-            title="Klik untuk melihat penjelasan & contoh topik ini"
-          >
-            {BASICS_LABELS[question.topic]}{" "}
-            <span className="tag-info-icon" aria-hidden="true">
-              ⓘ
-            </span>
-          </button>
-          {(hasIncorrectAttempt || finished) && <button
-            type="button"
-            className="tag tag-hint-btn"
-            onClick={openHint}
-            title="Lihat petunjuk soal ini"
-          >
-            💡 Hint
-          </button>}
-        </div>
-
-        {question.context && (
-          <p className="basics-context">{question.context}</p>
-        )}
-        <p className="basics-prompt" id="basics-question">
-          {question.prompt}
-        </p>
-        {question.cue && (
-          <p className="basics-cue">
-            {question.cue.includes("/") ? "Pilihan:" : "Kata dasar:"}{" "}
-            <strong>{question.cue}</strong>
-          </p>
-        )}
-
-        <form
-          className="basics-answer-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (finished) next();
-            else {
-              const result = checkBasicsAnswer(question, input);
-              if (result === "empty") setStatus(result);
-              else record(result);
-            }
-          }}
+      <div className="swipe-card-surface" {...swipeHandlers}>
+        <main
+          className={`card basics-card ${cardClass}`}
+          style={cardStyle}
         >
-          <div className="sentence-answer-block">
-            <label className="sentence-answer-label" htmlFor="basics-answer">Jawaban Anda</label>
-            <div className={`qa-composer basics-composer ${status === "correct" ? "is-correct" : status === "incorrect" ? "is-incorrect" : ""}`}>
-              <input
-                id="basics-answer"
-                value={input}
-                readOnly={finished}
-                aria-label="Jawaban"
-                onChange={(event) => change(event.target.value)}
-                placeholder="Ketik kata atau frasa…"
-                autoComplete="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                aria-describedby="basics-question"
-                aria-invalid={status === "incorrect"}
-              />
-              {!finished && <div className="qa-composer-tools">
-                <button className="btn btn-primary qa-send" type="submit">
-                  Periksa jawaban <span aria-hidden="true">↗</span>
-                </button>
-              </div>}
-            </div>
-          </div>
-          <div aria-live="polite" aria-atomic="true">
-            {status === "empty" && (
-              <p className="hint hint-plain basics-feedback">
-                Ketik jawaban terlebih dahulu.
-              </p>
-            )}
-            {status === "incorrect" && (
-              <div className="feedback feedback-bad basics-feedback">
-                <strong>Belum tepat — coba lagi.</strong>
-                <p className="hint">{question.skillId ? question.hint : mistakeHint(question, input)}</p>
-                {!question.skillId && <p className="basics-explanation">{question.explanation}</p>}
-              </div>
-            )}
-            {finished && (
-              <div
-                className={`feedback basics-feedback ${
-                  status === "correct" ? "feedback-ok" : "feedback-reveal"
-                }`}
-              >
-                {status === "correct" ? (
-                  <span className="feedback-title">
-                    <SuccessBadge />
-                    <span>Benar!</span>
-                  </span>
-                ) : (
-                  <strong>Jawaban dan penjelasan</strong>
-                )}
-                <SpokenSentence text={completedSentence(question)} />
-                {question.answer === NO_WORD && (
-                  <span>Tanpa kata tambahan (ketik -).</span>
-                )}
-                <p className="basics-explanation">{question.explanation}</p>
-                {question.skillId && <button type="button" className="btn btn-primary"
-                  onClick={() => onWrite(question.id)}>Pakai dalam kalimat</button>}
-              </div>
-            )}
-          </div>
-          {!finished && hasIncorrectAttempt && <button type="button" className="inline-popup-link"
-            onClick={() => record("revealed")}>Lihat contoh jawaban</button>}
-          {finished && <div className="actions basics-actions">
-            <button className="btn btn-primary" type="submit">
-              Soal berikutnya →
+          <div className="tags">
+            <button
+              type="button"
+              className="tag tag-tense tag-clickable"
+              onClick={openMaterial}
+              title="Klik untuk melihat penjelasan & contoh topik ini"
+            >
+              {BASICS_LABELS[question.topic]}{" "}
+              <span className="tag-info-icon" aria-hidden="true">
+                ⓘ
+              </span>
             </button>
-          </div>}
-        </form>
-        <p className="swipe-hint">
-          ← Geser kiri: soal baru{hasIncorrectAttempt || finished ? " · Geser kanan: hint →" : ""}
-        </p>
-      </main>
+            {(hasIncorrectAttempt || finished) && <button
+              type="button"
+              className="tag tag-hint-btn"
+              onClick={openHint}
+              title="Lihat petunjuk soal ini"
+            >
+              💡 Hint
+            </button>}
+          </div>
+
+          {question.context && (
+            <p className="basics-context">{question.context}</p>
+          )}
+          <p className="basics-prompt" id="basics-question">
+            {question.prompt}
+          </p>
+          {question.cue && (
+            <p className="basics-cue">
+              {question.cue.includes("/") ? "Pilihan:" : "Kata dasar:"}{" "}
+              <strong>{question.cue}</strong>
+            </p>
+          )}
+
+          <form
+            className="basics-answer-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (finished) next();
+              else {
+                const result = checkBasicsAnswer(question, input);
+                if (result === "empty") setStatus(result);
+                else record(result);
+              }
+            }}
+          >
+            <div className="sentence-answer-block">
+              <label className="sentence-answer-label" htmlFor="basics-answer">Jawaban Anda</label>
+              <div className={`qa-composer basics-composer ${status === "correct" ? "is-correct" : status === "incorrect" ? "is-incorrect" : ""}`}>
+                <input
+                  id="basics-answer"
+                  value={input}
+                  readOnly={finished}
+                  aria-label="Jawaban"
+                  onChange={(event) => change(event.target.value)}
+                  placeholder="Ketik kata atau frasa…"
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  aria-describedby="basics-question"
+                  aria-invalid={status === "incorrect"}
+                />
+                {!finished && <div className="qa-composer-tools">
+                  <button className="btn btn-primary qa-send" type="submit">
+                    Periksa jawaban <span aria-hidden="true">↗</span>
+                  </button>
+                </div>}
+              </div>
+            </div>
+            <div aria-live="polite" aria-atomic="true">
+              {status === "empty" && (
+                <p className="hint hint-plain basics-feedback">
+                  Ketik jawaban terlebih dahulu.
+                </p>
+              )}
+              {status === "incorrect" && (
+                <div className="feedback feedback-bad basics-feedback">
+                  <strong>Belum tepat — coba lagi.</strong>
+                  <p className="hint">{question.skillId ? question.hint : mistakeHint(question, input)}</p>
+                  {!question.skillId && <p className="basics-explanation">{question.explanation}</p>}
+                </div>
+              )}
+              {finished && (
+                <div
+                  className={`feedback basics-feedback ${
+                    status === "correct" ? "feedback-ok" : "feedback-reveal"
+                  }`}
+                >
+                  {status === "correct" ? (
+                    <span className="feedback-title">
+                      <SuccessBadge />
+                      <span>Benar!</span>
+                    </span>
+                  ) : (
+                    <strong>Jawaban dan penjelasan</strong>
+                  )}
+                  <SpokenSentence text={completedSentence(question)} />
+                  {question.answer === NO_WORD && (
+                    <span>Tanpa kata tambahan (ketik -).</span>
+                  )}
+                  <p className="basics-explanation">{question.explanation}</p>
+                  {question.skillId && <button type="button" className="btn btn-primary"
+                    onClick={() => onWrite(question.id)}>Pakai dalam kalimat</button>}
+                </div>
+              )}
+            </div>
+            {!finished && hasIncorrectAttempt && <button type="button" className="inline-popup-link"
+              onClick={() => record("revealed")}>Lihat contoh jawaban</button>}
+            {finished && <div className="actions basics-actions">
+              <button className="btn btn-primary" type="submit">
+                Soal berikutnya →
+              </button>
+            </div>}
+          </form>
+        </main>
+        <SwipeGuide direction={swipeDirection} progress={swipeProgress} blocked={swipeBlocked} />
+      </div>
 
       <BottomSheet
         open={hintOpen}

@@ -20,7 +20,6 @@ export function SentenceFilters({ filter, practiceMode, onClose, onApply }: {
   const [mode, setMode] = useState(practiceMode);
   const empty = !draft.tenses.length || !draft.modes.length || !draft.forms.length;
   const supported = quizCombinations(draft).length;
-  const total = draft.tenses.length * draft.modes.length * draft.forms.length;
 
   return <BottomSheet open closeButtonOnly onClose={onClose} title="Filter Sentence Practice">
     <div className="sheet-form">
@@ -73,19 +72,10 @@ export function SentenceFilters({ filter, practiceMode, onClose, onApply }: {
         </div>
       </fieldset>
 
-      <label className="rare-toggle">
-        <input type="checkbox" checked={draft.includeRare}
-          onChange={event => setDraft({...draft, includeRare: event.target.checked})} />
-        <span>Sertakan bentuk langka &amp; kata kerja keadaan</span>
-      </label>
       <div aria-live="polite">
         {empty ? <p className="hint">Pilih minimal satu tense, satu jenis, dan satu bentuk kalimat.</p>
           : !supported ? <p className="hint">
-            Kombinasi ini belum didukung. Untuk nominal, pilih Simple, Perfect, atau Present/Past Continuous.
-            Untuk passive langka, aktifkan pilihan bentuk langka.
-          </p> : supported < total ? <p className="note">
-            Latihan memakai {supported} kombinasi yang didukung dari {total} pilihan.
-            Nominal Future Continuous dan Perfect Continuous dibatasi. Passive langka mengikuti pengaturan bentuk langka.
+            Kombinasi ini belum didukung. Pilih tense atau jenis kalimat lain untuk melanjutkan.
           </p> : null}
       </div>
       <button type="button" className="btn btn-primary" disabled={empty || !supported}
