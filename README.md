@@ -1,241 +1,224 @@
-# Grammar App Quiz
+# Grammar Drill
 
-An interactive English grammar drill. The app shows a random **subject + cue**
-(e.g. `She + work`) tagged with a **tense**, **type**, and **sentence form**.
-You **type the full sentence**, and the app checks it word-by-word, celebrates
-correct answers, and pinpoints exactly what went wrong when you miss.
+Aplikasi latihan grammar bahasa Inggris dengan penjelasan bahasa Indonesia.
+Latihan dimulai dari menyusun kalimat, lalu dapat dilanjutkan ke konteks, terjemahan,
+dan menulis kalimat berdasarkan situasi baru.
 
-Built with **React + Vite + TypeScript**. The default exercises run in the
-browser. Q&A roleplay starts with the server-backed Gemini tutor on supported hosts.
+[Buka aplikasi](https://grammar-app-quiz.vercel.app/) · [Riwayat perubahan](CHANGELOG.md)
 
-## Answer checking
+## Fitur utama
 
-- **Type and check**: enter the full sentence; press Enter to check, Enter
-  again to advance.
-- **Tolerant matching**: capitalization, spacing, punctuation, and contractions
-  are all accepted (`don't` = `do not`, `she's been` = `she has been`).
-- **Word-level diff**: wrong answers are shown with each word colored
-  (correct / wrong / missing / extra) against the correct sentence.
-- **Targeted hints**: rule-based hints point at the real mistake ("third-person
-  singular uses *does*", "this tense needs the past participle (V3)"), derived
-  from the question context — no LLM, no network call.
-- Correct answers trigger a confetti burst (respects `prefers-reduced-motion`).
+### Sentence Practice
 
-## What it covers
+Halaman awal untuk berlatih menulis kalimat lengkap. Generator mencakup 12 tense,
+jenis verbal/nominal/passive, serta bentuk positif, negatif, Yes/No, dan WH-question.
+Tersedia 32 subjek dan 80 kata kerja dengan bentuk V1/V2/V3 yang dicatat secara eksplisit.
+Subjek mencakup kata ganti, nama orang, pasangan nama, dan frasa dengan keterangan.
 
-- **All 12 tenses** (present / past / future × simple / continuous / perfect / perfect continuous)
-- **Three types**: Verbal (action verb), Nominal (to be + complement), Passive voice
-- **Four forms**: Positive (+), Negative (−), Yes/No question (?), WH-question
-- **80 verbs** with explicit V1/V2/V3/-ing/3rd-singular forms (regular + irregular)
-- Subject-verb agreement across every person/number (I, he, the students, a pilot, ...)
+Pengguna dapat memilih tingkat bantuan melalui tiga mode latihan.
 
-Grammar rules enforced by the engine:
+| Mode | Yang ditampilkan |
+| --- | --- |
+| **Susun** | Badge tense dan potongan kata Inggris, misalnya `He + prepare + the meal` |
+| **Konteks** | Situasi waktu dan potongan kata Inggris, dengan badge disembunyikan saat mengerjakan |
+| **Terjemahkan** | Kalimat Indonesia beserta konteks waktunya, dengan petunjuk kata yang tersedia setelah mencoba |
 
-- **Passive** is built from the active sentence: the object becomes the subject
-  and the doer moves to a `by ...` phrase (*The teacher explains the lesson* →
-  *The lesson is explained by the teacher*). Supports + / − / ? / WH.
-- **Continuous** tenses exclude **stative** verbs (no `-ing`).
-- The "being" nominal form (temporary behavior) is used only with **behavioral
-  adjectives** (rude, careful), never state adjectives (happy, tired).
-- Perfect-continuous has **no true nominal**; it falls back to the perfect
-  `been` form, with an on-screen note explaining the shift.
-- Subjects are matched to verbs/complements by **entity** (a dog never becomes
-  a teacher) and plural subjects get plural nouns (*they are doctors*).
-- **Time signals** per tense (yesterday, for 2 hours, by 2028, ...) keep
-  otherwise-identical tenses distinguishable.
-- Rare-but-valid forms (e.g. `will be being`, perfect-continuous passive) and
-  stative-verb traps are hidden from the random pool behind a toggle.
+Sebagai contoh, soal terjemahan **“Apakah dia laki-laki akan menyiapkan makanan itu?”**
+dengan konteks masa depan dapat dijawab **“Will he prepare the meal?”**.
+Susun menjadi mode awal dan pilihan mode terakhir tersimpan di perangkat.
 
-## Q&A roleplay
+Filter mendukung beberapa pilihan sekaligus. Pengguna dapat memilih
+**Present Simple + Past Simple**, **Verbal**, dan **Yes/No + WH** untuk satu sesi.
+Soal bergiliran melalui kombinasi yang didukung, lalu memulai siklus berikutnya.
+Pilihan diterapkan setelah menekan **Terapkan Filter**.
 
-Open Question & Answer and select **Roleplay percakapan**. Pick a starter from work, everyday life, travel or study and community. The opening question is available immediately.
-The original filtered drills remain under **Latihan singkat**.
+Jawaban diperiksa kata demi kata dengan toleransi terhadap kapitalisasi, spasi,
+tanda baca, dan singkatan yang didukung. Contohnya, `doesn't` dapat dikenali
+sebagai `does not`. Umpan balik menunjukkan kata yang salah, kurang, atau berlebih.
+Setelah jawaban yang belum tepat, pengguna dapat membuka petunjuk atau contoh jawaban.
+Jawaban yang benar atau dibuka contohnya dapat ditelaah melalui pembahasan pola
+dan fungsi bagian kalimat, lalu dilanjutkan dengan **Soal berikutnya**.
 
-### Gemini tutor on the free tier
+### Grammar Basics
 
-Use a Gemini API key from a Google AI Studio project on the **Free** tier
-with billing disabled. The project attached to the key determines billing.
-For local development, put `GEMINI_API_KEY=your_key` in `.env.local` (ignored
-by Git) and restart `npm run dev`. On Vercel, set the same server environment
-variable and redeploy. GitHub Pages serves the local roleplay.
+Latihan isian untuk mengenali aturan sebelum menerapkannya dalam kalimat.
+Tersedia **371 soal pada 13 topik**, yang dapat dikerjakan per topik atau dalam
+mode Campuran.
 
-Gemini is selected by default on localhost and Vercel. One submission sends the
-current question, answer, learning goals and up to three recent exchanges to
-Gemini 3.5 Flash-Lite through `/api/roleplay`. The tutor gives Indonesian
-feedback, an English correction when needed and a contextual follow-up or
-clarification. Gemini writes each follow-up in character. Select **Akhiri percakapan** to finish. Learners use the feature
-without signing in. Google may use free-tier content for product improvement.
-[Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite)
+Topiknya meliputi Articles, Prepositions, Singular & Plural, Pronouns & Possessives,
+Quantifiers, Comparatives & Superlatives, Adjectives & Adverbs, Gerund & Infinitive,
+Relative Pronouns, Modals, Conjunctions, Conditionals, dan Collocations.
 
-If the key is unavailable, the request times out or quota is exhausted, the
-session switches to local exercises. The transcript and current draft stay
-available. After a generated question, the learner can adjust the draft to
-the local question before checking again.
+| Contoh soal | Jawaban | Yang dipelajari |
+| --- | --- | --- |
+| `We need to ___ a decision.` | `make` | Pasangan kata `make a decision` |
+| `This book is ___ interesting than that one.` | `more` | Perbandingan dengan `more ... than` |
+| `I have two ___.` dengan kata dasar `book` | `books` | Bentuk jamak kata benda |
 
-The local meeting and interview exercises retain their branching questions and
-grammar pattern checks. Other starters offer two offline prompts for independent
-practice. MiniLM is used only by Story Challenge.
+Pengguna mengetik kata atau frasa, menekan **Periksa jawaban**, lalu membaca
+penjelasan bahasa Indonesia. Petunjuk soal tersedia setelah percobaan yang belum
+tepat. Badge topik membuka panduan aturan dan contoh materi.
 
-## Develop
+### Pakai dalam kalimat
+
+Sebanyak **78 soal terkait** menyediakan tombol **Pakai dalam kalimat** setelah
+soal isian diselesaikan. Pengguna mendapat situasi baru untuk menerapkan pola
+yang baru dipelajari.
+
+Contohnya, setelah menyelesaikan `We need to make a decision.`, pengguna diminta
+menulis tentang Olivia yang harus memilih antara dua tawaran pekerjaan sebelum Jumat.
+Salah satu jawaban yang diterima adalah **“Olivia needs to make a decision before Friday.”**
+Latihan ini juga memperlihatkan perubahan `need` menjadi `needs` untuk subjek tunggal.
+
+Jawaban ditulis di textarea yang mengikuti panjang teks, atau dimasukkan melalui
+Dikte. Setelah percobaan yang belum tepat, pengguna dapat membuka kata panduan,
+petunjuk, dan contoh jawaban. Pemeriksa memakai variasi kalimat terkurasi sesuai
+situasi. Sejumlah latihan Articles meminta dua kalimat untuk memperkenalkan benda
+dan merujuk kembali pada benda tersebut.
+
+Percobaan dan penggunaan bantuan dicatat secara lokal. Latihan yang membutuhkan
+bantuan dapat dijadwalkan untuk diulang setelah tiga hari dengan situasi terkait.
+
+### Tenses Explorer
+
+Halaman untuk membandingkan perubahan kalimat tanpa harus mengerjakan soal.
+Pengguna memilih subjek, jenis kalimat, kata kerja atau pelengkap, waktu, aspek,
+dan bentuk kalimat.
+
+Lima kata kerja awal adalah **write, eat, take, go, work**. Perubahan bentuk
+ditampilkan bersama contoh kalimat dan penjelasan pemakaiannya.
+
+| Pilihan | Contoh hasil |
+| --- | --- |
+| Past Simple positif | `Emma wrote a letter yesterday.` |
+| Past Simple negatif | `Emma did not write a letter yesterday.` |
+| Past Simple Yes/No | `Did Emma write a letter yesterday?` |
+| Present Perfect | `Emma has written a letter today.` |
+
+Pada contoh tersebut, bentuk `wrote` berubah kembali menjadi `write` setelah
+`did`, sedangkan Present Perfect memakai `has + written`.
+
+Mode nominal menggunakan pelengkap seperti `tired`, `careful`, `a teacher`,
+dan `at home`. Contohnya **“Emma is tired.”** dan **“Is Emma tired?”**.
+Pilihan Continuous tersedia dengan pelengkap perilaku, misalnya
+**“Emma is being careful.”**, untuk menjelaskan sikap sementara.
+Pola nominal yang membutuhkan konteks khusus dibatasi dan diberi keterangan.
+
+Explorer dapat dibuka dari menu atau dengan menekan label tense pada soal.
+Saat dibuka dari soal, konteks kalimat ikut terbawa dan draft jawaban tetap
+tersedia saat kembali. Garis waktu, pembagian fungsi kata, dan perbandingan
+tense dapat dibuka sesuai kebutuhan.
+
+### Question & Answer
+
+Fitur ini melatih pemahaman pertanyaan dan kemampuan memberi respons.
+Tersedia **Latihan singkat** serta **Roleplay percakapan**.
+
+Dalam latihan singkat, pengguna mengenali informasi yang ditanyakan lalu
+menulis jawaban. Pemeriksa mempertimbangkan pola grammar dan kesesuaian respons.
+
+| Pertanyaan | Contoh respons |
+| --- | --- |
+| `Where did she work?` | `She worked at a restaurant.` |
+
+Contoh tersebut melatih bentuk lampau dan informasi tempat. Jawaban dengan
+keterangan waktu saja belum memenuhi informasi tempat yang diminta.
+
+Roleplay memakai skenario kehidupan sehari-hari, pekerjaan, perjalanan, atau
+belajar. Misalnya, skenario kelompok belajar dimulai dengan
+**“Which topic should we study together first?”**. Pengguna dapat menjawab
+**“We should study past simple first.”** lalu melanjutkan percakapan.
+Tutor Gemini dapat memberi koreksi dan pertanyaan lanjutan berdasarkan respons.
+
+### Article Lab
+
+Latihan mengenali grammar di dalam paragraf. Tersedia dua bentuk aktivitas.
+
+- **Bedah Kalimat** — memilih tag struktur grammar berdasarkan kalimat dan
+  menemukan frasa yang menjadi buktinya.
+- **Cari & Perbaiki** — menemukan bagian yang bermasalah lalu mengetik koreksinya.
+
+Sebagai ilustrasi, frasa `has finished` dapat dikenali sebagai Present Perfect.
+Contoh jenis koreksi yang dilatih adalah perubahan berikut.
+
+| Teks dengan kesalahan | Perbaikan |
+| --- | --- |
+| `She has went home.` | `She has gone home.` |
+
+Pengguna berlatih membaca konteks dan menjelaskan pilihan bentuk kata.
+Materi artikel kustom dapat ditambahkan melalui dataset dan perintah pengelolaan
+artikel yang tersedia dalam proyek.
+
+### Story Challenge
+
+Latihan menulis cerita berdasarkan situasi dengan tiga misi grammar.
+Pengguna dapat memilih tingkat Starter, Intermediate, atau Master, lalu memakai
+ide kata konteks serta bantuan bentuk kata kerja saat menyusun cerita.
+
+Contoh skenario **Terlambat ke Acara Penting** meminta pengguna menceritakan
+kejadian saat terlambat atau ketinggalan kendaraan. Tiga misi pada skenario ini
+dapat dipenuhi dengan kalimat berikut.
+
+| Misi | Contoh kalimat |
+| --- | --- |
+| Past Perfect | `The train had left before I arrived.` |
+| Passive Voice lampau | `My ticket was left on my desk at home.` |
+| Penyesalan dengan modal | `I should have prepared everything last night.` |
+
+Pemeriksaan lokal menandai pola yang ditemukan, memeriksa syarat penulisan,
+dan memberikan saran untuk misi yang belum terpenuhi. MiniLM membantu
+memperkirakan kesesuaian topik. Tutor Gemini dapat digunakan untuk umpan balik
+berdasarkan cerita dan misi yang dipilih.
+
+### Input suara, audio, dan cara baca
+
+Tombol **Dikte** memasukkan ucapan bahasa Inggris ke dalam kotak jawaban.
+Teks dapat diedit sebelum diperiksa. Tombol **Ucapkan** dan **Lambat** membantu
+mendengarkan contoh, sedangkan **Cara baca** menyediakan panduan pelafalan
+bergaya ejaan Indonesia untuk kosakata yang tercakup.
+
+## Menjalankan proyek
+
+Dibangun dengan React, TypeScript, dan Vite. CI menggunakan Node.js 20.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-## Build
+Buka alamat lokal yang ditampilkan Vite.
 
-```bash
-npm run build      # type-check + static build into dist/
-npm run preview    # preview the production build locally
+| Perintah | Kegunaan |
+| --- | --- |
+| `npm test` | Menjalankan tes grammar, pemeriksaan jawaban, dan generator soal |
+| `npm run build` | Memeriksa TypeScript dan membuat build produksi di `dist/` |
+| `npm run preview` | Membuka build produksi secara lokal |
+
+## Offline, suara, dan tutor Gemini
+
+Pemeriksaan Sentence Practice dan Grammar Basics serta materi Tenses Explorer
+berjalan di browser. Aplikasi mendukung instalasi PWA dan cache aset untuk
+penggunaan offline setelah dimuat melalui jaringan.
+
+Input suara bergantung pada dukungan browser dan perangkat, serta dapat
+memerlukan jaringan. Story Challenge dapat mengunduh model MiniLM saat pertama
+digunakan untuk membantu memperkirakan kesesuaian topik cerita.
+
+Tutor Gemini pada roleplay dan Story Challenge memerlukan koneksi serta API key
+di server. Untuk development, buat file `.env.local` yang diabaikan Git.
+
+```dotenv
+GEMINI_API_KEY=isi_api_key_anda
 ```
 
-## Deploy to GitHub Pages
+Jalankan ulang `npm run dev` setelah mengubah environment. Pada Vercel, tambahkan
+`GEMINI_API_KEY` di Environment Variables untuk deployment yang digunakan, lalu
+redeploy. GitHub Pages menjalankan fitur lokal.
 
-1. Create a GitHub repo named **`grammar-app-quiz`** (the name must match
-   `base` in `vite.config.ts`). To use a different name, update `base`.
-2. Push to the `main` branch.
-3. In the repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-4. The included workflow (`.github/workflows/deploy.yml`) builds and publishes
-   automatically on every push to `main`.
+## Pengembangan materi
 
-Live URL: `https://<your-username>.github.io/grammar-app-quiz/`
+Logika grammar dan materi berada di `src/grammar/`, komponen tampilan di
+`src/ui/`, dan endpoint tutor di `api/`.
 
-## Project structure
-
-```
-src/
-  grammar/
-    types.ts            domain types
-    engine.ts           conjugation for all 12 tenses (verbal/nominal/passive)
-    generator.ts        random question generator + filters + grammar rules
-    labels.ts           display labels and tense ordering
-    data/
-      subjects.ts       subjects across person/number
-      verbs.ts          80 verbs with explicit forms
-      complements.ts    complements for nominal sentences
-  App.tsx               UI
-  index.css             styles
-```
-
-## Grammar Basics
-
-Switch between **Sentence Practice** (the original full-sentence drill) and
-**Grammar Basics** using the buttons below the title.
-
-Grammar Basics combines curated patterns with compatible vocabulary:
-
-- **Articles**: a/an by sound, the for an identified referent, and no article
-  for general languages or plural nouns. Context is supplied where needed.
-- **Prepositions**: in/on/at for time and explicit spatial contexts, plus
-  expressions such as “next Monday” that need no preposition.
-- **Verb Agreement**: present-simple positive, negative, and question patterns
-  with varied subjects and verbs, including has, studies, and goes.
-- **Singular & Plural**: counts, regular endings, and irregular/unchanged plurals.
-
-Choose a topic or a mixed deck. Each generated variation appears once per cycle;
-changing topics starts a fresh deck. Articles and prepositions use radio options
-(including **∅ Tanpa kata**, an explicit no-word answer). Other topics accept a
-single typed word. Feedback explains the rule in Indonesian. Revealing an answer
-also shows its explanation and lets you move to the next question.
-
-The patterns, vocabulary, and explanations live in
-`src/grammar/basics/engine.ts`; topic names live in `src/grammar/labels.ts`.
-New combinations should carry enough context to give an unambiguous answer.
-
-Run `npm test` for generated-question invariants, deck coverage, targeted grammar
-cases, answer normalization, and a regression check of the original sentence
-checker. Run `npm run build` for TypeScript validation and the production build.
-
-## Question & Answer
-
-The third practice mode has two stages:
-
-1. **Pahami pertanyaan**: identify the requested information and tense/function.
-2. **Latih jawaban**: respond with a short yes/no answer or a complete positive
-   sentence using the verb in the question. The answer content is your choice.
-
-The initial generator includes 105 combinations: present simple, present
-continuous, and past simple; yes/no, where, when, why, what, who (with whom), and
-how (transport); and five speaker/subject perspectives. Present continuous can
-also describe an arranged future activity. Filters start a fresh deck; each
-question appears once per cycle. Moving from comprehension to answering keeps
-the same question.
-
-The checker in `src/grammar/qa/engine.ts` separately reports **core pattern** and
-**response relevance**. It accepts recognized phrase families rather than one
-exact answer: for “Where did she work?”, both “She worked at a restaurant” and
-“She worked in Jakarta” pass. “She worked yesterday” has the expected core
-pattern but does not supply a place. Yes/no answers must use the correct speaker
-perspective, auxiliary, and polarity.
-
-This is deliberately a bounded rule-based exercise, not a general English
-proofreader. Unrecognized locations, clauses, alternative structures, or extra
-sentences receive **not fully verified**, never an automatic success. A natural
-fragment such as “At home” is recognized as relevant but prompts the learner to
-practice a full sentence. Unknown grammar is not asserted to be wrong. Examples
-are explicitly labeled as one possible answer. No user text is sent to an API.
-
-`npm test` also checks every generated Q&A example, variable answers, malformed
-patterns, ambiguous/unsupported replies, contractions, perspective, relevance,
-and deck coverage.
-
-## Article Lab
-
-**Article Lab** (`src/grammar/articles/engine.ts` and `src/ui/ArticlePractice.tsx`)
-trains grammar recognition and proofreading inside multi-sentence paragraphs:
-
-- **Bedah Kalimat (Tag)**: dissect each sentence in a paragraph by assigning
-  grammar structure tags from a shuffled tag bank (with distractors and
-  trap-specific feedback).
-- **Cari & Perbaiki (Find & Fix)**: spot the erroneous phrase in context and
-  type its correction. Dynamic error rotation mutates one target span per card
-  while keeping the remaining spans clean.
-
-New articles can be added without modifying any TypeScript/React code via
-`src/grammar/articles/custom-articles.json` and `scripts/add-article.mjs`.
-See [PANDUAN_ARTICLE_LAB.md](./PANDUAN_ARTICLE_LAB.md) for the complete guide.
-
-## Story Challenge
-
-**Story Challenge** (`src/grammar/story/engine.ts` and `src/ui/StoryChallengePractice.tsx`)
-is a guided free-writing mode accessible from the third bottom-navigation button
-(**Pilih Mode Latihan**):
-
-- **Skenario & Ide Kata Konteks**: each challenge presents a real-life topic
-  ( across *Starter*, *Intermediate*, and *Master* levels) along with clickable
-  context keywords and an optional V1–V2–V3 verb helper drawer.
-- **Misi Grammar (Checklist Wajib)**: 3 required grammar structures per scenario,
-  color-coded in **Blue**, **Green**, and **Purple**.
-- **Tutor Gemini** is on by default on localhost and Vercel. **Periksa Jawaban**
-  sends the draft, scenario and missions to `/api/story` using the same server-side
-  `GEMINI_API_KEY` as Roleplay. The tutor highlights a strength and, when useful,
-  explains one correction or suggests how to develop a missing mission.
-  Switching the tutor off keeps the review local. GitHub Pages uses local checks.
-- **Bedah Paragraf Visual (Color-Coded Highlighting)**: evaluates user-written
-  paragraphs offline using morphological and structural pattern matching,
-  highlighting matched phrases in their corresponding mission color and giving
-  targeted near-miss coaching (such as converting active clauses to passive or
-  fixing V1/V2 after `had` / `should have`).
-- Custom scenarios can be added via `src/grammar/story/custom-stories.json`.
-
-## Sentence Practice explanations
-
-Sentence Practice now includes Indonesian instructions, targeted feedback, and
-an optional **Lihat pola & bantuan** panel. The formula uses the same auxiliary
-clusters as the sentence engine, accounting for tense, positive/negative/question
-form, verbal/nominal/passive mode, and the actual subject (the receiver in passive
-sentences). V1/V2/V3/-ing terminology is explained in the panel.
-
-After a correct or revealed answer, **Mengapa bentuknya begitu?** explains the
-selected forms. An expandable table labels the reference sentence's subject,
-auxiliaries, verb, object/complement, time phrase, and passive agent. Nominal and
-stative fallback exercises explicitly explain the effective tense instead of
-presenting a misleading continuous formula.
-
-Hints use the affected grammatical slot: an object or time-expression error no
-longer automatically triggers a generic tense or question-order hint. Supported
-complete time phrases can move from the end to the beginning of statements
-(e.g. “Yesterday, she worked …”). This is limited variation, not arbitrary word
-reordering; duration phrases and mid-position adverbs are not freely moved.
-Corrections also work when the learner uses a supported fronted time phrase.
+Panduan menambah artikel tersedia di [Panduan Article Lab](PANDUAN_ARTICLE_LAB.md).
+Riwayat pengembangan sejak versi pertama tersedia di [CHANGELOG.md](CHANGELOG.md).
