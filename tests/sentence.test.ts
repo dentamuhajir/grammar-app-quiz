@@ -8,6 +8,7 @@ import { SUBJECTS } from "../src/grammar/data/subjects";
 import { COMPLEMENTS } from "../src/grammar/data/complements";
 import { TIME_SIGNALS } from "../src/grammar/data/timeSignals";
 import { WRITING_PACKS } from "../src/grammar/writingPacks";
+import { TOPIC_WRITING_LESSONS } from "../src/grammar/topicWriting";
 import { sentenceReading } from "../src/grammar/sentenceReadings";
 import { DEFAULT_FILTER, generateQuestion, generateStativeTrap } from "../src/grammar/generator";
 import { TENSE_LABELS, TENSE_ORDER } from "../src/grammar/labels";
@@ -27,6 +28,7 @@ test("offline reading guide covers sentence vocabulary, inflections, time expres
     ...COMPLEMENTS.flatMap(c => [c.text, c.plural ?? ""]),
     ...Object.values(TIME_SIGNALS).flatMap(groups => [...groups.action, ...groups.role, ...groups.state].map(s => s.text)),
     ...WRITING_PACKS.flatMap(p => p.lessons.map(q => q.reference)),
+    ...TOPIC_WRITING_LESSONS.flatMap(lesson => lesson.variants),
   ];
   for (const text of corpus.filter(Boolean)) assert.ok(sentenceReading(text), text);
 });

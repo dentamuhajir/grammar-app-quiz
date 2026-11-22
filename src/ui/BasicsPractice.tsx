@@ -307,9 +307,6 @@ export function BasicsPractice({ onWrite }: WritingLink) {
               {BASICS_LABELS[topic]}
             </button>
           ))}
-          {WRITING_PACKS.map(pack => <button key={pack.skill} type="button"
-            className={`topic-pill ${filter === pack.skill ? "active" : ""}`}
-            onClick={() => { setFilter(pack.skill); setFiltersOpen(false); }}>{pack.label} · {pack.lessons.length} soal</button>)}
         </div>
       </BottomSheet>
     </>

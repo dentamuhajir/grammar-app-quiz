@@ -7,8 +7,118 @@ import { DEFAULT_FILTER, generateQuestion } from "../src/grammar/generator";
 import { FOR_SINCE, FOR_SINCE_LESSONS, checkForSinceWriting, referenceSentence } from "../src/grammar/forSince";
 import { dueReviews, reviewLesson, saveAttempt } from "../src/grammar/writingReview";
 import { INTERESTED_IN, INTEREST_LESSONS, checkInterestWriting } from "../src/grammar/interestedIn";
-import { packForLesson } from "../src/grammar/writingPacks";
+import { packForLesson, WRITING_PACKS } from "../src/grammar/writingPacks";
 import { ARTICLE_WRITING, ARTICLE_LESSONS, checkArticleWriting } from "../src/grammar/articleWriting";
+import { TOPIC_WRITING_LESSONS, checkTopicWriting } from "../src/grammar/topicWriting";
+
+test("guided topics link their writing situations to blank questions and accept curated alternatives", () => {
+  assert.equal(TOPIC_WRITING_LESSONS.length, 60);
+  const topics = new Set(TOPIC_WRITING_LESSONS.map(lesson => lesson.topic));
+  assert.equal(topics.size, 11);
+  for (const topic of topics) {
+    assert.ok(TOPIC_WRITING_LESSONS.filter(lesson => lesson.topic === topic).length >= 3);
+  }
+  for (const lesson of TOPIC_WRITING_LESSONS) {
+    const q = question(lesson.id);
+    assert.equal(q.topic, lesson.topic);
+    assert.equal(checkBasicsAnswer(q, lesson.answer), "correct");
+    assert.equal(packForLesson(lesson.id).skill, q.skillId);
+    assert.ok(createDeck(lesson.topic).some(item => item.id === lesson.id));
+    for (const variant of lesson.variants) {
+      assert.equal(checkTopicWriting(lesson, "  " + variant.toUpperCase() + "! ").status, "correct", variant);
+      assert.equal(checkTopicWriting(lesson, variant + " not").status, "retry");
+    }
+    assert.equal(checkTopicWriting(lesson, "").status, "empty");
+    assert.equal(checkTopicWriting(lesson, "I like apples").status, "retry");
+  }
+});
+
+test("guided writing rejects mistakes in grammar and meaning while accepting contractions", () => {
+  const cases = [
+    ["write-plurals-books", "I have two book"],
+    ["write-pronouns-her", "This is she bag"],
+    ["write-quantifiers-many", "How much apples do you need"],
+    ["write-comparatives-taller", "Maya is tallest than Rina"],
+    ["write-adjectives-carefully", "She drives careful"],
+    ["write-relatives-who", "The woman who live next door is a doctor"],
+    ["write-modals-rest", "You should to rest"],
+    ["write-conjunctions-because", "I stayed home so I was sick"],
+    ["write-conditionals-rain", "If it will rain I will stay home"],
+    ["write-collocations-decision", "We need to do a decision"],
+  ];
+  for (const [id, input] of cases) {
+    const lesson = TOPIC_WRITING_LESSONS.find(item => item.id === id)!;
+    assert.equal(checkTopicWriting(lesson, input).status, "retry", input);
+  }
+  for (const [id, input] of [
+    ["write-quantifiers-much", "I don't have much time."],
+    ["write-conditionals-rich", "If I were rich, I'd travel the world."],
+    ["write-conditionals-rain", "I'll stay home if it rains."],
+  ]) {
+    const lesson = TOPIC_WRITING_LESSONS.find(item => item.id === id)!;
+    assert.equal(checkTopicWriting(lesson, input).status, "correct", input);
+  }
+});
+
+test("expanded practice covers 371 blanks and 78 writing situations without duplicate IDs", () => {
+  assert.equal(BASICS_POOL.length, 371);
+  const writing = WRITING_PACKS.flatMap(pack => pack.lessons);
+  assert.equal(writing.length, 78);
+  assert.equal(new Set(writing.map(lesson => lesson.id)).size, writing.length);
+  for (const topic of Object.keys(BASICS_LABELS)) {
+    assert.ok(BASICS_POOL.some(q => q.topic === topic && q.skillId));
+  }
+});
+
+test("expanded patterns reject grammar mistakes and changes to the requested meaning", () => {
+  const mistakes = [
+    ["write-gerunds-enjoy", "She enjoys to read books"],
+    ["write-gerunds-want", "I want learning English"],
+    ["write-gerunds-avoid", "We avoid to talk during meetings"],
+    ["write-gerunds-decide", "They decided leaving early"],
+    ["write-gerunds-finish", "I finished to write the report yesterday"],
+    ["write-gerunds-hope", "We hope seeing you soon"],
+    ["write-quantifiers-a-few", "I have few friends here"],
+    ["write-quantifiers-few", "I have a few friends here"],
+    ["write-quantifiers-a-little", "We have little time left"],
+    ["write-quantifiers-little", "We have a little time left"],
+    ["write-pronouns-his", "This is him jacket"],
+    ["write-pronouns-hers", "This jacket is her"],
+    ["write-pronouns-ours", "This house is our"],
+    ["write-pronouns-him", "I will help he"],
+    ["write-modals-could", "She could swam when she was five"],
+    ["write-modals-may", "He may comes tomorrow"],
+    ["write-modals-must-not", "You do not have to touch this wire"],
+    ["write-modals-cannot", "I can open this jar"],
+    ["write-conditionals-third", "If I studied harder I would pass the exam"],
+    ["write-conditionals-third-negative", "If we had left earlier we would have missed the train"],
+    ["write-conditionals-first-negative", "If it will not rain we will go outside"],
+    ["write-conditionals-second-negative", "If I were you I will not buy that car"],
+    ["write-comparatives-as", "Rina is as taller as Maya"],
+    ["write-comparatives-less", "This bag is least expensive than that one"],
+    ["write-relatives-whose", "The boy who bike is red is my brother"],
+    ["write-relatives-which", "The bus which stop here goes to the station"],
+    ["write-conjunctions-although", "Although it was raining but we went outside"],
+    ["write-conjunctions-unless", "You will miss the bus unless you do not hurry"],
+    ["write-plurals-uncountable", "This information are useful"],
+    ["write-collocations-attention", "Please pay attention the instructions"],
+  ];
+  for (const [id, input] of mistakes) {
+    const lesson = TOPIC_WRITING_LESSONS.find(item => item.id === id)!;
+    assert.equal(checkTopicWriting(lesson, input).status, "retry", input);
+  }
+  for (const [id, input] of [
+    ["write-modals-must-not", "You mustn't touch this wire."],
+    ["write-modals-cannot", "I can't open this jar."],
+    ["write-conditionals-third", "I'd have passed the exam if I'd studied harder."],
+    ["write-conditionals-third-negative", "If we'd left earlier, we wouldn't have missed the train."],
+    ["write-conditionals-first-negative", "We'll go outside if it doesn't rain."],
+    ["write-conditionals-second-negative", "If I were you, I wouldn't buy that car."],
+  ]) {
+    const lesson = TOPIC_WRITING_LESSONS.find(item => item.id === id)!;
+    assert.equal(checkTopicWriting(lesson, input).status, "correct", input);
+  }
+});
 
 function question(id: string) {
   const result = BASICS_POOL.find((q) => q.id === id);
