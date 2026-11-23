@@ -41,6 +41,7 @@ export const QA_TENSE_LABELS: Record<QATense, string> = {
 };
 
 export interface QAQuestion {
+  prepositionQuestion?: boolean;
   id: string;
   tense: QATense;
   intent: Intent;
@@ -63,6 +64,7 @@ export interface QAQuestion {
 export interface QAFilter {
   tense: QATense | "all";
   intent: Intent | "all";
+  prepositionOnly?: boolean;
 }
 
 export type Verdict = "pass" | "fail" | "unknown";
@@ -315,6 +317,19 @@ export function createQAPool(): QAQuestion[] {
     }
   }
 
+  const prepositionQuestions = [
+    { tense: "presentContinuous", question: "Who are you waiting for?", prefix: "I am waiting for", sample: "I am waiting for my sister.", base: "wait", past: "waited", participle: "waited", ing: "waiting", third: "waits", auxiliary: "am" },
+    { tense: "presentContinuous", question: "Who are you talking to?", prefix: "I am talking to", sample: "I am talking to my manager.", base: "talk", past: "talked", participle: "talked", ing: "talking", third: "talks", auxiliary: "am" },
+    { tense: "pastSimple", question: "Who did you talk to?", prefix: "I talked to", sample: "I talked to my friend.", base: "talk", past: "talked", participle: "talked", ing: "talking", third: "talks", auxiliary: "did" },
+    { tense: "pastSimple", question: "Who did you wait for?", prefix: "I waited for", sample: "I waited for my teacher.", base: "wait", past: "waited", participle: "waited", ing: "waiting", third: "waits", auxiliary: "did" },
+    { tense: "futureSimple", question: "Who will you speak to?", prefix: "I will speak to", sample: "I will speak to my manager.", base: "speak", past: "spoke", participle: "spoken", ing: "speaking", third: "speaks", auxiliary: "will" },
+    { tense: "presentSimple", question: "Who do you work with?", prefix: "I work with", sample: "I work with my team.", base: "work", past: "worked", participle: "worked", ing: "working", third: "works", auxiliary: "do" },
+  ] as const;
+  prepositionQuestions.forEach((item, index) => pool.push({
+    ...item, id: `preposition-person-${index}`, intent: "who", replySubject: "I", prepositionQuestion: true,
+    cue: "Jawab dengan kalimat lengkap dan sebutkan orangnya.",
+    explanation: "Who menanyakan orang. Preposisi di akhir pertanyaan digunakan kembali sebelum orang dalam jawaban.",
+  }));
   return pool;
 }
 
@@ -324,7 +339,8 @@ export function qaDeck(filter: QAFilter, previousId?: string): QAQuestion[] {
   const deck = QA_POOL.filter(
     (q) =>
       (filter.tense === "all" || filter.tense === q.tense) &&
-      (filter.intent === "all" || filter.intent === q.intent),
+      (filter.intent === "all" || filter.intent === q.intent) &&
+      (!filter.prepositionOnly || q.prepositionQuestion),
   );
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

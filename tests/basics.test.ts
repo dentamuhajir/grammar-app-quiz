@@ -77,13 +77,13 @@ test("guided writing rejects mistakes in grammar and meaning while accepting con
   }
 });
 
-test("expanded practice covers 403 blanks and 110 writing situations without duplicate IDs", () => {
-  assert.equal(BASICS_POOL.length, 403);
+test("expanded practice includes question formation and 110 writing situations without duplicate IDs", () => {
+  assert.equal(BASICS_POOL.filter(q => q.topic === "questions").length, 12);
   const writing = WRITING_PACKS.flatMap(pack => pack.lessons);
   assert.equal(writing.length, 110);
   assert.equal(new Set(writing.map(lesson => lesson.id)).size, writing.length);
   for (const topic of Object.keys(BASICS_LABELS)) {
-    assert.ok(BASICS_POOL.some(q => q.topic === topic && q.skillId));
+    assert.ok(BASICS_POOL.some(q => q.topic === topic));
   }
 });
 

@@ -105,10 +105,19 @@ test("every generated question has an accepted example, unique ID and supported 
   for (const question of QA_POOL) {
     assert.equal(checkQA(question, question.sample).status, "correct", `${question.id}: ${question.sample}`);
     const deck = qaDeck({ tense: question.tense, intent: question.intent }, question.id);
-    assert.equal(deck.length, 5);
+    assert.equal(deck.length, QA_POOL.filter(q => q.tense === question.tense && q.intent === question.intent).length);
     assert.ok(deck.every(q => q.tense === question.tense && q.intent === question.intent));
     assert.equal(new Set(deck.map(q => q.id)).size, deck.length);
     assert.notEqual(deck[0].id, question.id);
+  }
+});
+
+test("preposition question filter returns supported examples", () => {
+  const deck = qaDeck({ tense: "all", intent: "all", prepositionOnly: true });
+  assert.equal(deck.length, 6);
+  for (const question of deck) {
+    assert.ok(question.prepositionQuestion);
+    assert.equal(checkQA(question, question.sample).status, "correct", question.id);
   }
 });
 

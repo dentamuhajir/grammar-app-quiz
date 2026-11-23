@@ -56,6 +56,25 @@ export function buildQuestionPool(): BasicsQuestion[] {
   const pool: BasicsQuestion[] = [];
   const add = (q: BasicsQuestion) => pool.push(q);
 
+  const questionFormation = [
+    ["Where ___ she work?", "does", "Does digunakan dengan she, lalu kata kerja berbentuk dasar."] ,
+    ["Where did they ___ yesterday?", "go", "Setelah did, gunakan bentuk dasar go."] ,
+    ["___ you ready?", "are", "Pada pertanyaan dengan be, are berada sebelum you."] ,
+    ["What ___ he doing?", "is", "Present continuous memakai is sebelum subjek he dan doing setelahnya."] ,
+    ["Who ___ you call yesterday?", "did", "Who adalah objek. Gunakan did sebelum you dan call."] ,
+    ["Who ___ you yesterday? (call)", "called", "Who adalah subjek, sehingga gunakan called tanpa did."] ,
+    ["Who are you waiting ___?", "for", "Wait for berarti menunggu. For dapat berada di akhir pertanyaan."] ,
+    ["What are you listening ___?", "to", "Listen to berarti mendengarkan. To dapat berada di akhir pertanyaan."] ,
+    ["What did they talk ___?", "about", "Talk about digunakan untuk membicarakan suatu topik."] ,
+    ["How ___ books do you need?", "many", "Gunakan how many untuk benda yang dapat dihitung dalam bentuk jamak."] ,
+    ["How ___ water do you need?", "much", "Gunakan how much untuk kata benda yang tidak dapat dihitung seperti water."] ,
+    ["Could you tell me where she ___? (work)", "works", "Dalam indirect question, gunakan urutan subjek lalu kata kerja: where she works."] ,
+  ];
+  questionFormation.forEach(([prompt, answer, explanation], index) => add({
+    id: `question-formation-${index}`, topic: "questions", rule: "Question Formation",
+    prompt, answer, hint: "Perhatikan kata tanya, subjek, dan kata bantu dalam kalimat.", explanation,
+  }));
+
   // 1. Articles (a / an / the / - )
   const articleHint = "Ketik a, an, the, atau - jika tidak memerlukan artikel. Perhatikan bunyi awal kata dan apakah benda sudah spesifik.";
   function addArticle(question: BasicsQuestion) {
@@ -2253,6 +2272,7 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
       { label: "in / on / at (Tempat)", detail: "in = di dalam ruang/wadah (in the box) · on = menempel di permukaan (on the table) · at = titik spesifik (at the bus stop)." },
       { label: "for vs since", detail: "for + durasi waktu (for three hours) · since + titik awal waktu (since Monday / since 2022)." },
       { label: "Pasangan tetap & used to", detail: "interested in, good at, afraid of, responsible for · used to + V1 (dulu terbiasa) vs be used to + V-ing (sekarang terbiasa)." },
+      { label: "Verb + preposition dalam pertanyaan", detail: "wait for, listen to, talk about, look at, shop for. Saat objek preposisi ditanyakan, preposisi sering berada di akhir: Who are you waiting for? Bentuk formal For whom are you waiting? juga benar." },
     ],
     examples: [
       "The meeting is on Monday at 9 a.m.",
@@ -2260,6 +2280,17 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
       "He is very good at solving problems.",
       "I used to wake up late, but now I am used to waking up early.",
     ],
+  },
+  questions: {
+    summary: "Pertanyaan memakai kata bantu dan kata tanya untuk meminta informasi.",
+    rules: [
+      { label: "Yes/No dan Wh-", detail: "Letakkan kata bantu sebelum subjek: Does she work? Where does she work? Setelah do, does, dan did gunakan kata kerja dasar." },
+      { label: "Be dan modal", detail: "Letakkan be atau modal sebelum subjek: Are they ready? What can you do?" },
+      { label: "Who sebagai subjek", detail: "Who called you? menanyakan pelaku. Who did you call? menanyakan orang yang dihubungi." },
+      { label: "Preposisi dan jumlah", detail: "Who are you waiting for? How many books? How much water?" },
+      { label: "Indirect question", detail: "Setelah Could you tell me, gunakan urutan pernyataan: where she works." },
+    ],
+    examples: ["Where did she go?", "Who called you?", "What are you listening to?", "Could you tell me where she works?"],
   },
   plurals: {
     summary: "Singular & Plural mengatur perubahan kata benda dari tunggal (satu) menjadi jamak (lebih dari satu).",

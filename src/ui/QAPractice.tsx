@@ -36,7 +36,7 @@ function qaSummary(filter: QAFilter): string {
     filter.intent === "all"
       ? "Semua jenis tanya"
       : intentOptionLabel(filter.intent);
-  return `${t} · ${i}`;
+  return `${t} · ${i}${filter.prepositionOnly ? " · Dengan preposisi" : ""}`;
 }
 
 function QASession({ filter }: { filter: QAFilter }) {
@@ -241,6 +241,7 @@ export function QAPractice() {
     QA_POOL.some(
       (q) =>
         (filter.tense === "all" || q.tense === filter.tense) &&
+        (!filter.prepositionOnly || q.prepositionQuestion) &&
         q.intent === intent,
     ),
   );
@@ -250,9 +251,9 @@ export function QAPractice() {
       filter.intent === "all" ||
       QA_POOL.some(
         (q) =>
-          (tense === "all" || q.tense === tense) && q.intent === filter.intent,
+          (tense === "all" || q.tense === tense) && q.intent === filter.intent && (!filter.prepositionOnly || q.prepositionQuestion),
       );
-    setFilter({ tense, intent: stillValid ? filter.intent : "all" });
+    setFilter({ ...filter, tense, intent: stillValid ? filter.intent : "all" });
   }
 
   return (
@@ -274,7 +275,7 @@ export function QAPractice() {
         <span className="filter-pill-action">⚙ Ubah</span>
       </button>
 
-      <QASession key={`${filter.tense}-${filter.intent}`} filter={filter} />
+      <QASession key={`${filter.tense}-${filter.intent}-${filter.prepositionOnly}`} filter={filter} />
 
       <BottomSheet
         open={filtersOpen}
@@ -282,6 +283,14 @@ export function QAPractice() {
         title="Filter Question & Answer"
       >
         <div className="sheet-form">
+          <label htmlFor="qa-preposition-filter">
+            <span>Pola pertanyaan</span>
+            <select id="qa-preposition-filter" value={filter.prepositionOnly ? "preposition" : "all"}
+              onChange={(event) => setFilter({ tense: "all", intent: "all", prepositionOnly: event.target.value === "preposition" })}>
+              <option value="all">Semua pola</option>
+              <option value="preposition">Pertanyaan dengan preposisi</option>
+            </select>
+          </label>
           <label htmlFor="qa-tense-filter">
             <span>Tense / Struktur</span>
             <select
@@ -292,7 +301,7 @@ export function QAPractice() {
               }
             >
               <option value="all">Semua tense &amp; struktur</option>
-              {TENSES.map((value) => (
+              {TENSES.filter((value) => !filter.prepositionOnly || QA_POOL.some(q => q.prepositionQuestion && q.tense === value)).map((value) => (
                 <option value={value} key={value}>
                   {QA_TENSE_LABELS[value]}
                 </option>

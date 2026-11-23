@@ -12,6 +12,7 @@ export const PRACTICE_LABELS = {
 export const BASICS_LABELS = {
   articles: "Articles",
   prepositions: "Prepositions",
+  questions: "Question Formation",
   plurals: "Singular & Plural",
   pronouns: "Pronouns & Possessives",
   quantifiers: "Quantifiers",
