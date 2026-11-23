@@ -45,6 +45,7 @@ export function PersonalStoryPractice() {
   const [hint, setHint] = useState<WritingHint | null>(null);
   const pending = useRef<AbortController | null>(null);
   const answer = drafts[prompt.id] ?? "";
+  const hints = writingHintsFor(prompt);
   const sentenceCount = answer.split(/[.!?]+/).filter(sentence => /[a-zA-Z]/.test(sentence)).length;
 
   useEffect(() => () => { pending.current?.abort(); pending.current = null; }, []);
@@ -114,23 +115,23 @@ export function PersonalStoryPractice() {
       <p className="story-box-eyebrow">Topik tulisan</p>
       <h2 className="story-scenario-title">{prompt.question}</h2>
       <p className="story-scenario-prompt">{prompt.translation}</p>
-      <button type="button" className="btn btn-ghost personal-next" disabled={busy} onClick={nextPrompt}>↻ Pertanyaan lain</button>
+      <button type="button" className="btn btn-ghost personal-next" disabled={busy} onClick={nextPrompt}>↻ Ganti pertanyaan</button>
     </section>
     <section className="story-missions-box personal-guidance" aria-label="Bantuan menulis">
       <div className="story-missions-header">
         <span className="story-box-eyebrow">Bantuan menulis</span>
         <span className="personal-optional">Opsional</span>
       </div>
-      <p className="personal-grammar"><strong>{prompt.grammar}</strong> · {prompt.formula}</p>
+      <p className="personal-grammar">Pilih pola untuk melihat contoh.</p>
       <div className="personal-hints" aria-label="Saran pola kalimat">
-        {writingHintsFor(prompt).slice(0, 3).map(item => <button type="button" key={item.label}
-          className="story-mission-chip chip-blue" onClick={() => setHint(item)}>{item.label} <span aria-hidden="true">ⓘ</span></button>)}
+        {hints.slice(0, 3).map(item => <button type="button" key={item.label}
+          className={`story-mission-chip personal-hint-${item.category}`} onClick={() => setHint(item)}>{item.label} <span aria-hidden="true">ⓘ</span></button>)}
       </div>
-      {writingHintsFor(prompt).length > 3 && <details className="personal-tutor-info">
+      {hints.length > 3 && <details className="personal-tutor-info">
         <summary>Lebih banyak pola</summary>
         <div className="personal-hints">
-          {writingHintsFor(prompt).slice(3).map(item => <button type="button" key={item.label}
-            className="story-mission-chip chip-blue" onClick={() => setHint(item)}>{item.label} <span aria-hidden="true">ⓘ</span></button>)}
+          {hints.slice(3).map(item => <button type="button" key={item.label}
+            className={`story-mission-chip personal-hint-${item.category}`} onClick={() => setHint(item)}>{item.label} <span aria-hidden="true">ⓘ</span></button>)}
         </div>
       </details>}
       <div className="story-keywords-bar">

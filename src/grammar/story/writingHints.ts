@@ -6,6 +6,7 @@ export interface WritingHint {
   explanation: string;
   example: string;
   topic?: BasicsTopic;
+  category?: "tense" | "connector" | "expression" | "modal";
 }
 
 const hints = {
@@ -44,6 +45,17 @@ const hints = {
 
 type HintId = keyof typeof hints;
 
+const hintCategories: Record<HintId, NonNullable<WritingHint["category"]>> = {
+  past: "tense", present: "tense", perfect: "tense", continuous: "tense", future: "tense",
+  pastContinuous: "tense", pastPerfect: "tense",
+  because: "connector", if: "connector", when: "connector", after: "connector",
+  sequence: "connector", result: "connector", although: "connector", contrast: "connector",
+  relative: "connector", relativeThing: "connector", relativePlace: "connector",
+  should: "modal", could: "modal", can: "modal", might: "modal",
+  wouldLike: "expression", want: "expression", frequency: "expression", compare: "expression",
+  feeling: "expression", gerund: "expression", conclude: "expression", example: "expression", opinion: "expression",
+};
+
 const primary: Record<string, HintId> = {
   "Would like to": "wouldLike", "Want to": "want", "Past Simple": "past",
   "Present Simple": "present", "Present Perfect": "perfect", "Present Continuous": "continuous",
@@ -78,5 +90,6 @@ const topicHints: Array<{ ids: string[]; hints: HintId[] }> = [
 export function writingHintsFor(prompt: PersonalPrompt): WritingHint[] {
   const main = primary[prompt.grammar];
   const extras: HintId[] = topicHints.find(group => group.ids.includes(prompt.id))?.hints ?? ["opinion", "example"];
-  return [...new Set([main, ...extras])].filter((id): id is HintId => Boolean(id)).map(id => hints[id]);
+  return [...new Set([main, ...extras])].filter((id): id is HintId => Boolean(id))
+    .map(id => ({ ...hints[id], category: hintCategories[id] }));
 }

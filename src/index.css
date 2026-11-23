@@ -2492,8 +2492,11 @@ button:focus-visible {
 }
 
 .personal-next {
-  align-self: flex-start;
+  align-self: flex-end;
   margin-top: 0.35rem;
+  min-height: 2.5rem;
+  padding: 0.38rem 0.7rem;
+  font-size: 0.8rem;
 }
 
 .personal-guidance {
@@ -2518,6 +2521,11 @@ button:focus-visible {
   flex-wrap: wrap;
   gap: 0.4rem;
 }
+
+.story-mission-chip.personal-hint-tense { background: var(--blue-200); }
+.story-mission-chip.personal-hint-connector { background: var(--purple-100); }
+.story-mission-chip.personal-hint-expression { background: var(--emerald-200); }
+.story-mission-chip.personal-hint-modal { background: var(--amber-200); }
 
 .personal-word {
   padding: 0.18rem 0.52rem;
