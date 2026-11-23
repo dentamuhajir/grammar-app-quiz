@@ -4,14 +4,15 @@ import { checkQA, QA_POOL, qaDeck, type QAQuestion } from "../src/grammar/qa/eng
 import { DIALOGUE_SCENARIOS, evaluateDialogueTurn, verifyDialogueGrammar } from "../src/grammar/qa/dialogue";
 import { ROLEPLAY_STARTERS, SCENARIO_GROUPS } from "../src/grammar/qa/starters";
 
-test("all roleplay starters have distinct openings, complete tutor context and an offline path", () => {
+test("all roleplay starters have distinct openings and complete tutor context", () => {
+  assert.equal(ROLEPLAY_STARTERS.length, 30);
   assert.equal(new Set(ROLEPLAY_STARTERS.map(s => s.id)).size, ROLEPLAY_STARTERS.length);
   assert.equal(new Set(ROLEPLAY_STARTERS.map(s => s.question)).size, ROLEPLAY_STARTERS.length);
   for (const category of SCENARIO_GROUPS) assert.ok(ROLEPLAY_STARTERS.some(s => s.group === category));
   for (const s of ROLEPLAY_STARTERS) {
     assert.ok(s.context.length > 0 && s.context.length <= 400, s.id);
     assert.ok(s.goal && s.speaker && s.role && s.question && s.translation, s.id);
-    assert.ok(s.localFollowUp || s.guided?.nodes[s.guided.initialNodeId], s.id);
+    assert.ok(s.translation, s.id);
   }
 });
 const meeting = DIALOGUE_SCENARIOS[0];

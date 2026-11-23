@@ -1,191 +1,119 @@
 import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
-import { evaluateDialogueTurn, type DialogueIntentBranch, type DialogueTurnEvaluation } from "../grammar/qa/dialogue";
 import { ROLEPLAY_STARTERS, SCENARIO_GROUPS, type RoleplayStarter } from "../grammar/qa/starters";
 import { SpokenSentence } from "./SpokenSentence";
 import { VoiceInputBar } from "./VoiceInputBar";
 
 interface ConversationTurn {
-  speaker: string;
   question: string;
   answer: string;
   feedback: string;
-  correction?: string;
-  explanation?: string;
-  reaction?: string;
-}
-
-function TurnFeedback({ turn }: { turn: ConversationTurn }) {
-  return <>
-    {turn.correction && turn.correction.trim().toLowerCase() !== turn.answer.trim().toLowerCase() && <SpokenSentence text={turn.correction} />}
-    <p>{turn.feedback}</p>
-    {turn.explanation && <details className="qa-tutor-explanation">
-      <summary>Bahas lebih lanjut</summary>
-      <p>{turn.explanation}</p>
-    </details>}
-  </>;
+  correction: string;
+  explanation: string;
 }
 
 function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
-  const openingId = scenario.guided?.initialNodeId ?? "opening";
-  const tutorAvailable = !window.location.hostname.endsWith(".github.io");
-  const [nodeId, setNodeId] = useState<string | null>(openingId);
   const [history, setHistory] = useState<ConversationTurn[]>([]);
-  const [useTutor, setUseTutor] = useState(tutorAvailable);
-  const [followUp, setFollowUp] = useState("");
-  const pendingTutor = useRef<AbortController | null>(null);
+  const [question, setQuestion] = useState(scenario.question);
   const [answer, setAnswer] = useState("");
-  const [submittedAnswer, setSubmittedAnswer] = useState("");
-  const [evaluation, setEvaluation] = useState<DialogueTurnEvaluation | null>(null);
   const [busy, setBusy] = useState(false);
+  const [finished, setFinished] = useState(false);
   const [notice, setNotice] = useState("");
-  const request = useRef(0);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const node = nodeId ? scenario.guided?.nodes[nodeId] : undefined;
-  const localQuestion = node?.question ?? (nodeId === "follow-up" ? scenario.localFollowUp : scenario.question);
-  const translation = node?.translation ?? (nodeId === openingId ? scenario.translation : undefined);
-  const question = followUp || localQuestion || "";
+  const [online, setOnline] = useState(navigator.onLine);
+  const pending = useRef<AbortController | null>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   const [hasNewMessages, setHasNewMessages] = useState(false);
 
-  function showLatest() {
-    const chat = chatRef.current;
-    if (chat) chat.scrollTop = chat.scrollHeight;
-    followLatest.current = true;
-    setHasNewMessages(false);
-  }
-
-  useEffect(() => () => { request.current++; pendingTutor.current?.abort(); }, []);
   useEffect(() => {
-    if (followLatest.current) {
-      showLatest();
-      if (history.length) inputRef.current?.focus({ preventScroll: true });
-    } else {
-      setHasNewMessages(true);
-    }
-  }, [nodeId, history.length, question, busy]);
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+      pending.current?.abort();
+    };
+  }, []);
 
-  function edit(value: string) {
-    request.current++;
-    pendingTutor.current?.abort();
-    setBusy(false);
-    setAnswer(value);
-    setEvaluation(null);
-    setNotice("");
-  }
+  useEffect(() => {
+    if (followLatest.current && chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    else if (history.length) setHasNewMessages(true);
+  }, [history, question, busy]);
 
-  async function checkWithTutor(token: number) {
-    if (!nodeId) return;
-    const controller = new AbortController();
-    pendingTutor.current = controller;
-    const timeout = window.setTimeout(() => controller.abort(), 25_000);
-    setSubmittedAnswer(answer.trim());
-    setAnswer("");
-    setBusy(true);
-    followLatest.current = true;
-    let reason = "Tutor AI sedang tidak tersedia.";
-    try {
-      const response = await fetch("/api/roleplay", {
-        method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: "conversation", scenario: scenario.context, speaker: `${scenario.speaker} (${scenario.role})`, target: scenario.goal,
-          question, answer: answer.trim(),
-          history: history.slice(-3).map(({ question, answer }) => ({ question, answer })),
-        }),
-      });
-      if (response.status === 429) reason = "Batas penggunaan tutor AI tercapai.";
-      if (!response.ok) {
-        const failure = await response.json().catch(() => null);
-        if (typeof failure?.message === "string") {
-          reason = failure.message;
-        } else if (failure?.error === "unconfigured") {
-          reason = "Tutor AI belum diaktifkan oleh pengelola aplikasi.";
-        } else if (failure?.error === "timeout") {
-          reason = "Tutor AI terlalu lama merespons.";
-        }
-        throw new Error("Tutor unavailable");
-      }
-      const tutor = await response.json();
-      if (token !== request.current) return;
-      if (typeof tutor.feedback !== "string" || !tutor.feedback.trim() || typeof tutor.correction !== "string"
-          || typeof tutor.nextQuestion !== "string" || !tutor.nextQuestion.trim()) {
-        throw new Error("Incomplete tutor turn");
-      }
-      setHistory(items => [...items, { speaker: scenario.speaker, question, answer: answer.trim(),
-        feedback: tutor.feedback, correction: tutor.correction,
-        explanation: tutor.correction && typeof tutor.explanation === "string" ? tutor.explanation.trim() : "" }]);
-      // Keep a related offline question ready if the connection drops later.
-      if (!followUp) {
-        const nextLocal = node ? evaluateDialogueTurn(node, answer).matchedBranch?.nextNodeId : "follow-up";
-        if (nextLocal) setNodeId(nextLocal);
-      }
-      setFollowUp(tutor.nextQuestion);
-      setAnswer("");
-    } catch {
-      if (token !== request.current) return;
-      setAnswer(answer);
-      setUseTutor(false);
-      setFollowUp("");
-      if (!followUp && node) setEvaluation(evaluateDialogueTurn(node, answer));
-      setNotice(reason + (followUp
-        ? " Mode lokal aktif. Jawaban Anda tersimpan di kotak isian. Sesuaikan dengan pertanyaan lokal di atas."
-        : node ? " Jawaban Anda sudah diperiksa dalam mode lokal." : " Latihan mandiri tersedia. Simpan jawaban untuk melanjutkan."));
-    } finally {
-      window.clearTimeout(timeout);
-      if (pendingTutor.current === controller) pendingTutor.current = null;
-      if (token === request.current) {
-        setBusy(false);
-        setSubmittedAnswer("");
-      }
-    }
-  }
-
-  async function check(event: FormEvent) {
+  async function send(event: FormEvent) {
     event.preventDefault();
-    if (!nodeId || busy || pendingTutor.current) return;
-    const token = ++request.current;
+    if (pending.current || finished) return;
     if (!answer.trim()) {
       setNotice("Tulis jawaban Anda terlebih dahulu.");
       return;
     }
+    if (!navigator.onLine) {
+      setNotice("Koneksi internet terputus. Hubungkan kembali, lalu coba kirim lagi.");
+      return;
+    }
+    const controller = new AbortController();
+    pending.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(), 25_000);
+    setBusy(true);
     setNotice("");
-    if (useTutor) {
-      setEvaluation(null);
-      await checkWithTutor(token);
-    } else if (node) {
-      setEvaluation(evaluateDialogueTurn(node, answer));
-    } else {
-      setHistory(items => [...items, { speaker: scenario.speaker, question, answer: answer.trim(), feedback: "Jawaban latihan mandiri tersimpan." }]);
-      setNodeId(nodeId === openingId ? "follow-up" : null);
+    followLatest.current = true;
+    let reason = "Tutor AI sedang tidak tersedia. Coba kirim lagi.";
+    try {
+      const response = await fetch("/api/roleplay", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "conversation", scenario: scenario.context, speaker: `${scenario.speaker} (${scenario.role})`,
+          target: scenario.goal, question, answer: answer.trim(),
+          history: history.slice(-3).map(({ question: previousQuestion, answer: previousAnswer }) => ({
+            question: previousQuestion, answer: previousAnswer,
+          })),
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        if (typeof data?.message === "string") reason = data.message;
+        else if (data?.error === "unconfigured") reason = "Tutor AI belum diaktifkan oleh pengelola aplikasi.";
+        else if (response.status === 429) reason = "Batas penggunaan tutor AI tercapai. Coba lagi nanti.";
+        throw new Error("Tutor unavailable");
+      }
+      if (!data || typeof data.feedback !== "string" || !data.feedback.trim()
+        || typeof data.correction !== "string" || typeof data.nextQuestion !== "string" || !data.nextQuestion.trim()) {
+        throw new Error("Incomplete tutor response");
+      }
+      if (pending.current !== controller) return;
+      setHistory(turns => [...turns, {
+        question, answer: answer.trim(), feedback: data.feedback, correction: data.correction,
+        explanation: typeof data.explanation === "string" ? data.explanation : "",
+      }]);
+      setQuestion(data.nextQuestion);
       setAnswer("");
+    } catch {
+      if (pending.current !== controller) return;
+      setNotice(!navigator.onLine
+        ? "Koneksi internet terputus. Hubungkan kembali, lalu coba kirim lagi."
+        : reason);
+    } finally {
+      window.clearTimeout(timeout);
+      if (pending.current === controller) {
+        pending.current = null;
+        setBusy(false);
+      }
     }
   }
 
-  function advance(branch: DialogueIntentBranch) {
-    if (!node || !evaluation?.grammar.passed || busy) return;
-    request.current++;
-    setHistory(items => [...items, { speaker: node.speaker, question, answer: answer.trim(),
-      feedback: `Struktur terdeteksi: ${evaluation.grammar.detectedStructure} · Topik: ${branch.label}`, reaction: branch.npcReaction }]);
-    setNodeId(branch.nextNodeId);
-    setAnswer("");
-    setEvaluation(null);
-    setNotice("");
-  }
-
   function restart() {
-    request.current++;
-    pendingTutor.current?.abort();
-    setFollowUp("");
+    pending.current?.abort();
+    pending.current = null;
+    setHistory([]);
+    setQuestion(scenario.question);
+    setAnswer("");
     setBusy(false);
-    setSubmittedAnswer("");
-    setNodeId(openingId);
-    setUseTutor(tutorAvailable);
+    setFinished(false);
+    setNotice("");
     followLatest.current = true;
     setHasNewMessages(false);
-    setHistory([]);
-    setAnswer("");
-    setEvaluation(null);
-    setNotice("");
   }
 
   return <main className="card qa-dialogue-card" aria-label={scenario.title}>
@@ -193,123 +121,105 @@ function DialogueSession({ scenario }: { scenario: RoleplayStarter }) {
       <div className="qa-scenario-meta"><strong>{scenario.group}</strong>{history.length > 0 && <span>{history.length} giliran selesai</span>}</div>
       <p>{scenario.context}</p>
     </header>
-    {nodeId && tutorAvailable && <div className="qa-tutor">
+    <div className="qa-tutor">
       <span className="qa-tutor-icon" aria-hidden="true">✦</span>
-      <div><label htmlFor="qa-tutor-switch">Tutor AI</label>
-        <p id="qa-tutor-description">{useTutor ? "Koreksi otomatis aktif" : "Latihan lokal aktif"}</p>
+      <div><strong>Tutor AI</strong><p>{online ? "Koreksi otomatis aktif" : "Koneksi internet terputus"}</p>
         <details className="qa-tutor-about"><summary>Tentang tutor</summary>
           <p>Jawaban dan hingga tiga giliran terakhir dikirim ke Groq atau penyedia cadangan Gemini untuk koreksi dan pertanyaan lanjutan.</p>
         </details>
       </div>
-      <input id="qa-tutor-switch" type="checkbox" role="switch" aria-describedby="qa-tutor-description" checked={useTutor} disabled={busy} onChange={event => {
-        setUseTutor(event.target.checked);
-        setFollowUp("");
-        setEvaluation(null);
-        setNotice("");
-      }} />
-    </div>}
+    </div>
     <div className="qa-chat-wrap">
-    <div className="qa-chat" ref={chatRef} role="region" aria-label="Percakapan"
-      tabIndex={0} onScroll={() => {
+      <div className="qa-chat" ref={chatRef} role="region" aria-label="Percakapan" tabIndex={0} onScroll={() => {
         const chat = chatRef.current;
         if (!chat) return;
         followLatest.current = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
         if (followLatest.current) setHasNewMessages(false);
       }}>
-      {history.map((item, index) => <Fragment key={index}>
-        <article className="qa-chat-message qa-chat-character">
-          <strong className="qa-chat-author">{item.speaker}</strong>
-          <SpokenSentence text={item.question} />
-        </article>
-        <article className="qa-chat-message qa-chat-user">
-          <strong className="qa-chat-author">Anda</strong>
-          <p lang="en">{item.answer}</p>
-        </article>
-        <article className="qa-chat-message qa-chat-coach">
-          <strong className="qa-chat-author">{item.correction !== undefined ? "Tutor AI" : "Latihan lokal"}</strong>
-          <TurnFeedback turn={item} />
-        </article>
-        {item.reaction && <article className="qa-chat-message qa-chat-character">
-          <strong className="qa-chat-author">{item.speaker}</strong>
-          <SpokenSentence text={item.reaction} />
-        </article>}
-      </Fragment>)}
-      {nodeId && <>
-      <section className="qa-dialogue-question qa-chat-message qa-chat-character" aria-label="Pertanyaan saat ini">
-        <div className="qa-interlocutor">
-          <span className="qa-avatar" aria-hidden="true">{scenario.speaker.charAt(0)}</span>
-          <div><strong>{scenario.speaker}</strong><span lang="en">{scenario.role}</span></div>
-        </div>
-        <SpokenSentence text={question} />
-        <details><summary>{!followUp && translation ? "Terjemahan & fokus latihan" : "Fokus latihan"}</summary>
-          {!followUp && translation && <p>{translation}</p>}
-          <p>{node && !followUp ? node.grammarHint : scenario.goal}</p>
-        </details>
-      </section>
-      {busy && <>
-        <article className="qa-chat-message qa-chat-user">
-          <strong className="qa-chat-author">Anda</strong>
-          <p lang="en">{submittedAnswer}</p>
-        </article>
-        <article className="qa-chat-message qa-chat-coach" role="status">
-          <strong className="qa-chat-author">Tutor AI</strong>
-          <p>Sedang menyiapkan balasan…</p>
-        </article>
-      </>}
-      </>}
-    </div>
-    {hasNewMessages && <button type="button" className="btn qa-latest" onClick={showLatest}>Pesan terbaru ↓</button>}
-    </div>
-    {nodeId ? <>
-      <form className="qa-answer-form" onSubmit={check}>
-        <label htmlFor="dialogue-answer">Jawaban Anda</label>
-        <div className="qa-composer">
-          <textarea ref={inputRef} id="dialogue-answer" rows={2} maxLength={1500} value={answer} disabled={busy} onChange={e => edit(e.target.value)} placeholder="Balas dalam bahasa Inggris…" />
-          <div className="qa-composer-tools">
-            <VoiceInputBar compact value={answer} disabled={busy} onChange={edit} />
-            <button type="submit" className="btn btn-primary qa-send" disabled={busy}>{busy ? "Menunggu…" : useTutor ? "Kirim" : node ? "Periksa jawaban" : "Simpan jawaban"}{!busy && <span aria-hidden="true">↗</span>}</button>
-          </div>
-        </div>
-      </form>
-      <div aria-live="polite" aria-busy={busy}>
-        {notice && <p role="status">{notice}</p>}
-        {evaluation && node && <div className={`feedback ${evaluation.status === "advance" ? "feedback-ok" : "qa-feedback-partial"}`}>
-          <strong>{evaluation.status === "empty" ? "Jawaban masih kosong" : "Struktur yang terdeteksi"}</strong>
-          <p>{evaluation.grammar.feedback}</p>
-          {evaluation.status !== "empty" && <><strong>Perkiraan topik</strong><p>Pencocokan lokal · {evaluation.confidenceBand === "high" ? "Arah topik cukup jelas" : "Perlu klarifikasi"}</p></>}
-          {evaluation.clarificationPrompt && <p>{evaluation.clarificationPrompt}</p>}
-          {evaluation.status === "grammar_retry" && <p>Coba ulangi dengan pola target. Pemeriksa ini hanya mengenali struktur terbatas; hasilnya bukan koreksi grammar menyeluruh.</p>}
-          {!busy && evaluation.status === "advance" && evaluation.matchedBranch && <button type="button" className="btn btn-primary" onClick={() => advance(evaluation.matchedBranch!)}>Lanjutkan percakapan →</button>}
-          {!busy && evaluation.status === "clarification_needed" && <div className="qa-clarification"><p>Pilih maksud Anda untuk mengonfirmasi arah dialog, atau perjelas jawaban lalu periksa lagi.</p>{node.branches.map(branch => <button type="button" className="btn btn-ghost" key={branch.id} onClick={() => advance(branch)}>{branch.label}</button>)}</div>}
-          <small>{evaluation.limitationsNote}</small>
-        </div>}
+        {history.map((turn, index) => <Fragment key={index}>
+          <article className="qa-chat-message qa-chat-character"><strong className="qa-chat-author">{scenario.speaker}</strong><SpokenSentence text={turn.question} /></article>
+          <article className="qa-chat-message qa-chat-user"><strong className="qa-chat-author">Anda</strong><p lang="en">{turn.answer}</p></article>
+          <article className="qa-chat-message qa-chat-coach"><strong className="qa-chat-author">Tutor AI</strong>
+            {turn.correction && turn.correction.trim().toLowerCase() !== turn.answer.trim().toLowerCase() && <SpokenSentence text={turn.correction} />}
+            <p>{turn.feedback}</p>
+            {turn.explanation && <details className="qa-tutor-explanation"><summary>Bahas lebih lanjut</summary><p>{turn.explanation}</p></details>}
+          </article>
+        </Fragment>)}
+        {!finished && <section className="qa-dialogue-question qa-chat-message qa-chat-character" aria-label="Pertanyaan saat ini">
+          <div className="qa-interlocutor"><span className="qa-avatar" aria-hidden="true">{scenario.speaker.charAt(0)}</span><div><strong>{scenario.speaker}</strong><span lang="en">{scenario.role}</span></div></div>
+          <SpokenSentence text={question} />
+          <details><summary>{history.length ? "Fokus latihan" : "Terjemahan & fokus latihan"}</summary>
+            {!history.length && <p>{scenario.translation}</p>}<p>{scenario.goal}</p>
+          </details>
+        </section>}
+        {busy && <article className="qa-chat-message qa-chat-coach" role="status"><strong className="qa-chat-author">Tutor AI</strong><p>Sedang menyiapkan balasan…</p></article>}
       </div>
-    </> : <div className="feedback feedback-ok" role="status"><strong>Percakapan selesai!</strong><p>Anda menyelesaikan {history.length} giliran. Gulir percakapan untuk meninjau jawaban dan masukan tutor.</p></div>}
-    <div className="actions qa-session-actions">{useTutor && nodeId && history.length > 0 &&
-      <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setNodeId(null)}>Akhiri percakapan</button>}
-      <button type="button" className="btn btn-ghost" onClick={restart}>Mulai ulang skenario</button></div>
-    {!useTutor && <p className="qa-dialogue-note">Pertanyaan mode lokal berasal dari bank skenario.</p>}
+      {hasNewMessages && <button type="button" className="btn qa-latest" onClick={() => {
+        if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+        followLatest.current = true;
+        setHasNewMessages(false);
+      }}>Pesan terbaru ↓</button>}
+    </div>
+    {!finished ? <form className="qa-answer-form" onSubmit={send}>
+      <label htmlFor="dialogue-answer">Jawaban Anda</label>
+      <div className="qa-composer">
+        <textarea id="dialogue-answer" rows={2} maxLength={1500} value={answer} disabled={busy} onChange={event => { setAnswer(event.target.value); setNotice(""); }} placeholder="Balas dalam bahasa Inggris…" />
+        <div className="qa-composer-tools">
+          <VoiceInputBar compact value={answer} disabled={busy} onChange={setAnswer} />
+          <button type="submit" className="btn btn-primary qa-send" disabled={busy || !online}>{busy ? "Menunggu…" : "Kirim"} <span aria-hidden="true">↗</span></button>
+        </div>
+      </div>
+      {!online && <p role="status">Roleplay memerlukan koneksi internet. Jawaban Anda tersimpan di kotak ini.</p>}
+      {notice && <p role="status">{notice}</p>}
+    </form> : <div className="feedback feedback-ok" role="status"><strong>Percakapan selesai!</strong><p>Anda menyelesaikan {history.length} giliran.</p></div>}
+    <div className="actions qa-session-actions">
+      {!finished && history.length > 0 && <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setFinished(true)}>Akhiri percakapan</button>}
+      <button type="button" className="btn btn-ghost" onClick={restart}>Mulai ulang skenario</button>
+    </div>
   </main>;
 }
 
 export function QADialoguePractice() {
-  const [scenarioId, setScenarioId] = useState(() => {
-    const index = Math.floor(Math.random() * ROLEPLAY_STARTERS.length);
-    return ROLEPLAY_STARTERS[index].id;
-  });
+  const [group, setGroup] = useState<string>(ROLEPLAY_STARTERS[0].group);
+  const [scenarioId, setScenarioId] = useState(ROLEPLAY_STARTERS[0].id);
+  const [sessionKey, setSessionKey] = useState(0);
+  const [online, setOnline] = useState(navigator.onLine);
+  const [sessionAvailable, setSessionAvailable] = useState(navigator.onLine);
+  useEffect(() => {
+    const update = () => { setOnline(navigator.onLine); if (navigator.onLine) setSessionAvailable(true); };
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => { window.removeEventListener("online", update); window.removeEventListener("offline", update); };
+  }, []);
   const scenario = ROLEPLAY_STARTERS.find(item => item.id === scenarioId)!;
+
+  function choose(item: RoleplayStarter) {
+    setGroup(item.group);
+    setScenarioId(item.id);
+    setSessionKey(key => key + 1);
+  }
+
+  function randomScenario() {
+    const choices = ROLEPLAY_STARTERS.filter(item => item.id !== scenarioId);
+    choose(choices[Math.floor(Math.random() * choices.length)]);
+  }
+
   return <>
-    <label className="qa-scenario-picker" htmlFor="qa-scenario">Skenario roleplay
-      <span className="qa-scenario-field">
-        <select id="qa-scenario" value={scenarioId} onChange={event => setScenarioId(event.target.value)}>
-          {SCENARIO_GROUPS.map(group => <optgroup key={group} label={group}>
-            {ROLEPLAY_STARTERS.filter(item => item.group === group).map(item =>
-              <option key={item.id} value={item.id}>{item.title}</option>)}
-          </optgroup>)}
-        </select>
-        <span className="qa-scenario-chevron" aria-hidden="true">▾</span>
-      </span>
+    <label className="qa-scenario-picker" htmlFor="qa-category">Kategori
+      <span className="qa-scenario-field"><select id="qa-category" value={group} disabled={!online} onChange={event => {
+        const next = ROLEPLAY_STARTERS.find(item => item.group === event.target.value);
+        if (next) choose(next);
+      }}>{SCENARIO_GROUPS.map(item => <option key={item} value={item}>{item}</option>)}</select>
+        <span className="qa-scenario-chevron" aria-hidden="true">▾</span></span>
     </label>
-    <DialogueSession key={scenario.id} scenario={scenario} />
+    <label className="qa-scenario-picker" htmlFor="qa-scenario">Skenario roleplay
+      <span className="qa-scenario-field"><select id="qa-scenario" value={scenarioId} disabled={!online} onChange={event => {
+        const next = ROLEPLAY_STARTERS.find(item => item.id === event.target.value);
+        if (next) choose(next);
+      }}>{ROLEPLAY_STARTERS.filter(item => item.group === group).map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
+        <span className="qa-scenario-chevron" aria-hidden="true">▾</span></span>
+    </label>
+    <button type="button" className="btn btn-ghost" disabled={!online} onClick={randomScenario}>Pilih skenario acak</button>
+    {sessionAvailable ? <DialogueSession key={sessionKey} scenario={scenario} /> : <div className="feedback" role="status">Roleplay membutuhkan koneksi internet. Hubungkan perangkat untuk memulai.</div>}
   </>;
 }

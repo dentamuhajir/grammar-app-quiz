@@ -1,6 +1,6 @@
-import { DIALOGUE_SCENARIOS, type DialogueScenario } from "./dialogue";
+import { DIALOGUE_SCENARIOS } from "./dialogue";
 
-export const SCENARIO_GROUPS = ["Dunia kerja", "Keseharian", "Perjalanan", "Studi & komunitas"] as const;
+export const SCENARIO_GROUPS = ["Keseharian", "Dunia kerja", "Perjalanan", "Studi & komunitas", "Layanan & transaksi", "Pendapat & diskusi"] as const;
 export interface RoleplayStarter {
   id: string;
   title: string;
@@ -11,8 +11,6 @@ export interface RoleplayStarter {
   goal: string;
   question: string;
   translation: string;
-  localFollowUp?: string;
-  guided?: DialogueScenario;
 }
 
 export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
@@ -21,7 +19,7 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     return {
       id: guided.id, title: guided.title.split(" (")[0], group: "Dunia kerja",
       speaker: opening.speaker, role: opening.speakerRole, context: guided.contextDescription,
-      goal: opening.grammarLabel, question: opening.question, translation: opening.translation, guided,
+      goal: opening.grammarLabel, question: opening.question, translation: opening.translation,
     };
   }),
   {
@@ -31,25 +29,22 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Pesanan sopan dengan I'd like atau could I",
     question: "Good morning! What can I get started for you?",
     translation: "Selamat pagi! Anda mau pesan apa?",
-    localFollowUp: "How would you like to pay for your order?",
   },
   {
-    id: "market", title: "Belanja di pasar pagi", group: "Keseharian",
+    id: "market", title: "Belanja di pasar pagi", group: "Layanan & transaksi",
     speaker: "Ben", role: "Fruit seller",
     context: "Anda menyiapkan salad buah untuk empat orang. Tanyakan harga dan pilih buah yang cukup matang.",
     goal: "Jumlah dan harga dengan how much atau how many",
     question: "These mangoes are ripe today. How many people are you shopping for?",
     translation: "Mangga ini sudah matang. Anda berbelanja untuk berapa orang?",
-    localFollowUp: "Which other fruit would you like to add to your salad?",
   },
   {
-    id: "return-shoes", title: "Tukar ukuran sepatu", group: "Keseharian",
+    id: "return-shoes", title: "Tukar ukuran sepatu", group: "Layanan & transaksi",
     speaker: "Nina", role: "Shop assistant",
     context: "Sepatu yang dibeli kemarin terasa sempit. Bawa struk dan bicarakan pilihan penukaran.",
     goal: "Past simple dan perbandingan ukuran",
     question: "Hi! What was the problem with the shoes you bought?",
     translation: "Halo! Apa masalah dengan sepatu yang Anda beli?",
-    localFollowUp: "What size would you like to try instead?",
   },
   {
     id: "flatmate", title: "Berbagi tugas di kos", group: "Keseharian",
@@ -58,7 +53,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Frekuensi dengan usually dan once a week",
     question: "Which kitchen chore would you like to take care of?",
     translation: "Tugas dapur mana yang ingin Anda kerjakan?",
-    localFollowUp: "How often can you fit that chore into your week?",
   },
   {
     id: "birthday", title: "Merancang pesta kejutan", group: "Keseharian",
@@ -67,16 +61,14 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Saran dengan let's dan we could",
     question: "Where should we hold the surprise party?",
     translation: "Di mana sebaiknya kita mengadakan pesta kejutan?",
-    localFollowUp: "How can we get everyone there without spoiling the surprise?",
   },
   {
-    id: "parcel", title: "Paket salah alamat", group: "Keseharian",
+    id: "parcel", title: "Paket salah alamat", group: "Layanan & transaksi",
     speaker: "Tom", role: "Delivery agent",
     context: "Paket Anda ditandai sudah diterima, tetapi barangnya belum sampai. Ceritakan petunjuk yang Anda punya.",
     goal: "Past simple untuk urutan kejadian",
     question: "What did you notice in the delivery photo?",
     translation: "Apa yang Anda lihat di foto pengiriman?",
-    localFollowUp: "What would be a good next step for finding the parcel?",
   },
   {
     id: "hotel", title: "Check-in di hotel", group: "Perjalanan",
@@ -85,7 +77,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Permintaan sopan dengan could dan would",
     question: "Welcome! What would you like to arrange before your room is ready?",
     translation: "Selamat datang! Apa yang ingin Anda atur sambil menunggu kamar siap?",
-    localFollowUp: "What time would you like to collect your room key?",
   },
   {
     id: "platform", title: "Mencari peron kereta", group: "Perjalanan",
@@ -94,7 +85,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Tujuan dan waktu keberangkatan",
     question: "Which train are you trying to catch?",
     translation: "Kereta mana yang ingin Anda naiki?",
-    localFollowUp: "How much time do you have before it leaves?",
   },
   {
     id: "luggage", title: "Koper tertinggal", group: "Perjalanan",
@@ -103,7 +93,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Deskripsi benda dengan adjectives",
     question: "What does your missing suitcase look like?",
     translation: "Seperti apa koper Anda yang hilang?",
-    localFollowUp: "What detail would help me tell your bag apart from a similar one?",
   },
   {
     id: "directions", title: "Jalan kaki ke museum", group: "Perjalanan",
@@ -112,7 +101,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Petunjuk arah dan preposisi tempat",
     question: "Which landmark can you see from where you are standing?",
     translation: "Bangunan atau penanda apa yang terlihat dari tempat Anda berdiri?",
-    localFollowUp: "Would you prefer the shortest route or the quieter streets?",
   },
   {
     id: "rain-plan", title: "Hujan saat liburan", group: "Perjalanan",
@@ -121,7 +109,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Saran dan pengandaian dengan could atau if",
     question: "It looks like rain all day. What could we do instead of the picnic?",
     translation: "Sepertinya akan hujan sepanjang hari. Apa yang bisa kita lakukan sebagai pengganti piknik?",
-    localFollowUp: "How much would your alternative cost for both of us?",
   },
   {
     id: "bike", title: "Menyewa sepeda", group: "Perjalanan",
@@ -130,7 +117,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Durasi dengan for dan until",
     question: "How long are you planning to ride today?",
     translation: "Berapa lama Anda berencana bersepeda hari ini?",
-    localFollowUp: "What equipment would you like to take along?",
   },
   {
     id: "study", title: "Membentuk kelompok belajar", group: "Studi & komunitas",
@@ -139,7 +125,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Prioritas dan rencana dengan need to dan will",
     question: "Which topic should we study together first?",
     translation: "Topik mana yang perlu kita pelajari bersama lebih dulu?",
-    localFollowUp: "When can we meet for our first study session?",
   },
   {
     id: "library", title: "Mencari buku di perpustakaan", group: "Studi & komunitas",
@@ -148,7 +133,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Menjelaskan kebutuhan dengan I'm looking for",
     question: "What are you researching for your assignment?",
     translation: "Apa yang sedang Anda teliti untuk tugas Anda?",
-    localFollowUp: "Which kind of source would be easiest for you to use?",
   },
   {
     id: "club", title: "Bergabung dengan klub foto", group: "Studi & komunitas",
@@ -157,7 +141,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Preferensi dengan enjoy dan prefer",
     question: "What do you most enjoy photographing?",
     translation: "Apa yang paling Anda sukai sebagai objek foto?",
-    localFollowUp: "Where would you like to go on our next photo walk?",
   },
   {
     id: "festival", title: "Menjadi relawan festival", group: "Studi & komunitas",
@@ -166,16 +149,14 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Kemampuan dan ketersediaan dengan can",
     question: "What would you like to help with at the festival?",
     translation: "Di bagian mana Anda ingin membantu saat festival?",
-    localFollowUp: "Which shift would fit your class schedule?",
   },
   {
-    id: "book-club", title: "Diskusi klub buku", group: "Studi & komunitas",
+    id: "book-club", title: "Diskusi klub buku", group: "Pendapat & diskusi",
     speaker: "Noah", role: "Book club host",
     context: "Klub buku baru saja selesai membaca sebuah cerita. Bagikan reaksi Anda pada salah satu adegan.",
     goal: "Menyampaikan pendapat dan alasan dengan because",
     question: "Which moment in the story stayed with you?",
     translation: "Bagian mana dari cerita itu yang paling Anda ingat?",
-    localFollowUp: "Would you recommend this story to a friend?",
   },
   {
     id: "exchange", title: "Menyambut siswa pertukaran", group: "Studi & komunitas",
@@ -184,7 +165,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Rekomendasi dengan should dan can",
     question: "I have one free hour on campus. Where should I go first?",
     translation: "Saya punya satu jam luang di kampus. Sebaiknya saya ke mana lebih dulu?",
-    localFollowUp: "What should I bring with me?",
   },
   {
     id: "deadline", title: "Negosiasi tenggat proyek", group: "Dunia kerja",
@@ -193,7 +173,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Sebab-akibat dan rencana dengan will",
     question: "What is slowing down your part of the project?",
     translation: "Apa yang menghambat bagian proyek yang Anda kerjakan?",
-    localFollowUp: "When could you deliver the first part?",
   },
   {
     id: "handover", title: "Serah terima tugas", group: "Dunia kerja",
@@ -202,7 +181,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Status pekerjaan dengan present perfect",
     question: "What have you finished so far?",
     translation: "Apa saja yang sudah Anda selesaikan sejauh ini?",
-    localFollowUp: "Which task should I handle first while you are away?",
   },
   {
     id: "pitch", title: "Mengusulkan ide ke tim", group: "Dunia kerja",
@@ -211,7 +189,6 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Usulan dan manfaat dengan could dan would",
     question: "What would you change about our weekly meeting?",
     translation: "Apa yang ingin Anda ubah dari rapat mingguan kita?",
-    localFollowUp: "How could we tell whether your idea is working?",
   },
   {
     id: "support", title: "Membantu pelanggan", group: "Dunia kerja",
@@ -220,6 +197,11 @@ export const ROLEPLAY_STARTERS: readonly RoleplayStarter[] = [
     goal: "Instruksi berurutan dengan first dan then",
     question: "I can't find my last order. Where should I look first?",
     translation: "Saya tidak bisa menemukan pesanan terakhir saya. Saya harus mencari di mana dulu?",
-    localFollowUp: "What can I try if my order still doesn't appear?",
   },
+  { id: "flight-delay", title: "Penerbangan terlambat", group: "Perjalanan", speaker: "Nora", role: "Airline agent", context: "Penerbangan Anda terlambat dan Anda khawatir tertinggal penerbangan lanjutan. Cari pilihan perjalanan Anda.", goal: "Menjelaskan masalah dan meminta pilihan perjalanan", question: "What connection are you worried about missing?", translation: "Penerbangan lanjutan mana yang Anda khawatirkan akan terlewat?" },
+  { id: "restaurant-order", title: "Memesan makanan", group: "Layanan & transaksi", speaker: "Mia", role: "Server", context: "Anda makan di restoran dan ingin memilih hidangan yang sesuai kebutuhan Anda.", goal: "Memesan makanan dan menanyakan pilihan", question: "What kind of meal are you in the mood for today?", translation: "Hidangan seperti apa yang Anda inginkan hari ini?" },
+  { id: "refund", title: "Meminta pengembalian dana", group: "Layanan & transaksi", speaker: "Daniel", role: "Customer service agent", context: "Barang yang Anda beli datang dalam keadaan rusak. Jelaskan masalahnya dan diskusikan pengembalian dana.", goal: "Menjelaskan masalah dan meminta penyelesaian", question: "What happened when you opened the package?", translation: "Apa yang terjadi saat Anda membuka paketnya?" },
+  { id: "team-choice", title: "Memilih solusi tim", group: "Pendapat & diskusi", speaker: "Sofia", role: "Team member", context: "Tim Anda harus memilih cara mengurangi sampah plastik di kantor. Diskusikan pilihan yang realistis.", goal: "Mengusulkan solusi dan menjelaskan alasan", question: "Which change should our team try first?", translation: "Perubahan mana yang sebaiknya tim kita coba terlebih dahulu?" },
+  { id: "remote-work", title: "Diskusi kerja jarak jauh", group: "Pendapat & diskusi", speaker: "Jamie", role: "Friend", context: "Anda dan teman membahas manfaat dan tantangan bekerja dari rumah.", goal: "Menyampaikan pendapat dan memberikan contoh", question: "What do you think is the biggest benefit of working from home?", translation: "Menurut Anda apa manfaat terbesar bekerja dari rumah?" },
+  { id: "disagree-plan", title: "Berbeda pendapat tentang rencana", group: "Pendapat & diskusi", speaker: "Chris", role: "Project partner", context: "Rekan proyek ingin mempercepat peluncuran, tetapi Anda mempertimbangkan risikonya. Diskusikan pendapat Anda.", goal: "Menyatakan ketidaksetujuan dengan sopan", question: "Why do you think we should wait before launching?", translation: "Mengapa menurut Anda kita perlu menunggu sebelum meluncurkan proyek?" },
 ];

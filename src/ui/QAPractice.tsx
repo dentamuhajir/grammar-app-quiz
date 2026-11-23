@@ -44,6 +44,7 @@ function QASession({ filter }: { filter: QAFilter }) {
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState("");
   const [result, setResult] = useState<QAResult | null>(null);
+  const [attempted, setAttempted] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [exampleOpen, setExampleOpen] = useState(false);
   const q = deck[index];
@@ -57,13 +58,14 @@ function QASession({ filter }: { filter: QAFilter }) {
     }
     setInput("");
     setResult(null);
+    setAttempted(false);
     setRevealed(false);
     setExampleOpen(false);
   }
 
   const { swipeHandlers, cardStyle, cardClass } = useSwipeCard({
     onSwipeLeft: next,
-    onSwipeRight: () => setExampleOpen(true),
+    onSwipeRight: () => { if (attempted || finished) setExampleOpen(true); },
   });
 
   return (
@@ -87,14 +89,22 @@ function QASession({ filter }: { filter: QAFilter }) {
           onSubmit={(event) => {
             event.preventDefault();
             if (finished) next();
-            else setResult(checkQA(q, input));
+            else {
+              const checked = checkQA(q, input);
+              setResult(checked);
+              if (checked.status !== "empty") setAttempted(true);
+            }
           }}
         >
           <p className="qa-instruction">{q.cue}</p>
-          <div className="answer-input">
-            <input
+          <div className="sentence-answer-block">
+            <label className="sentence-answer-label" htmlFor="qa-answer">Jawaban Anda</label>
+            <div className={`qa-composer sentence-composer ${result?.status === "correct" ? "is-correct" : result?.status === "incorrect" ? "is-incorrect" : ""}`}>
+            <textarea
               id="qa-answer"
+              rows={2}
               value={input}
+              readOnly={finished}
               autoComplete="off"
               autoCapitalize="off"
               spellCheck={false}
@@ -116,8 +126,20 @@ function QASession({ filter }: { filter: QAFilter }) {
                     : ""
               }
               aria-invalid={result?.status === "incorrect"}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  if (finished) next();
+                  else {
+                    const checked = checkQA(q, input);
+                    setResult(checked);
+                    if (checked.status !== "empty") setAttempted(true);
+                  }
+                }
+              }}
             />
-            <VoiceInputBar
+            {!finished && <div className="qa-composer-tools"><VoiceInputBar
+              compact
               value={input}
               disabled={finished}
               onChange={(nextVal) => {
@@ -125,6 +147,9 @@ function QASession({ filter }: { filter: QAFilter }) {
                 setResult(null);
               }}
             />
+              <button type="submit" className="btn btn-primary qa-send">Periksa jawaban <span aria-hidden="true">↗</span></button>
+            </div>}
+            </div>
           </div>
           <div aria-live="polite" aria-atomic="true">
             {result && (
@@ -186,10 +211,8 @@ function QASession({ filter }: { filter: QAFilter }) {
             )}
           </div>
           <div className="actions basics-actions">
-            <button type="submit" className="btn btn-primary">
-              {finished ? "Pertanyaan berikutnya →" : "Periksa jawaban"}
-            </button>
-            {!finished && (
+            {finished && <button type="submit" className="btn btn-primary">Pertanyaan berikutnya →</button>}
+            {!finished && attempted && (
               <button
                 type="button"
                 className="btn btn-ghost"
@@ -201,7 +224,7 @@ function QASession({ filter }: { filter: QAFilter }) {
           </div>
         </form>
         <p className="swipe-hint">
-          ← Geser kiri: soal baru · Geser kanan: contoh →
+          ← Geser kiri: soal baru{(attempted || finished) && " · Geser kanan: contoh →"}
         </p>
       </main>
 
