@@ -16,15 +16,31 @@ const mission = {
   explanation: "Contohnya “The train had left before I arrived.” Kereta berangkat lebih dulu.",
 };
 
-async function submit(body = exercise, key = "test-key") {
+async function submit(body = exercise, key = "test-key", groqKey = "") {
   const req = { method: "POST", headers: { "content-type": "application/json" }, body };
   const res = {
     writeHead(status) { this.status = status; },
     end(json) { this.body = JSON.parse(json); },
   };
-  await handleStory(req, res, key);
+  await handleStory(req, res, key, groqKey);
   return res;
 }
+
+test("story tutor prefers Groq and falls back to Gemini", async t => {
+  const provider = t.mock.method(globalThis, "fetch", async url => {
+    if (String(url).includes("groq.com")) {
+      return Response.json({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify(mission) } }] });
+    }
+    return gemini(mission);
+  });
+  assert.equal((await submit(exercise, "test-key", "groq-test-key")).status, 200);
+  assert.match(String(provider.mock.calls[0].arguments[0]), /groq/);
+  provider.mock.mockImplementation(async url => String(url).includes("groq.com")
+    ? new Response(null, { status: 503 }) : gemini(mission));
+  const fallback = await submit(exercise, "test-key", "groq-test-key");
+  assert.equal(fallback.status, 200);
+  assert.deepEqual(fallback.body, mission);
+});
 
 function gemini(review) {
   return Response.json({ candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify(review) }] } }] });
@@ -40,6 +56,22 @@ test("story tutor receives the story and missions and distinguishes a missing mi
   assert.equal(result.status, 200);
   assert.deepEqual(result.body, mission);
   assert.equal(provider.mock.callCount(), 1);
+});
+
+test("personal reflection accepts one optional grammar suggestion", async t => {
+  const personal = {
+    mode: "personal", story: "I read a book.", scenario: "What did you do last weekend?",
+    missions: [{ label: "Past Simple", formula: "Past events" }],
+  };
+  t.mock.method(globalThis, "fetch", async (_, options) => {
+    const payload = JSON.parse(options.body);
+    assert.match(JSON.stringify(payload), /grammar focus is optional/i);
+    return gemini({ ...mission, focus: "complete" });
+  });
+  const result = await submit(personal);
+  assert.equal(result.status, 200);
+  assert.equal(result.body.focus, "complete");
+  assert.equal((await submit({ ...personal, mode: undefined })).status, 400);
 });
 
 test("corrections include a revision and complete stories receive only the strength", async t => {

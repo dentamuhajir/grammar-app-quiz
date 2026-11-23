@@ -25,6 +25,7 @@ import { SpokenSentence } from "./SpokenSentence";
 import { VoiceInputBar } from "./VoiceInputBar";
 import { useSwipeCard } from "./useSwipeCard";
 import { useStoryTutor } from "./useStoryTutor";
+import { PersonalStoryPractice } from "./PersonalStoryPractice";
 
 const STORY_LEVELS = Object.keys(STORY_LEVEL_LABELS) as StoryLevel[];
 
@@ -261,9 +262,9 @@ function StorySession({ filter, useTutor, setUseTutor }: {
         <form className="story-input-section" onSubmit={handleCheck}>
           {!window.location.hostname.endsWith(".github.io") && <div className="qa-tutor">
             <span className="qa-tutor-icon" aria-hidden="true">✦</span>
-            <div><label htmlFor="story-tutor-switch">Tutor Gemini</label>
+            <div><label htmlFor="story-tutor-switch">Tutor AI</label>
               <p id="story-tutor-description">{useTutor
-                ? "Cerita dikirim ke Gemini saat Anda menekan Periksa Jawaban."
+                ? "Cerita dikirim ke tutor AI saat Anda menekan Periksa Jawaban."
                 : "Mode lokal aktif. Nyalakan untuk mendapat masukan tentang cerita Anda."}</p>
             </div>
             <input id="story-tutor-switch" type="checkbox" role="switch" checked={useTutor}
@@ -313,7 +314,7 @@ function StorySession({ filter, useTutor, setUseTutor }: {
 
           <div className="actions">
             <button type="submit" className="btn btn-primary" disabled={tutor.busy}>
-              {tutor.busy ? "Gemini memeriksa…" : "Periksa Jawaban"}
+              {tutor.busy ? "Tutor memeriksa…" : "Periksa Jawaban"}
             </button>
             <button
               type="button"
@@ -333,8 +334,8 @@ function StorySession({ filter, useTutor, setUseTutor }: {
         </form>
 
         {tutor.notice && <p role="status">{tutor.notice}</p>}
-        {tutor.review && <section className="feedback feedback-reveal" aria-label="Umpan balik Tutor Gemini" role="status">
-          <strong>Umpan balik Tutor Gemini</strong>
+        {tutor.review && <section className="feedback feedback-reveal" aria-label="Umpan balik Tutor AI" role="status">
+          <strong>Umpan balik Tutor AI</strong>
           <p>{tutor.review.strength}</p>
           {tutor.review.focus !== "complete" && <>
             <strong>{tutor.review.focus === "mission" ? "Coba lengkapi misi" : "Koreksi kalimat"}</strong>
@@ -693,6 +694,7 @@ function StorySession({ filter, useTutor, setUseTutor }: {
 }
 
 export function StoryChallengePractice() {
+  const [mode, setMode] = useState<"personal" | "missions">("personal");
   const [useTutor, setUseTutor] = useState(() => !window.location.hostname.endsWith(".github.io"));
   const [filter, setFilter] = useState<StoryFilter>({
     level: "all",
@@ -704,6 +706,12 @@ export function StoryChallengePractice() {
 
   return (
     <>
+      <div className="qa-mode-switch" role="group" aria-label="Mode latihan cerita">
+        <button type="button" className={`btn ${mode === "personal" ? "btn-primary" : "btn-ghost"}`} aria-pressed={mode === "personal"} onClick={() => setMode("personal")}>Menulis Bebas</button>
+        <button type="button" className={`btn ${mode === "missions" ? "btn-primary" : "btn-ghost"}`} aria-pressed={mode === "missions"} onClick={() => setMode("missions")}>Misi Grammar</button>
+      </div>
+      <div hidden={mode !== "personal"}><PersonalStoryPractice /></div>
+      <div hidden={mode !== "missions"}>
       <button
         type="button"
         className="filter-pill-bar"
@@ -785,6 +793,7 @@ export function StoryChallengePractice() {
           </button>
         </div>
       </BottomSheet>
+      </div>
     </>
   );
 }

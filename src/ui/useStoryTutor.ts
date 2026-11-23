@@ -33,14 +33,14 @@ export function useStoryTutor(onUnavailable: () => void) {
     if (pending.current) return;
     clear();
     if (story.length > 8000) {
-      setNotice("Hasil lokal tersedia. Untuk menerima masukan Gemini, periksa hingga 8.000 karakter sekaligus.");
+      setNotice("Hasil lokal tersedia. Untuk menerima masukan tutor, periksa hingga 8.000 karakter sekaligus.");
       return;
     }
     const controller = new AbortController();
     pending.current = controller;
     setBusy(true);
     const timeout = window.setTimeout(() => controller.abort(), 25_000);
-    let reason = "Tutor Gemini sedang tidak tersedia.";
+    let reason = "Tutor AI sedang tidak tersedia.";
     try {
       const response = await fetch("/api/story", {
         method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json" },
@@ -50,7 +50,7 @@ export function useStoryTutor(onUnavailable: () => void) {
       const data = await response.json();
       if (!response.ok) {
         if (typeof data.message === "string") reason = data.message;
-        if (data.error === "unconfigured") reason = "Tutor Gemini belum diaktifkan oleh pengelola aplikasi.";
+        if (data.error === "unconfigured") reason = "Tutor AI belum diaktifkan oleh pengelola aplikasi.";
         throw new Error("Tutor unavailable");
       }
       if (!["correction", "mission", "complete"].includes(data.focus)

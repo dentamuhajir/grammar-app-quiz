@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       handleRoleplay(req, res, env.GEMINI_API_KEY, env.GROQ_API_KEY).catch(next);
     });
     server.middlewares.use("/api/story", (req, res, next) => {
-      handleStory(req, res, env.GEMINI_API_KEY).catch(next);
+      handleStory(req, res, env.GEMINI_API_KEY, env.GROQ_API_KEY).catch(next);
     });
   }
   return {

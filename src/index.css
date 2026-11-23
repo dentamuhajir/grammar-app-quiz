@@ -2487,6 +2487,57 @@ button:focus-visible {
   gap: 0.48rem;
 }
 
+.personal-story .personal-prompt {
+  gap: 0.45rem;
+}
+
+.personal-next {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+}
+
+.personal-guidance {
+  gap: 0.55rem;
+}
+
+.personal-optional {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.personal-grammar {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.personal-word {
+  padding: 0.18rem 0.52rem;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--beige-pill);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.personal-tutor-info {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.personal-sentence-count {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.personal-tutor-info summary {
+  cursor: pointer;
+}
+
 .story-missions-header {
   display: flex;
   align-items: center;
