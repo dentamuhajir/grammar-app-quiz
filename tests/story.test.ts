@@ -8,6 +8,19 @@ import {
 } from "../src/grammar/story/engine";
 import { Script } from "node:vm";
 import { computeMiniLmSimilarityAsync, calibrateMiniLmCosine } from "../src/grammar/story/minilm-client";
+import { PERSONAL_PROMPTS } from "../src/grammar/story/personal";
+import { writingHintsFor } from "../src/grammar/story/writingHints";
+
+it("provides writing hints for every free-writing prompt", () => {
+  for (const prompt of PERSONAL_PROMPTS) {
+    const hints = writingHintsFor(prompt);
+    assert.ok(hints.length >= 2 && hints.length <= 5, prompt.id);
+    assert.equal(new Set(hints.map(hint => hint.label)).size, hints.length, prompt.id);
+    assert.ok(hints.every(hint => hint.explanation && hint.example), prompt.id);
+  }
+  const hobby = PERSONAL_PROMPTS.find(prompt => prompt.id === "hobby")!;
+  assert.deepEqual(writingHintsFor(hobby).slice(0, 3).map(hint => hint.label), ["Would like to", "Because", "If"]);
+});
 
 describe("Story Challenge Engine", () => {
   it("loads all built-in and custom scenarios and validates every sampleStory passes 3/3 missions, explicit checks, and high relevance", () => {

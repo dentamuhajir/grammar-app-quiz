@@ -2513,6 +2513,12 @@ button:focus-visible {
   line-height: 1.5;
 }
 
+.personal-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
 .personal-word {
   padding: 0.18rem 0.52rem;
   border: 1.5px solid var(--border);

@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { PERSONAL_PROMPTS, type PersonalPrompt } from "../grammar/story/personal";
 import { SpokenSentence } from "./SpokenSentence";
 import { VoiceInputBar } from "./VoiceInputBar";
+import { BottomSheet } from "./BottomSheet";
+import { BASICS_TOPIC_GUIDES } from "../grammar/basics/engine";
+import { BASICS_LABELS } from "../grammar/labels";
+import { writingHintsFor, type WritingHint } from "../grammar/story/writingHints";
 
 interface Review {
   strength: string;
@@ -38,6 +42,7 @@ export function PersonalStoryPractice() {
   const [review, setReview] = useState<Review | null>(null);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [hint, setHint] = useState<WritingHint | null>(null);
   const pending = useRef<AbortController | null>(null);
   const answer = drafts[prompt.id] ?? "";
   const sentenceCount = answer.split(/[.!?]+/).filter(sentence => /[a-zA-Z]/.test(sentence)).length;
@@ -117,6 +122,17 @@ export function PersonalStoryPractice() {
         <span className="personal-optional">Opsional</span>
       </div>
       <p className="personal-grammar"><strong>{prompt.grammar}</strong> · {prompt.formula}</p>
+      <div className="personal-hints" aria-label="Saran pola kalimat">
+        {writingHintsFor(prompt).slice(0, 3).map(item => <button type="button" key={item.label}
+          className="story-mission-chip chip-blue" onClick={() => setHint(item)}>{item.label} <span aria-hidden="true">ⓘ</span></button>)}
+      </div>
+      {writingHintsFor(prompt).length > 3 && <details className="personal-tutor-info">
+        <summary>Lebih banyak pola</summary>
+        <div className="personal-hints">
+          {writingHintsFor(prompt).slice(3).map(item => <button type="button" key={item.label}
+            className="story-mission-chip chip-blue" onClick={() => setHint(item)}>{item.label} <span aria-hidden="true">ⓘ</span></button>)}
+        </div>
+      </details>}
       <div className="story-keywords-bar">
         <span className="story-keywords-label">Ide kata</span>
         <div className="story-keywords-list">{prompt.words.map(word => <span className="personal-word" key={word}>{word}</span>)}</div>
@@ -148,5 +164,16 @@ export function PersonalStoryPractice() {
         </>}
       </section>}
     </form>
+    <BottomSheet open={hint !== null} onClose={() => setHint(null)} title={hint?.label ?? "Bantuan menulis"}>
+      {hint && <div className="sheet-content-stack">
+        <p>{hint.explanation}</p>
+        <div className="feedback feedback-reveal"><strong>Contoh kalimat</strong><SpokenSentence text={hint.example} /></div>
+        {hint.topic && <details>
+          <summary>Materi {BASICS_LABELS[hint.topic]}</summary>
+          <p>{BASICS_TOPIC_GUIDES[hint.topic].summary}</p>
+          {BASICS_TOPIC_GUIDES[hint.topic].rules.map(rule => <p key={rule.label}><strong>{rule.label}</strong><br />{rule.detail}</p>)}
+        </details>}
+      </div>}
+    </BottomSheet>
   </main>;
 }
