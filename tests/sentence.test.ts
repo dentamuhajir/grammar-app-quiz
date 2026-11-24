@@ -107,7 +107,7 @@ test("person and thing clauses each have present and past prompts and pronoun-sp
     const r = q.relativeClause!;
     assert.equal(r.pronoun, sample.pronoun);
     assert.equal(r.tense, sample.tense);
-    assert.doesNotMatch(r.cues.join(" "), /\b(who|which)\b/i);
+    assert.doesNotMatch(Object.values(r.cues).join(" "), /\b(who|which)\b/i);
     const wrong = checkAnswer(q, q.answer.replace(r.pronoun, "that"));
     assert.equal(wrong.correct, false);
     assert.match(wrong.hint, /That/);

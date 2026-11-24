@@ -37,7 +37,7 @@ export function buildReasonQuestion(tense: "presentSimple" | "pastSimple", previ
     mode: "verbal", form: "positive", tense, subject, verb: situation.action,
     answer: `${main.slice(0, -1)} because ${clause}.`,
     reasonClause: {
-      clause, cues: [reasonSubject.text, reasonVerb, situation.reason],
+      clause, cues: { subject: reasonSubject.text, verb: reasonVerb, complement: situation.reason },
       frontedAnswer: `Because ${clause}, ${subject.text}${main.slice(subject.text.length)}`,
     },
   };

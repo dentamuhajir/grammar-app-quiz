@@ -94,10 +94,18 @@ export interface Complement {
 
 export type WhWord = "What" | "Where" | "When" | "Why" | "How" | "How long";
 
+export interface ClauseCues {
+  wh?: string;
+  subject?: string;
+  verb: string;
+  complement?: string;
+  time?: string;
+}
+
 /** A single generated quiz question. */
 export interface Question {
   reasonClause?: {
-    cues: string[];
+    cues: ClauseCues & { subject: string };
     clause: string;
     frontedAnswer: string;
   };
@@ -108,7 +116,7 @@ export interface Question {
     clause: string;
     alternatives: string[];
     meaning: string;
-    cues: string[];
+    cues: ClauseCues;
     mainSentence: string;
   };
   tense: Tense;

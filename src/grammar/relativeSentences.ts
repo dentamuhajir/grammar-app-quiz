@@ -6,11 +6,11 @@ import type { Mode, Question, SentenceForm, Subject, Tense } from "./types";
 const people = ["my brother", "Emma", "Daniel", "the teacher"];
 const things = ["my phone", "my laptop", "the computer", "my bike", "the car"];
 const descriptions = [
-  { tense: "presentSimple", clause: "who lives next door", meaning: "yang tinggal di sebelah", cue: "live next door" },
-  { tense: "presentSimple", clause: "who works at the library", meaning: "yang bekerja di perpustakaan", cue: "work at the library" },
-  { tense: "presentSimple", clause: "who loves music", meaning: "yang suka musik", cue: "love music" },
-  { tense: "pastSimple", clause: "who helped me yesterday", meaning: "yang membantu saya kemarin", cue: "help me yesterday" },
-  { tense: "pastSimple", clause: "who called me last night", meaning: "yang menelepon saya tadi malam", cue: "call me last night" },
+  { tense: "presentSimple", clause: "who lives next door", meaning: "yang tinggal di sebelah", cues: { verb: "live", complement: "next door" } },
+  { tense: "presentSimple", clause: "who works at the library", meaning: "yang bekerja di perpustakaan", cues: { verb: "work", complement: "at the library" } },
+  { tense: "presentSimple", clause: "who loves music", meaning: "yang suka musik", cues: { verb: "love", complement: "music" } },
+  { tense: "pastSimple", clause: "who helped me yesterday", meaning: "yang membantu saya kemarin", cues: { verb: "help", complement: "me", time: "yesterday" } },
+  { tense: "pastSimple", clause: "who called me last night", meaning: "yang menelepon saya tadi malam", cues: { verb: "call", complement: "me", time: "last night" } },
 ] as const;
 const agents = [
   { text: "Dad", meaning: "Ayah" }, { text: "Mom", meaning: "Ibu" },
@@ -68,7 +68,7 @@ export function buildRelativeQuestion(tense: Tense, mode: Mode, form: SentenceFo
   if (person) {
     const d = pick(descriptions);
     relative = { pronoun: "who", tense: d.tense, antecedent: noun, mainSentence, clause: d.clause, meaning: d.meaning,
-      cues: [d.cue], alternatives: [] };
+      cues: d.cues, alternatives: [] };
   } else {
     const agent = pick(agents);
     const event = pick(events.filter(item => item.time !== q.timeSignal));
@@ -78,7 +78,7 @@ export function buildRelativeQuestion(tense: Tense, mode: Mode, form: SentenceFo
     const passive = `which ${past ? "was" : "is"} ${action.participle}`;
     relative = { pronoun: "which", tense: event.tense, antecedent: noun, mainSentence, clause,
       meaning: `yang ${event.passiveId} ${agent.meaning} ${event.timeId}`,
-      cues: [agent.text, action.base, event.time],
+      cues: { subject: agent.text, verb: action.base, time: event.time },
       alternatives: [
         `${passive} by ${agent.text} ${event.time}`,
         `${passive} ${event.time} by ${agent.text}`,
