@@ -16,6 +16,70 @@ import { TENSE_LABELS, TENSE_ORDER } from "../src/grammar/labels";
 import type { Mode, Question, SentenceForm, Subject, Tense } from "../src/grammar/types";
 import { sentenceTranslation, checkTranslationAnswer } from "../src/grammar/translation";
 import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode";
+import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
+
+test("relative focus keeps the selected main grammar and attaches a grounded who/which clause", () => {
+  const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "relativeClause" };
+  const combinations = quizCombinations(filter);
+  const cycle = createQuestionCycle(filter);
+  const seen = new Set<string>();
+  let previous: string | undefined;
+  for (const _combination of combinations) {
+    const q = cycle();
+    const r = q.relativeClause!;
+    assert.notEqual(r.antecedent, previous);
+    previous = r.antecedent;
+    seen.add([q.tense, q.mode, q.form].join("/"));
+    assert.equal(q.answer.replace(`, ${r.clause},`, ""), r.mainSentence);
+    assert.ok(sentenceTranslation(q)?.text.includes(r.meaning), q.answer);
+    assert.ok(sentenceGuide(q).parts.some(part => part.role === "Klausa relatif"));
+    assert.ok(checkAnswer(q, q.answer).correct);
+    assert.ok(sentenceReading(q.answer, q), q.answer);
+    assert.ok(!checkAnswer(q, r.mainSentence).correct);
+    assert.equal(initialExplorerQuestion(q).answer, r.mainSentence);
+    for (const alternative of r.alternatives) {
+      assert.ok(checkAnswer(q, q.answer.replace(r.clause, alternative)).correct);
+    }
+  }
+  assert.equal(seen.size, combinations.length);
+});
+
+test("person and thing clauses each have present and past prompts and pronoun-specific feedback", t => {
+  let choices: number[] = [];
+  t.mock.method(Math, "random", () => choices.shift()!);
+  for (const sample of [
+    { noun: 0, event: 0, pronoun: "who", tense: "presentSimple" },
+    { noun: 0, event: .99, pronoun: "who", tense: "pastSimple" },
+    { noun: .99, event: 0, pronoun: "which", tense: "pastSimple" },
+    { noun: .99, event: .99, pronoun: "which", tense: "presentSimple" },
+  ]) {
+    choices = [sample.noun, sample.event, sample.event, sample.event];
+    const q = buildRelativeQuestion("presentSimple", "nominal", "positive");
+    const r = q.relativeClause!;
+    assert.equal(r.pronoun, sample.pronoun);
+    assert.equal(r.tense, sample.tense);
+    assert.doesNotMatch(r.cues.join(" "), /\b(who|which)\b/i);
+    const wrong = checkAnswer(q, q.answer.replace(r.pronoun, "that"));
+    assert.equal(wrong.correct, false);
+    assert.match(wrong.hint, /That/);
+    assert.ok(wrong.hint.includes(r.antecedent));
+    for (const clause of r.alternatives) {
+      assert.ok(checkAnswer(q, q.answer.replace(r.clause, clause)).correct);
+    }
+  }
+});
+
+test("relative questions accept active and passive descriptions but still require the pronoun, agreement and tense", t => {
+  t.mock.method(Math, "random", () => 0.58);
+  const q = buildRelativeQuestion("presentSimple", "verbal", "positive");
+  const r = q.relativeClause!;
+  assert.equal(r.pronoun, "which");
+  assert.ok(checkAnswer(q, q.answer.replace(r.clause, r.alternatives[0])).correct);
+  assert.ok(!checkAnswer(q, q.answer.replace("which", "who")).correct);
+  assert.ok(!checkAnswer(q, q.answer.replace("works", "work")).correct);
+  assert.ok(!checkAnswer(q, q.answer.replace("works", "worked")).correct);
+  assert.ok(!checkAnswer(q, q.answer.replace(r.clause + ",", r.clause + " it,")).correct);
+});
 
 const she: Subject = { text: "she", person: 3, number: "singular", entity: "person", objectForm: "her" };
 const work = { ...VERBS.find(v => v.base === "work")!, object: "" };

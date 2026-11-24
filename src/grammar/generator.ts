@@ -1,4 +1,5 @@
 import { BEHAVIORAL_ADJECTIVES, COMPLEMENTS } from "./data/complements";
+import { buildRelativeQuestion } from "./relativeSentences";
 import { PERSON_SUBJECTS, SUBJECTS } from "./data/subjects";
 import { TIME_SIGNALS, type TimeSignal } from "./data/timeSignals";
 import { DYNAMIC_VERBS, PASSIVE_VERBS, STATIVE_VERBS, VERBS } from "./data/verbs";
@@ -49,6 +50,7 @@ export const DEFAULT_FILTER: QuizFilter = {
 };
 
 export interface MultiQuizFilter {
+  focus?: "relativeClause";
   tenses: Tense[];
   modes: Mode[];
   forms: SentenceForm[];
@@ -83,6 +85,7 @@ export function createQuestionCycle(filter: MultiQuizFilter): () => Question {
   if (!combinations.length) throw new RangeError("Filter has no supported combinations");
   let remaining: typeof combinations = [];
   let previous: typeof combinations[number] | undefined;
+  let previousNoun: string | undefined;
   return () => {
     if (!remaining.length) {
       remaining = [...combinations];
@@ -97,6 +100,11 @@ export function createQuestionCycle(filter: MultiQuizFilter): () => Question {
     const combination = remaining.pop()!;
     previous = combination;
     const {tense, mode, form} = combination;
+    if (filter.focus === "relativeClause") {
+      const question = buildRelativeQuestion(tense, mode, form, previousNoun);
+      previousNoun = question.relativeClause!.antecedent;
+      return question;
+    }
     if (mode === "verbal") return buildVerbal(tense, form, filter.includeRare);
     if (mode === "nominal") return buildNominal(tense, form);
     return buildPassive(tense, form);

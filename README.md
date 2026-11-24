@@ -38,6 +38,13 @@ Filter mendukung beberapa pilihan sekaligus. Pengguna dapat memilih
 Soal bergiliran melalui kombinasi yang didukung, lalu memulai siklus berikutnya.
 Pilihan diterapkan setelah menekan **Terapkan Filter**.
 
+Di mode **Susun**, **Fokus grammar → Relative clause** menghasilkan soal dengan
+dua kelompok bahan kata. Kalimat utama mengikuti filter latihan dan sisipan
+memiliki label tense tersendiri. Pengguna memilih kata penghubung saat merangkai
+jawaban. Untuk sisipan seperti
+*which Dad repaired yesterday*, jawaban *which was repaired by Dad yesterday*
+juga diterima.
+
 Pada Sentence Practice dan Grammar Basics, geser kartu ke kiri untuk **Skip Soal**
 dan ke kanan untuk **Materi**. Swipe kiri dibatasi saat ada draft yang belum selesai.
 Badge tetap dapat diketuk untuk membuka materi.

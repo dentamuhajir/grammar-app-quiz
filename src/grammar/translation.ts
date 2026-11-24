@@ -3,6 +3,8 @@ import { effectiveTense } from "./explanations";
 import type { Question, Tense } from "./types";
 
 const SUBJECTS_ID: Record<string, string> = {
+  "my phone": "HP saya", "my laptop": "laptop saya",
+  "my bike": "sepeda saya", "the car": "mobil itu",
   I: "saya", you: "kamu", we: "kita", they: "mereka",
   he: "dia laki-laki", she: "dia perempuan", it: "benda itu",
   "a pilot": "seorang pilot", "the teacher": "guru itu", "my brother": "saudara laki-laki saya",
@@ -51,6 +53,7 @@ const VERBS_ID: Record<string, [string, string]> = {
 };
 
 const PHRASES_ID: Record<string, string> = {
+  again: "lagi",
   "": "", hard: "dengan giat", football: "sepak bola", English: "bahasa Inggris", "a movie": "sebuah film",
   "the room": "ruangan itu", dinner: "makan malam", "the door": "pintu itu", "the window": "jendela itu",
   "a friend": "seorang teman", "the children": "anak-anak itu", "the project": "proyek itu", "the car": "mobil itu",
@@ -134,7 +137,8 @@ export function sentenceTranslation(q: Question): {text: string; context: string
   const tense = effectiveTense(q);
   const negative = q.form === "negative";
   let marker = ASPECT_ID[tense][negative ? 1 : 0];
-  const subject = q.mode === "passive" ? PHRASES_ID[q.verb!.object] : SUBJECTS_ID[q.subject.text];
+  const noun = q.mode === "passive" ? PHRASES_ID[q.verb!.object] ?? SUBJECTS_ID[q.verb!.object] : SUBJECTS_ID[q.subject.text];
+  const subject = noun && q.relativeClause ? `${noun}, ${q.relativeClause.meaning},` : noun;
   let predicate: string | undefined;
   let object = "";
   if (q.mode === "nominal") {
@@ -147,6 +151,7 @@ export function sentenceTranslation(q: Question): {text: string; context: string
   } else {
     predicate = VERBS_ID[q.verb!.base]?.[q.mode === "passive" ? 1 : 0];
     if (q.subject.entity === "thing" && q.verb!.base === "run") predicate = "beroperasi";
+    if (q.subject.entity === "thing" && q.verb!.base === "work") predicate = "berfungsi";
     object = q.mode === "passive"
       ? `${q.verb!.base === "lose" ? "bagi" : "oleh"} ${SUBJECTS_ID[q.subject.text] ?? ""}`
       : PHRASES_ID[q.verb!.object];

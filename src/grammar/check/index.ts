@@ -32,6 +32,22 @@ function matchScore(diff: DiffToken[]): number {
  * - Returns a word-level diff and one targeted hint when wrong.
  */
 export function checkAnswer(q: Question, raw: string): CheckResult {
+  const canonical = checkReference(q, raw);
+  const relative = q.relativeClause;
+  if (!relative || canonical.empty || canonical.correct) return canonical;
+  let closest = canonical;
+  let errors = canonical.diff.filter(token => token.op !== "match").length;
+  for (const clause of relative.alternatives) {
+    const candidate = { ...q, answer: q.answer.replace(relative.clause, clause), relativeClause: { ...relative, clause } };
+    const result = checkReference(candidate, raw);
+    if (result.correct) return result;
+    const count = result.diff.filter(token => token.op !== "match").length;
+    if (count < errors) { closest = result; errors = count; }
+  }
+  return closest;
+}
+
+function checkReference(q: Question, raw: string): CheckResult {
   const correctTokens = tokenize(normalize(q.answer));
   const trimmed = raw.trim();
 

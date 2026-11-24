@@ -75,13 +75,15 @@ export function sentenceGuide(q: Question): SentenceGuide {
     : verbalClusters(tense, agreement, symbolic);
   const isQuestion = q.form === "yesNoQuestion" || q.form === "whQuestion";
   const subjectLabel = q.mode === "passive" ? "Subjek penerima tindakan" : "Subjek";
-  const formulaParts = q.form === "positive" ? [subjectLabel, cluster.positiveCluster]
-    : q.form === "negative" ? [subjectLabel, cluster.aux, "not", cluster.afterAux]
-    : [q.form === "whQuestion" ? q.whWord : "", cluster.aux, subjectLabel, cluster.afterAux];
+  const head = q.relativeClause ? `${subjectLabel} + sisipan ${q.relativeClause.pronoun}` : subjectLabel;
+  const formulaParts = q.form === "positive" ? [head, cluster.positiveCluster]
+    : q.form === "negative" ? [head, cluster.aux, "not", cluster.afterAux]
+    : [q.form === "whQuestion" ? q.whWord : "", cluster.aux, head, cluster.afterAux];
   if (q.mode === "passive") formulaParts.push("V3", "by + pelaku");
   if (q.mode === "nominal" && !["What", "Where", "How"].includes(q.whWord ?? "")) formulaParts.push("Pelengkap");
   if (q.mode === "verbal" && q.verb?.object && q.whWord !== "What" && !(q.whWord === "How" && ["fast", "well", "hard", "smoothly"].includes(q.verb.object))) formulaParts.push("Objek / pelengkap");
   const reasons = [USES[tense]];
+  if (q.relativeClause) reasons.push(`“${q.relativeClause.pronoun}” merujuk pada “${q.relativeClause.antecedent}”. Jika sisipan dilepas, kalimat utamanya menjadi “${q.relativeClause.mainSentence}”`);
   if (q.mode !== "passive" && q.subject.head) {
     reasons.push(`Kata inti subjek “${q.subject.text}” adalah “${q.subject.head}”. Subjek ini ${q.subject.number === "singular" ? "tunggal" : "jamak"} sehingga bentuk kata kerja dan kata bantu mengikuti kata inti tersebut.`);
   }
@@ -125,6 +127,7 @@ function sentenceParts(q: Question): SentenceGuide["parts"] {
       }
     }
   }
+  if (q.relativeClause) mark(q.relativeClause.clause, "Klausa relatif");
   mark(q.timeSignal, "Keterangan waktu / frekuensi");
   mark(q.whWord, "Kata tanya");
   if (q.mode === "passive") {

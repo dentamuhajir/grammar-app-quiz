@@ -24,6 +24,17 @@ export function SentenceFilters({ filter, practiceMode, onClose, onApply }: {
   return <BottomSheet open closeButtonOnly onClose={onClose} title="Filter Sentence Practice">
     <div className="sheet-form">
       <PracticeModePicker value={mode} onChange={setMode} />
+      {mode === "arrange" && <fieldset className="sentence-filter-group">
+        <legend>Fokus grammar</legend>
+        <div className="tenses-pill-row">
+          <button type="button" aria-pressed={!draft.focus} className={`tenses-option-pill ${!draft.focus ? "active" : ""}`}
+            onClick={() => setDraft({ ...draft, focus: undefined })}>Kalimat biasa</button>
+          <button type="button" aria-pressed={draft.focus === "relativeClause"}
+            className={`tenses-option-pill ${draft.focus ? "active" : ""}`}
+            onClick={() => setDraft({ ...draft, focus: "relativeClause" })}>Relative clause</button>
+        </div>
+        {draft.focus && <small>Tense yang dipilih berlaku untuk kalimat utama.</small>}
+      </fieldset>}
       <details className="sentence-tense-picker">
         <summary>Tense · {draft.tenses.length === TENSE_ORDER.length ? "Semua tense" : `${draft.tenses.length} tense dipilih`}</summary>
         <fieldset className="sentence-filter-group" aria-label="Tense">

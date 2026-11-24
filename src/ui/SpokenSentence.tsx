@@ -123,7 +123,7 @@ function SlowTurtleIcon({ active }: { active: boolean }) {
   );
 }
 
-export function SpokenSentence({ text }: { text: string }) {
+export function SpokenSentence({ text, highlightWord }: { text: string; highlightWord?: string }) {
   const supported =
     typeof window !== "undefined" && "speechSynthesis" in window;
   const tokens = useMemo(() => tokenizeSentence(text), [text]);
@@ -238,7 +238,7 @@ export function SpokenSentence({ text }: { text: string }) {
                 activeWordIndex === idx ? "spoken-word-active" : ""
               }`}
             >
-              {tok.word}
+              {highlightWord && tok.word.toLowerCase() === highlightWord ? <mark>{tok.word}</mark> : tok.word}
             </span>
             {tok.space}
           </span>
