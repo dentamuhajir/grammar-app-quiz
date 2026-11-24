@@ -84,7 +84,10 @@ export function initialExplorerQuestion(source?: Question): Question {
   if (source) {
     let tense = effectiveTense(source);
     if (explorerRestriction(source, tense)) tense = tense.replace("Continuous", "Simple") as Tense;
-    return buildExplorerQuestion({ ...source, tense });
+    const main = { ...source, tense };
+    delete main.relativeClause;
+    delete main.reasonClause;
+    return buildExplorerQuestion(main);
   }
   return buildExplorerQuestion({
     mode: "verbal", tense: "presentSimple", form: "positive",

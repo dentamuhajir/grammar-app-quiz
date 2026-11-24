@@ -1,4 +1,5 @@
 import { effectiveTense, sentenceGuide } from "../explanations";
+import { TENSE_LABELS } from "../labels";
 import type { Question } from "../types";
 import type { DiffToken } from "./diff";
 import { normalize, tokenize } from "./normalize";
@@ -23,6 +24,19 @@ export function buildHint(q: Question, diff: DiffToken[]): string {
   }
   const roles = sentenceGuide(q).parts.flatMap(part => tokenize(normalize(part.text)).map(() => part.role));
   const role = issue.correctIndex === undefined ? "" : roles[issue.correctIndex];
+  if (q.reasonClause && role === "Klausa alasan") {
+    if (expected === "because") return "Gunakan because sebelum bagian yang menjawab pertanyaan “mengapa?”.";
+    return `Periksa bagian alasan setelah because. Gunakan subjek “${q.reasonClause.cues[0]}” dan bentuk kata kerja ${TENSE_LABELS[q.tense]}.`;
+  }
+  if (q.relativeClause && role === "Klausa relatif") {
+    const { pronoun, antecedent, tense: clauseTense } = q.relativeClause;
+    if (expected === pronoun) {
+      const reference = pronoun === "who" ? "orang" : "benda";
+      const rule = typed === "that" ? "That hanya bisa dipakai dalam relative clause yang membatasi makna kata benda. " : "";
+      return `${rule}Gunakan “${pronoun}” karena sisipan di antara koma ini menjelaskan ${reference}, yaitu “${antecedent}”.`;
+    }
+    return `Periksa susunan sisipan setelah “${antecedent}”. Sisipan ini memakai ${TENSE_LABELS[clauseTense]}.`;
+  }
   const missing = new Set(issues.filter(d => d.correct).map(d => d.correct));
   const moved = issues.map(d => d.user).find(word => word && missing.has(word));
   if (moved) {
