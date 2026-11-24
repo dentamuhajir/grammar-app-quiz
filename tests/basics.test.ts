@@ -29,9 +29,9 @@ test("writing applies the rule to a new sentence and rejects copying the recogni
 });
 
 test("guided topics link their writing situations to blank questions and accept curated alternatives", () => {
-  assert.equal(TOPIC_WRITING_LESSONS.length, 92);
+  assert.equal(TOPIC_WRITING_LESSONS.length, 104);
   const topics = new Set(TOPIC_WRITING_LESSONS.map(lesson => lesson.topic));
-  assert.equal(topics.size, 13);
+  assert.equal(topics.size, 14);
   for (const topic of topics) {
     assert.ok(TOPIC_WRITING_LESSONS.filter(lesson => lesson.topic === topic).length >= 3);
   }
@@ -77,10 +77,10 @@ test("guided writing rejects mistakes in grammar and meaning while accepting con
   }
 });
 
-test("expanded practice includes question formation and 110 writing situations without duplicate IDs", () => {
+test("expanded practice includes question formation and 122 writing situations without duplicate IDs", () => {
   assert.equal(BASICS_POOL.filter(q => q.topic === "questions").length, 12);
   const writing = WRITING_PACKS.flatMap(pack => pack.lessons);
-  assert.equal(writing.length, 110);
+  assert.equal(writing.length, 122);
   assert.equal(new Set(writing.map(lesson => lesson.id)).size, writing.length);
   for (const topic of Object.keys(BASICS_LABELS)) {
     assert.ok(BASICS_POOL.some(q => q.topic === topic));
@@ -460,5 +460,18 @@ test("every basics topic has a complete topic guide and questions avoid spoiler 
     if (q.topic === "conditionals" || q.topic === "quantifiers" || q.topic === "modals" || q.topic === "prepositions") {
       assert.equal(q.context, undefined, `unexpected spoiler context on ${q.id}`);
     }
+  }
+});
+
+
+test("question writing distinguishes subject questions and indirect word order", () => {
+  const lesson = (id: number) => TOPIC_WRITING_LESSONS.find(row => row.id === `question-formation-${id}`)!;
+  assert.equal(lesson(5).variants[0], "Who called Emma yesterday?");
+  assert.equal(checkTopicWriting(lesson(5), "Who did called Emma yesterday?").status, "retry");
+  assert.equal(checkTopicWriting(lesson(11), "Could you tell me where does Olivia work?").status, "retry");
+  for (let index = 0; index < 12; index++) {
+    assert.ok(question(`question-formation-${index}`).skillId);
+    assert.equal(checkTopicWriting(lesson(index), lesson(index).variants[0]).status, "correct");
+    assert.ok(packForLesson(lesson(index).id).lessons.some(row => row.id === lesson(index).id));
   }
 });

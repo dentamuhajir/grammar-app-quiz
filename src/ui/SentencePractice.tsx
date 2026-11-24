@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { checkAnswer, type CheckResult } from "../grammar/check";
 import {
   DEFAULT_MULTI_FILTER,
+  BEGINNER_FILTER,
   displayCap,
   createQuestionCycle,
   type MultiQuizFilter,
@@ -92,9 +93,9 @@ function filterSummary(f: MultiQuizFilter): string {
 }
 
 export function SentencePractice({ onExplore }: { onExplore: (question: Question) => void }) {
-  const [filter, setFilter] = useState<MultiQuizFilter>(DEFAULT_MULTI_FILTER);
+  const [filter, setFilter] = useState<MultiQuizFilter>(BEGINNER_FILTER);
   const cycle = useRef<ReturnType<typeof createQuestionCycle> | null>(null);
-  if (!cycle.current) cycle.current = createQuestionCycle(DEFAULT_MULTI_FILTER);
+  if (!cycle.current) cycle.current = createQuestionCycle(BEGINNER_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
     cycle.current!(),
   );
@@ -172,6 +173,11 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
     <>
       <Confetti fire={confetti} />
 
+      <div className="qa-mode-switch" role="group" aria-label="Pilihan latihan">
+        <button type="button" className="btn btn-ghost" onClick={() => applyFilter(BEGINNER_FILTER, practiceMode)}>Mulai dari dasar</button>
+        <button type="button" className="btn btn-ghost" onClick={() => applyFilter(DEFAULT_MULTI_FILTER, practiceMode)}>Latihan campuran</button>
+      </div>
+
       <button
         type="button"
         className="filter-pill-bar"
@@ -238,6 +244,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
               {translation?.text ?? "Terjemahan soal ini belum tersedia. Buka petunjuk kata untuk melanjutkan latihan."}
             </p>
             <p className="note">{translation?.context ?? implicitContextCue(question)}</p>
+            <p className="note">Gunakan {question.mode === "nominal" ? "be" : question.verb?.base} sesuai konteks kalimat.</p>
             {!solved && hasIncorrectAttempt && <button type="button" className="btn btn-ghost" aria-expanded={showWordHint}
               onClick={() => setShowWordHint(value => !value)}>
               {showWordHint ? "Sembunyikan petunjuk kata" : "Petunjuk kata"}

@@ -184,9 +184,22 @@ const OBJECT_ALIASES: Record<string, string[]> = {
   "a color": ["a colour"], "an email": ["an e-mail"],
 };
 
+function equivalentTranslation(q: Question, input: string): string {
+  if (q.mode !== "verbal") return input;
+  if (q.verb?.base === "prepare" && q.verb.object === "the meal" && q.whWord !== "What") {
+    const forms: Record<string, string> = {
+      get: "prepare", gets: "prepares", got: "prepared", gotten: "prepared", getting: "preparing",
+    };
+    return input.replace(/\b(get|gets|got|gotten|getting)\s+(the (?:meal|food))\s+ready\b/gi,
+      (_, verb: string, object: string) => forms[verb.toLowerCase()] + " " + object);
+  }
+  return input;
+}
+
 /** Small lexical alternatives retain the exact tense, subject and polarity. */
 export function checkTranslationAnswer(q: Question, input: string) {
-  const original = checkAnswer(q, input);
+  const equivalent = equivalentTranslation(q, input);
+  const original = checkAnswer(q, equivalent);
   if (original.correct || !q.verb) return original;
   const object = q.verb.object;
   for (const alternative of OBJECT_ALIASES[object] ?? []) {
@@ -195,7 +208,7 @@ export function checkTranslationAnswer(q: Question, input: string) {
         object.charAt(0).toUpperCase() + object.slice(1),
         alternative.charAt(0).toUpperCase() + alternative.slice(1)),
     };
-    const result = checkAnswer(candidate, input);
+    const result = checkAnswer(candidate, equivalent);
     if (result.correct) return result;
   }
   return original;

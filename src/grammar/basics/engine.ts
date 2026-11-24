@@ -56,25 +56,6 @@ export function buildQuestionPool(): BasicsQuestion[] {
   const pool: BasicsQuestion[] = [];
   const add = (q: BasicsQuestion) => pool.push(q);
 
-  const questionFormation = [
-    ["Where ___ she work?", "does", "Does digunakan dengan she, lalu kata kerja berbentuk dasar."] ,
-    ["Where did they ___ yesterday?", "go", "Setelah did, gunakan bentuk dasar go."] ,
-    ["___ you ready?", "are", "Pada pertanyaan dengan be, are berada sebelum you."] ,
-    ["What ___ he doing?", "is", "Present continuous memakai is sebelum subjek he dan doing setelahnya."] ,
-    ["Who ___ you call yesterday?", "did", "Who adalah objek. Gunakan did sebelum you dan call."] ,
-    ["Who ___ you yesterday? (call)", "called", "Who adalah subjek, sehingga gunakan called tanpa did."] ,
-    ["Who are you waiting ___?", "for", "Wait for berarti menunggu. For dapat berada di akhir pertanyaan."] ,
-    ["What are you listening ___?", "to", "Listen to berarti mendengarkan. To dapat berada di akhir pertanyaan."] ,
-    ["What did they talk ___?", "about", "Talk about digunakan untuk membicarakan suatu topik."] ,
-    ["How ___ books do you need?", "many", "Gunakan how many untuk benda yang dapat dihitung dalam bentuk jamak."] ,
-    ["How ___ water do you need?", "much", "Gunakan how much untuk kata benda yang tidak dapat dihitung seperti water."] ,
-    ["Could you tell me where she ___? (work)", "works", "Dalam indirect question, gunakan urutan subjek lalu kata kerja: where she works."] ,
-  ];
-  questionFormation.forEach(([prompt, answer, explanation], index) => add({
-    id: `question-formation-${index}`, topic: "questions", rule: "Question Formation",
-    prompt, answer, hint: "Perhatikan kata tanya, subjek, dan kata bantu dalam kalimat.", explanation,
-  }));
-
   // 1. Articles (a / an / the / - )
   const articleHint = "Ketik a, an, the, atau - jika tidak memerlukan artikel. Perhatikan bunyi awal kata dan apakah benda sudah spesifik.";
   function addArticle(question: BasicsQuestion) {

@@ -21,6 +21,77 @@ export interface TopicWritingLesson {
   explanation: string;
 }
 
+const QUESTION_SITUATIONS = [
+  [
+    "Tanyakan di mana Olivia bekerja. Gunakan work.",
+    "Where does Olivia work?"
+  ],
+  [
+    "Tanyakan ke mana Emma pergi kemarin. Gunakan go.",
+    "Where did Emma go yesterday?"
+  ],
+  [
+    "Tanyakan apakah Daniel siap.",
+    "Is Daniel ready?"
+  ],
+  [
+    "Tanyakan apa yang sedang Olivia lakukan.",
+    "What is Olivia doing?"
+  ],
+  [
+    "Tanyakan siapa yang Emma telepon kemarin. Gunakan call.",
+    "Who did Emma call yesterday?"
+  ],
+  [
+    "Tanyakan siapa yang menelepon Emma kemarin. Gunakan call.",
+    "Who called Emma yesterday?"
+  ],
+  [
+    "Tanyakan siapa yang sedang Olivia tunggu. Gunakan wait for.",
+    "Who is Olivia waiting for?"
+  ],
+  [
+    "Tanyakan apa yang sedang Daniel dengarkan. Gunakan listen to.",
+    "What is Daniel listening to?"
+  ],
+  [
+    "Tanyakan apa yang Emma dan Daniel bicarakan kemarin. Gunakan talk about.",
+    "What did Emma and Daniel talk about yesterday?"
+  ],
+  [
+    "Tanyakan berapa banyak buku yang Emma butuhkan. Gunakan need.",
+    "How many books does Emma need?"
+  ],
+  [
+    "Tanyakan berapa banyak air yang Daniel butuhkan. Gunakan need.",
+    "How much water does Daniel need?"
+  ],
+  [
+    "Tanyakan dengan sopan di mana Olivia bekerja. Gunakan Could you tell me dan work.",
+    "Could you tell me where Olivia works?"
+  ]
+];
+
+const QUESTION_LESSONS: TopicWritingLesson[] = [
+    ["Where ___ she work?", "does", "Does digunakan dengan she, lalu kata kerja berbentuk dasar."] ,
+    ["Where did they ___ yesterday?", "go", "Setelah did, gunakan bentuk dasar go."] ,
+    ["___ you ready?", "are", "Pada pertanyaan dengan be, are berada sebelum you."] ,
+    ["What ___ he doing?", "is", "Present continuous memakai is sebelum subjek he dan doing setelahnya."] ,
+    ["Who ___ you call yesterday?", "did", "Who adalah objek. Gunakan did sebelum you dan call."] ,
+    ["Who ___ you yesterday? (call)", "called", "Who adalah subjek, sehingga gunakan called tanpa did."] ,
+    ["Who are you waiting ___?", "for", "Wait for berarti menunggu. For dapat berada di akhir pertanyaan."] ,
+    ["What are you listening ___?", "to", "Listen to berarti mendengarkan. To dapat berada di akhir pertanyaan."] ,
+    ["What did they talk ___?", "about", "Talk about digunakan untuk membicarakan suatu topik."] ,
+    ["How ___ books do you need?", "many", "Gunakan how many untuk benda yang dapat dihitung dalam bentuk jamak."] ,
+    ["How ___ water do you need?", "much", "Gunakan how much untuk kata benda yang tidak dapat dihitung seperti water."] ,
+    ["Could you tell me where she ___? (work)", "works", "Dalam indirect question, gunakan urutan subjek lalu kata kerja: where she works."] ,
+
+].map(([prompt, answer, explanation], index) => ({
+  id: `question-formation-${index}`, topic: "questions", prompt, answer, explanation,
+  situation: QUESTION_SITUATIONS[index][0], cues: "",
+  variants: [QUESTION_SITUATIONS[index][1]], writingExplanation: explanation,
+}));
+
 // Each situation has an explicit meaning and word guide, so local checking can
 // accept curated alternatives without accepting unrelated grammatical sentences.
 export const TOPIC_WRITING_LESSONS: TopicWritingLesson[] = [
@@ -505,6 +576,7 @@ export const TOPIC_WRITING_LESSONS: TopicWritingLesson[] = [
     explanation: "Pasangan kata yang alami adalah pay attention to. Jangan gunakan make attention atau menghilangkan to sebelum objek.",
   },
   ...PATTERN_LESSONS,
+  ...QUESTION_LESSONS,
 ];
 
 export function checkTopicWriting(lesson: TopicWritingLesson, input: string): WritingResult {

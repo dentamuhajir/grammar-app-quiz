@@ -62,6 +62,13 @@ export const DEFAULT_MULTI_FILTER: MultiQuizFilter = {
   includeRare: false,
 };
 
+export const BEGINNER_FILTER: MultiQuizFilter = {
+  tenses: ["presentSimple"],
+  modes: ["verbal", "nominal"],
+  forms: ["positive", "negative", "yesNoQuestion", "whQuestion"],
+  includeRare: false,
+};
+
 export function quizCombinations(filter: MultiQuizFilter) {
   return filter.tenses.flatMap(tense => filter.modes.flatMap(mode => {
     if (mode === "nominal" && (isPerfectContinuous(tense) || tense === "futureContinuous")) return [];

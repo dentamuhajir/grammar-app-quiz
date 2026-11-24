@@ -63,6 +63,12 @@ test("translation preserves question meaning and accepts only compatible lexical
   assert.equal(sentenceTranslation({...q,form:"negative"})?.text,"Dia laki-laki tidak akan menyiapkan makanan itu.");
   assert.equal(sentenceTranslation({...q,form:"whQuestion",whWord:"What"})?.text,"Apa yang akan disiapkan oleh dia laki-laki?");
   assert.equal(checkTranslationAnswer(q,"Will he prepare the food?").correct,true);
+  assert.equal(checkTranslationAnswer(q,"Will he get the meal ready?").correct,true);
+  assert.equal(checkTranslationAnswer(q,"Will he get the food ready?").correct,true);
+  for (const answer of ["Did he get the meal ready?", "Will she get the meal ready?", "Will he not get the meal ready?", "Will he gets the meal ready?"]) {
+    assert.equal(checkTranslationAnswer(q,answer).correct,false,answer);
+  }
+
   assert.equal(checkTranslationAnswer(q,"Did he prepare the food?").correct,false);
   assert.equal(checkTranslationAnswer(q,"Will she prepare the food?").correct,false);
   assert.equal(checkTranslationAnswer(q,"Will he not prepare the food?").correct,false);
