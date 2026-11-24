@@ -1,4 +1,5 @@
 import { BASICS_LABELS } from "../labels";
+import { RELATIVE_INSERTS, RELATIVE_INSERTS_LABEL, relativeInsertQuestions } from "./relativeInserts";
 import { FOR_SINCE, FOR_SINCE_LESSONS, timeExplanation, timeHint } from "../forSince";
 import { INTERESTED_IN, INTEREST_LESSONS, activityHint, prepositionHint } from "../interestedIn";
 import { ARTICLE_WRITING, ARTICLE_LESSONS, knownHint, soundHint } from "../articleWriting";
@@ -6,10 +7,12 @@ import type { WritingSkill } from "../writingPacks";
 import { TOPIC_WRITING_LESSONS } from "../topicWriting";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
-export type BasicsFilter = BasicsTopic | "all" | WritingSkill;
+export type BasicsFilter = BasicsTopic | "all" | WritingSkill | typeof RELATIVE_INSERTS;
 export const NO_WORD = "∅";
 
 export interface BasicsQuestion {
+  reading?: { sentence: string; choices: readonly string[] };
+  subtopic?: typeof RELATIVE_INSERTS;
   skillId?: WritingSkill;
   id: string;
   topic: BasicsTopic;
@@ -1159,6 +1162,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
   }
 
   // 5. Relative Pronouns (that / which / who / whose)
+  pool.push(...relativeInsertQuestions);
   const relNonDefining = [
     { key: "laptop", prompt: "My laptop, ___ I bought in 2022, still works well." },
     { key: "car", prompt: "His car, ___ was parked outside, is electric." },
@@ -1171,6 +1175,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `rel-nondef-which-${item.key}`,
       topic: "relatives",
       rule: "Klausa dengan koma · which",
+      cue: "who / which",
       prompt: item.prompt,
       hint: "Pilih kata ganti penghubung (that / which / who / whose). Perhatikan subjeknya adalah benda dan ada tanda koma di depannya.",
       answer: "which",
@@ -1225,6 +1230,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
       id: `rel-who-${item.key}`,
       topic: "relatives",
       rule: "Orang · who",
+      cue: hasComma ? "who / which" : undefined,
       prompt: item.prompt,
       hint: "Kata ganti penghubung untuk orang yang menjadi subjek kata kerja berikutnya.",
       answer: "who",
@@ -2063,6 +2069,8 @@ export const BASICS_POOL = buildQuestionPool();
 
 /** Shuffle a complete cycle, without repeating its last item at the next boundary. */
 export function createDeck(filter: BasicsFilter, previousId?: string): BasicsQuestion[] {
+  // The focused lesson builds from finding the subject to reducing a passive clause.
+  if (filter === RELATIVE_INSERTS) return [...relativeInsertQuestions];
   const deck = BASICS_POOL.filter((q) => filter === "all" || q.topic === filter || q.skillId === filter);
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -2088,6 +2096,7 @@ export function completedSentence(q: BasicsQuestion): string {
 }
 
 export function mistakeHint(q: BasicsQuestion, input: string): string {
+  if (q.subtopic === RELATIVE_INSERTS) return q.hint;
   if (q.skillId === `writing_${q.topic}`) return q.explanation;
   const word = input.trim().toLowerCase().replace(/\s+/g, " ");
   if (q.topic === "articles") {
@@ -2361,8 +2370,9 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
     summary: "Relative Clauses (who, which, that, whose, where) menggabungkan dan memperjelas informasi tentang orang, benda, kepemilikan, atau tempat.",
     rules: [
       { label: "who (Orang)", detail: "Menjelaskan manusia sebagai subjek/objek klausa (The doctor who treated me)." },
-      { label: "which vs that (Benda)", detail: "Klausa tanpa koma bisa memakai that/which. Setelah koma (non-defining) wajib which; setelah superlatif (the best/only) wajib that." },
+      { label: "which dan that untuk benda", detail: "Dalam the book that I bought, that juga dapat diganti dengan which. Untuk memberi informasi tambahan di antara koma, gunakan which jika kata penghubungnya ditulis." },
       { label: "whose (Kepemilikan) & where (Tempat)", detail: "whose + benda milik (the student whose laptop was lost) · where untuk tempat terjadinya aksi (the cafe where we met)." },
+      { label: RELATIVE_INSERTS_LABEL, detail: "My bike, fixed yesterday, is ready to ride. Lewati bagian di antara koma untuk membaca kalimat intinya, My bike is ready to ride. Fixed yesterday menerangkan sepeda dan bisa diperluas menjadi which was fixed yesterday. Bentuk ringkas seperti ini disebut reduced relative clause. Saat membacanya keras-keras, kamu bisa memberi jeda ringan di kedua koma." },
     ],
     examples: [
       "The woman who called you earlier is our new project manager.",

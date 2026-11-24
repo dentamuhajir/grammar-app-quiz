@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { BASICS_LABELS } from "../grammar/labels";
+import { RELATIVE_INSERTS, RELATIVE_INSERTS_LABEL } from "../grammar/basics/relativeInserts";
+import { RelativeInsertCard } from "./RelativeInsertCard";
 import {
   BASICS_TOPIC_GUIDES,
   checkBasicsAnswer,
@@ -21,7 +23,7 @@ import { SwipeGuide } from "./SwipeGuide";
 
 type WritingLink = { onWrite: (lessonId: string) => void };
 
-function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLink) {
+function BasicsSession({ filter, onWrite, openInserts }: { filter: BasicsFilter; openInserts: () => void } & WritingLink) {
   const [deck, setDeck] = useState<BasicsQuestion[]>(() => createDeck(filter));
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState("");
@@ -82,6 +84,9 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
     onSwipeRight: openMaterial,
   });
 
+  if (question.reading) return <RelativeInsertCard key={question.id} question={question} reading={question.reading}
+    progress={filter === RELATIVE_INSERTS ? { step: index + 1, total: deck.length } : undefined} next={next} />;
+
   return (
     <>
       <div className="swipe-card-surface" {...swipeHandlers}>
@@ -101,6 +106,8 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
                 ⓘ
               </span>
             </button>
+            {filter === "relatives" && <button type="button" className="insert-link"
+              onClick={openInserts}>Pelajari sisipan →</button>}
             {(hasIncorrectAttempt || finished) && <button
               type="button"
               className="tag tag-hint-btn"
@@ -277,7 +284,10 @@ export function BasicsPractice({ onWrite }: WritingLink) {
 
   return (
     <>
-      <button
+      {filter === RELATIVE_INSERTS ? <nav className="insert-nav" aria-label="Navigasi submateri">
+        <button type="button" className="insert-link" onClick={() => setFilter("relatives")}>← Relative Pronouns</button>
+        <button type="button" className="insert-link" onClick={() => setFiltersOpen(true)}>Pilih topik</button>
+      </nav> : <button
         type="button"
         className="filter-pill-bar"
         onClick={() => setFiltersOpen(true)}
@@ -287,9 +297,8 @@ export function BasicsPractice({ onWrite }: WritingLink) {
           <span className="filter-toggle-summary">{summary}</span>
         </span>
         <span className="filter-pill-action">⚙ Pilih Topik</span>
-      </button>
-
-      <BasicsSession key={filter} filter={filter} onWrite={onWrite} />
+      </button>}
+      <BasicsSession key={filter} filter={filter} onWrite={onWrite} openInserts={() => setFilter(RELATIVE_INSERTS)} />
 
       <BottomSheet
         open={filtersOpen}
@@ -321,6 +330,10 @@ export function BasicsPractice({ onWrite }: WritingLink) {
             </button>
           ))}
         </div>
+        <button type="button" className="insert-link insert-picker-link"
+          onClick={() => { setFilter(RELATIVE_INSERTS); setFiltersOpen(false); }}>
+          Relative Pronouns · {RELATIVE_INSERTS_LABEL} →
+        </button>
       </BottomSheet>
     </>
   );

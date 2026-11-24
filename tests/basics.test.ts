@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { BASICS_POOL, BASICS_TOPIC_GUIDES, checkBasicsAnswer, completedSentence, createDeck, mistakeHint, NO_WORD, type BasicsTopic } from "../src/grammar/basics/engine";
 import { BASICS_LABELS } from "../src/grammar/labels";
+import { RELATIVE_INSERTS } from "../src/grammar/basics/relativeInserts";
 import { checkAnswer } from "../src/grammar/check";
 import { DEFAULT_FILTER, generateQuestion } from "../src/grammar/generator";
 import { FOR_SINCE, FOR_SINCE_LESSONS, checkForSinceWriting, referenceSentence } from "../src/grammar/forSince";
@@ -305,6 +306,23 @@ test("all generated questions have one blank, hints, and unique IDs", () => {
     assert.ok(!completedSentence(q).includes("___"), q.id);
     assert.ok(!completedSentence(q).includes(NO_WORD), q.id);
   }
+});
+
+test("relative inserts progress from the main clause to passive reduction and the active contrast", () => {
+  const lesson = createDeck(RELATIVE_INSERTS);
+  const relatives = createDeck("relatives");
+  assert.deepEqual(lesson.map(q => q.answer), ["My phone", "arrived", "My jacket", "which was", "built", "which opens"]);
+  lesson.forEach(q => {
+    assert.ok(relatives.includes(q));
+    assert.ok(q.reading);
+    assert.equal(q.reading.choices.filter(option => checkBasicsAnswer(q, option) === "correct").length, 1);
+  });
+  for (const [index, wrong] of [[1, "delayed"], [2, "the closet"], [4, "which was built"], [5, "opens"]] as const) {
+    const q = lesson[index];
+    assert.equal(checkBasicsAnswer(q, wrong), "incorrect");
+    assert.equal(mistakeHint(q, wrong), q.hint);
+  }
+  assert.equal(completedSentence(lesson[4]), "The bridge, built in 1920, still carries trains.");
 });
 
 test("each topic deck covers its pool exactly once and avoids the previous boundary item", () => {

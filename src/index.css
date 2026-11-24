@@ -1551,6 +1551,29 @@ button:focus-visible {
 }
 
 /* ---- Basics & Q&A specifics ---- */
+.insert-lesson { display: grid; gap: 1rem; align-content: start; }
+.insert-heading, .insert-nav, .insert-tools { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.insert-heading h2 { font-size: clamp(1.2rem, 5vw, 1.55rem); line-height: 1.25; margin: 0; }
+.insert-heading small { white-space: nowrap; color: var(--muted); }
+.insert-paper { padding: 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.insert-paper h3 { color: var(--muted); font-size: .9rem; margin: 0 0 .6rem; }
+.insert-sentence { font-size: clamp(1.2rem, 4.8vw, 1.45rem); font-weight: 750; line-height: 1.65; margin: 0; }
+.insert-sentence mark { background: var(--brand-soft); color: var(--ink); border-bottom: 2px solid var(--brand-accent); }
+.insert-meaning, .insert-tip { margin: .55rem 0 0; color: var(--ink-soft); line-height: 1.65; }
+.insert-tip { margin: 0; }
+.insert-link { background: transparent; border: 0; color: var(--ink); font: inherit; font-size: .89rem; font-weight: 700; text-decoration: underline; text-underline-offset: .2em; cursor: pointer; padding: .4rem .1rem; }
+.insert-paper > .insert-link, .insert-picker-link { margin-top: .65rem; }
+.insert-picker-link { text-align: start; }
+.insert-choices { min-width: 0; margin: 1.1rem 0 0; padding: 0; border: 0; display: grid; gap: .5rem; }
+.insert-choices legend { font-weight: 700; line-height: 1.5; padding: 0 0 .6rem; }
+.insert-choices button { min-height: 44px; border: 1.5px solid var(--line); border-radius: .6rem; background: var(--surface-alt); color: var(--ink); padding: .6rem .85rem; text-align: start; font: inherit; font-weight: 650; cursor: pointer; }
+.insert-choices button:hover:enabled { border-color: var(--brand-accent); }
+.insert-choices button.is-correct { border-color: var(--ok); background: var(--ok-soft); }
+.insert-choices button.is-incorrect { border-color: var(--bad); background: var(--bad-soft); }
+.insert-choices button:disabled { cursor: default; }
+.insert-next { justify-self: start; }
+.insert-audio summary { cursor: pointer; font-size: .9rem; }
+.insert-lesson > div:empty { display: none; }
 .basics-context {
   margin: 0;
   padding: 0.85rem 1rem;
