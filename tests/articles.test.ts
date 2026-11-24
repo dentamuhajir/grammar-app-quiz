@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { highlightGroups, sampleArticle, sampleHighlights, sentenceRequest, splitArticle } from "../src/grammar/articles/reader";
+import { handleArticle } from "../api/article.js";
 import {
   ARTICLE_POOL,
   ARTICLE_TITLES,
@@ -16,6 +18,89 @@ function byId(id: string) {
   assert.ok(q, id);
   return q;
 }
+
+test("reader keeps quotes, repeated sentences and paragraph context anchored to the source", () => {
+  const text = 'Dr. Lee paid 3.50. “Really?” she asked. Yes. Yes.\r\n\r\nNext paragraph!';
+  const rows = splitArticle(text);
+  assert.deepEqual(rows.map(r => r.paragraph.slice(r.start, r.end)),
+    ["Dr. Lee paid 3.50.", "“Really?” she asked.", "Yes.", "Yes.", "Next paragraph!"]);
+  assert.ok(rows[3].start > rows[2].start);
+  assert.equal(rows[4].paragraph, "Next paragraph!");
+  const long = "a".repeat(1100) + ". Read this. " + "b".repeat(1100);
+  const request = sentenceRequest(splitArticle(long)[1]);
+  assert.equal(request.paragraph.slice(request.start, request.end), "Read this.");
+  assert.equal(request.paragraph.length, 2010);
+});
+
+test("offline example supports overlapping patterns on the same words", () => {
+  const sentences = splitArticle(sampleArticle);
+  for (const [index, row] of sentences.entries()) {
+    const text = row.paragraph.slice(row.start, row.end);
+    assert.ok(sampleHighlights(index).every(note => note.start >= 0 && note.end <= text.length));
+  }
+  const groups = highlightGroups(sampleHighlights(1));
+  assert.deepEqual(groups.map(group => group.notes.length), [2, 1]);
+});
+
+test("article API validates input and resolves exact occurrences before returning source offsets", async t => {
+  const paragraph = "She says we learn, and they learn too.";
+  const body = { paragraph, start: 0, end: paragraph.length };
+  let highlights = [{ phrase: "learn", occurrence: 2, label: "Present Simple", explanation: "Learn mengikuti subjek they." }];
+  const provider = t.mock.method(globalThis, "fetch", async (_url, options) => {
+    const prompt = JSON.parse(options.body);
+    assert.deepEqual(JSON.parse(prompt.messages[1].content), { before: "", sentence: paragraph, after: "" });
+    return Response.json({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify({ highlights }) } }] });
+  });
+  async function send(input = body, key = "test-key") {
+    const res = {
+      status: 0, data: {} as { highlights: { start: number }[]; error?: string },
+      writeHead(status: number) { this.status = status; },
+      end(json: string) { this.data = JSON.parse(json); },
+    };
+    await handleArticle({ method: "POST", headers: { "content-type": "application/json" }, body: input }, res, key);
+    return res;
+  }
+  assert.equal((await send(body, "")).status, 503);
+  assert.equal((await send({ ...body, end: paragraph.length + 1 })).status, 400);
+  assert.equal(provider.mock.callCount(), 0);
+  const result = await send();
+  assert.equal(result.status, 200);
+  assert.equal(result.data.highlights[0].start, paragraph.lastIndexOf("learn"));
+  const valid = highlights[0];
+  const invented = { ...valid, phrase: "invented" };
+  highlights = [invented, { ...valid, occurrence: 0 }, { ...valid, occurrence: 20 }, valid];
+  provider.mock.resetCalls();
+  const partial = await send();
+  assert.equal(partial.status, 200);
+  assert.deepEqual(partial.data, result.data);
+  assert.equal(provider.mock.callCount(), 1);
+
+  highlights = [invented];
+  provider.mock.resetCalls();
+  const invalid = await send();
+  assert.equal(invalid.status, 503);
+  assert.equal(invalid.data.error, "invalid_analysis");
+  assert.equal(provider.mock.callCount(), 2);
+  highlights = [];
+  assert.deepEqual((await send()).data, { highlights: [] });
+
+  for (const first of [
+    { finish_reason: "length" },
+    { finish_reason: "stop", message: { content: JSON.stringify({ highlights: [invented] }) } },
+  ]) {
+    provider.mock.resetCalls();
+    provider.mock.mockImplementationOnce(async () => Response.json({ choices: [first] }));
+    highlights = [valid];
+    assert.deepEqual((await send()).data, result.data);
+    assert.equal(provider.mock.callCount(), 2);
+  }
+  provider.mock.resetCalls();
+  provider.mock.mockImplementation(async () => { throw new TypeError("fetch failed"); });
+  const offline = await send();
+  assert.equal(offline.status, 503);
+  assert.equal(offline.data.error, "connection_failed");
+  assert.equal(provider.mock.callCount(), 1);
+});
 
 test("all article questions have valid structure, hints, explanations, and unique IDs", () => {
   assert.equal(new Set(ARTICLE_POOL.map((q) => q.id)).size, ARTICLE_POOL.length);

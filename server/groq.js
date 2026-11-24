@@ -28,6 +28,15 @@ async function generate(exercise, apiKey, signal) {
       response_format: { type: "json_schema", json_schema: { name: "roleplay_turn", strict: true,
         schema: strictSchema(exercise.schema) } },
     }),
+  }).catch(err => {
+    if (signal.aborted) throw err;
+    const code = err.cause?.code;
+    let message = "Server aplikasi gagal terhubung ke Groq. Coba lagi sebentar.";
+    if (["ENOTFOUND", "EAI_AGAIN"].includes(code)) message = "Server aplikasi gagal menemukan alamat api.groq.com. Periksa DNS pada server.";
+    if (["UNABLE_TO_VERIFY_LEAF_SIGNATURE", "SELF_SIGNED_CERT_IN_CHAIN", "UNABLE_TO_GET_ISSUER_CERT_LOCALLY"].includes(code)) {
+      message = "Server aplikasi gagal memverifikasi sertifikat HTTPS Groq. Periksa konfigurasi sertifikat Node.js pada server.";
+    }
+    throw new ProviderError("connection_failed", undefined, message);
   });
   if (!upstream.ok) {
     const status = upstream.status;
@@ -42,13 +51,18 @@ async function generate(exercise, apiKey, signal) {
     }
     throw new ProviderError("request_rejected", status, "Groq tidak dapat memproses permintaan tutor.");
   }
-  const result = await upstream.json();
-  const choice = result.choices?.[0];
+  const incomplete = () => new ProviderError("incomplete_response", upstream.status, "Jawaban Groq belum lengkap. Coba lagi.");
+  const result = await upstream.json().catch(() => { throw incomplete(); });
+  const choice = result?.choices?.[0];
   if (choice?.message?.refusal || choice?.finish_reason === "content_filter") {
     throw new ProviderError("content_blocked", upstream.status, "Tutor tidak dapat memproses jawaban ini.");
   }
-  if (choice?.finish_reason !== "stop") throw new Error("Incomplete tutor response");
-  return JSON.parse(choice.message.content);
+  if (choice?.finish_reason !== "stop" || typeof choice.message?.content !== "string") throw incomplete();
+  try {
+    return JSON.parse(choice.message.content);
+  } catch {
+    throw incomplete();
+  }
 }
 
 export function groqProvider(key) {

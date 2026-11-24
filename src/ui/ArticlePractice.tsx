@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArticleReader } from "./ArticleReader";
 import {
   ARTICLE_MODE_LABELS,
   ARTICLE_TITLES,
@@ -529,15 +530,16 @@ function ArticleSession({ filter }: { filter: ArticleFilter }) {
   );
 }
 
-export function ArticlePractice() {
+function ArticleQuiz({ mode, onBack }: { mode: ArticleMode; onBack: () => void }) {
   const [filter, setFilter] = useState<ArticleFilter>({
-    mode: "all",
+    mode,
     articleId: "all",
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   return (
     <>
+      <button className="btn btn-ghost" onClick={onBack}>← Kembali ke bedah teks</button>
       <button
         type="button"
         className="filter-pill-bar"
@@ -616,4 +618,12 @@ export function ArticlePractice() {
       </BottomSheet>
     </>
   );
+}
+
+export function ArticlePractice() {
+  const [quiz, setQuiz] = useState<ArticleMode | null>(null);
+  return <>
+    <div hidden={quiz !== null}><ArticleReader onPractice={setQuiz} /></div>
+    {quiz && <ArticleQuiz mode={quiz} onBack={() => setQuiz(null)} />}
+  </>;
 }

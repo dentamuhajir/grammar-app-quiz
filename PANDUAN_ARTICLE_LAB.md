@@ -2,7 +2,7 @@
 
 Dokumen ini menjelaskan cara kerja fitur **Article Lab** serta cara menambahkan artikel baru ke dalam aplikasi **tanpa perlu mengubah kode TypeScript/React (`.ts` / `.tsx`)**.
 
-Seluruh data artikel dibundel secara statis saat proses *build*, sehingga aplikasi tetap berjalan **100% offline** di perangkat pengguna (PWA).
+**Bedah teks sendiri** menggunakan Groq ketika pembaca memilih kalimat dari artikel yang ditempel. Teks contoh dan kedua kuis memakai materi bawaan sehingga dapat digunakan secara offline di PWA. Panduan penambahan materi di bawah berlaku untuk kuis.
 
 ---
 

@@ -175,7 +175,7 @@ const EXTRA_MODES: Array<{
   {
     mode: "articles",
     description:
-      "Bedah tenses, passive, modal, dan cari kesalahan grammar di dalam artikel nyata.",
+      "Tempel artikel bahasa Inggris untuk memahami grammar tiap kalimat, atau pilih kuis artikel.",
   },
   {
     mode: "story",

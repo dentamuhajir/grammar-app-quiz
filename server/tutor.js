@@ -20,6 +20,16 @@ function quotaError(name, seconds) {
   return new ProviderError("quota", 429, `Batas penggunaan ${name} tercapai. Coba lagi setelah ${seconds} detik.`, seconds);
 }
 
+async function generateReview(exercise, generate, key, signal) {
+  const review = async () => exercise.parse(await generate(exercise, key, signal));
+  try {
+    return await review();
+  } catch (err) {
+    if (signal.aborted || !exercise.retryableOutputErrors?.includes(err.details?.error)) throw err;
+    return review();
+  }
+}
+
 export function createTutorHandler(prepare, getProviders) {
   return async function handleTutor(req, res, ...keys) {
     if (req.method !== "POST") {
@@ -70,11 +80,12 @@ export function createTutorHandler(prepare, getProviders) {
         const timeout = AbortSignal.timeout(exercise.timeoutMs?.[name] ?? timeoutMs);
         const signal = AbortSignal.any([timeout, disconnected.signal]);
         try {
-          const tutor = await generate(exercise, key, signal);
-          return reply(res, 200, exercise.parse(tutor));
+          const review = await generateReview(exercise, generate, key, signal);
+          return reply(res, 200, review);
         } catch (err) {
           if (disconnected.signal.aborted) return;
-          failure = err instanceof ProviderError ? err.details : { error: timeout.aborted ? "timeout" : "unavailable" };
+          failure = timeout.aborted ? { error: "timeout", message: "Waktu analisis habis. Coba lagi." }
+            : err instanceof ProviderError ? err.details : { error: "unavailable" };
           if (failure.error === "quota" && err.retrySeconds > 0) {
             const until = Date.now() + err.retrySeconds * 1000;
             const current = cooldowns.get(name);

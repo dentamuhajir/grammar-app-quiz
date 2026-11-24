@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type PreviewServer, type ViteDevServer } from "v
 import react from "@vitejs/plugin-react";
 import { handleRoleplay } from "./api/roleplay.js";
 import { handleStory } from "./api/story.js";
+import { handleArticle } from "./api/article.js";
 
 // `base` is where the app is served from.
 // - Vercel serves from the domain root -> "/".
@@ -14,6 +15,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, "", "");
   const base = env.DEPLOY_TARGET === "ghpages" ? "/grammar-app-quiz/" : "/";
   function mountTutorRoutes(server: ViteDevServer | PreviewServer) {
+    server.middlewares.use("/api/article", (req, res, next) => {
+      handleArticle(req, res, env.GROQ_API_KEY).catch(next);
+    });
     server.middlewares.use("/api/roleplay", (req, res, next) => {
       handleRoleplay(req, res, env.GEMINI_API_KEY, env.GROQ_API_KEY).catch(next);
     });

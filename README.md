@@ -146,7 +146,12 @@ Groq tidak tersedia, server mencoba Gemini dengan konteks percakapan yang sama.
 
 ### Article Lab
 
-Latihan mengenali grammar di dalam paragraf. Tersedia dua bentuk aktivitas.
+**Bedah teks sendiri** membuka Article Lab. Tempel artikel bahasa Inggris, pilih
+kalimat, lalu ketuk frasa yang disorot untuk membaca penjelasannya dalam bahasa
+Indonesia. Analisis memakai endpoint `/api/article` dan `GROQ_API_KEY` di server.
+Teks contoh memiliki penjelasan bawaan dan bisa dicoba secara offline.
+
+Dua kuis tetap tersedia melalui **Latihan artikel**.
 
 - **Bedah Kalimat** — memilih tag struktur grammar berdasarkan kalimat dan
   menemukan frasa yang menjadi buktinya.
