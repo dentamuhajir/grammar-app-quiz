@@ -96,6 +96,11 @@ export type WhWord = "What" | "Where" | "When" | "Why" | "How" | "How long";
 
 /** A single generated quiz question. */
 export interface Question {
+  reasonClause?: {
+    cues: string[];
+    clause: string;
+    frontedAnswer: string;
+  };
   relativeClause?: {
     pronoun: "who" | "which";
     tense: "presentSimple" | "pastSimple";

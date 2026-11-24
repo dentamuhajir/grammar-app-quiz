@@ -86,6 +86,7 @@ export function initialExplorerQuestion(source?: Question): Question {
     if (explorerRestriction(source, tense)) tense = tense.replace("Continuous", "Simple") as Tense;
     const main = { ...source, tense };
     delete main.relativeClause;
+    delete main.reasonClause;
     return buildExplorerQuestion(main);
   }
   return buildExplorerQuestion({

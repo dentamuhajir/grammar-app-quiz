@@ -3620,9 +3620,13 @@ button:focus-visible {
   transition: transform 0.08s ease, background 0.12s ease;
 }
 
-.tenses-option-pill:hover {
+.tenses-option-pill:hover:enabled {
   background: var(--yellow-card);
 }
+
+.sentence-filter-group .tenses-option-pill:disabled { cursor: default; }
+.sentence-filter-group .tenses-option-pill:disabled:not(.active),
+.sentence-tense-options label:has(input:disabled) { opacity: .6; }
 
 .tenses-option-pill.active {
   background: var(--green-500);

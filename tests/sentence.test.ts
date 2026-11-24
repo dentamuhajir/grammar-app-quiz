@@ -17,6 +17,55 @@ import type { Mode, Question, SentenceForm, Subject, Tense } from "../src/gramma
 import { sentenceTranslation, checkTranslationAnswer } from "../src/grammar/translation";
 import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode";
 import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
+import { buildReasonQuestion } from "../src/grammar/reasonSentences";
+
+test("reason practice accepts both clause orders and keeps the direction of the explanation", t => {
+  const random = t.mock.method(Math, "random", () => 0);
+  for (const tense of ["presentSimple", "pastSimple"] as const) {
+    for (let scenario = 0; scenario < 4; scenario++) {
+      for (let person = 0; person < 5; person++) {
+        const picks = [scenario / 4, person / 5];
+        random.mock.mockImplementation(() => picks.shift()!);
+        const q = buildReasonQuestion(tense);
+        const reason = q.reasonClause!;
+        const resultFirst = q.answer.split(" because ")[0];
+        assert.ok(checkAnswer(q, q.answer).correct);
+        assert.ok(checkAnswer(q, reason.frontedAnswer).correct);
+        assert.ok(!checkAnswer(q, resultFirst).correct);
+        assert.ok(!checkAnswer(q, reason.clause + " because " + resultFirst).correct);
+        assert.match(checkAnswer(q, q.answer.replace(" because ", " although ")).hint, /because/i);
+        for (const answer of [q.answer, reason.frontedAnswer]) {
+          assert.ok(sentenceReading(answer, q), answer);
+          assert.ok(sentenceGuide({ ...q, answer }).parts.some(p => p.role === "Klausa alasan" && p.text.toLowerCase().startsWith("because ")));
+        }
+        assert.equal(initialExplorerQuestion(q).answer, resultFirst + ".");
+        assert.equal(initialExplorerQuestion(q).reasonClause, undefined);
+      }
+    }
+  }
+});
+
+test("cause practice cycles both tenses without repeating adjacent situations", () => {
+  const next = createQuestionCycle({ ...DEFAULT_MULTI_FILTER, focus: "reasonClause" });
+  let previous: Question | undefined;
+  for (let i = 0; i < 12; i++) {
+    const q = next();
+    assert.ok(q.reasonClause);
+    assert.notEqual(q.verb!.base, previous?.verb?.base);
+    assert.notEqual(q.tense, previous?.tense);
+    previous = q;
+  }
+});
+
+test("reason practice only generates the chosen supported combinations", () => {
+  const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "reasonClause", tenses: ["pastSimple", "futureSimple"] };
+  assert.deepEqual(quizCombinations(filter), [{ tense: "pastSimple", mode: "verbal", form: "positive" }]);
+  const next = createQuestionCycle(filter);
+  for (let i = 0; i < 4; i++) assert.equal(next().tense, "pastSimple");
+  assert.deepEqual(quizCombinations({ ...filter, tenses: [] }), []);
+  assert.deepEqual(quizCombinations({ ...filter, forms: ["negative"] }), []);
+  assert.deepEqual(quizCombinations({ ...filter, modes: ["passive"] }), []);
+});
 
 test("relative focus keeps the selected main grammar and attaches a grounded who/which clause", () => {
   const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "relativeClause" };

@@ -83,6 +83,12 @@ export function sentenceGuide(q: Question): SentenceGuide {
   if (q.mode === "nominal" && !["What", "Where", "How"].includes(q.whWord ?? "")) formulaParts.push("Pelengkap");
   if (q.mode === "verbal" && q.verb?.object && q.whWord !== "What" && !(q.whWord === "How" && ["fast", "well", "hard", "smoothly"].includes(q.verb.object))) formulaParts.push("Objek / pelengkap");
   const reasons = [USES[tense]];
+  if (q.reasonClause) {
+    const fronted = q.answer === q.reasonClause.frontedAnswer;
+    if (fronted) formulaParts.unshift("Because + klausa alasan,");
+    else formulaParts.push("because", "klausa alasan");
+    reasons.push(`Kalimat ini termasuk complex sentence. “Because ${q.reasonClause.clause}” menjelaskan alasan terjadinya peristiwa pada klausa utama.`);
+  }
   if (q.relativeClause) reasons.push(`“${q.relativeClause.pronoun}” merujuk pada “${q.relativeClause.antecedent}”. Jika sisipan dilepas, kalimat utamanya menjadi “${q.relativeClause.mainSentence}”`);
   if (q.mode !== "passive" && q.subject.head) {
     reasons.push(`Kata inti subjek “${q.subject.text}” adalah “${q.subject.head}”. Subjek ini ${q.subject.number === "singular" ? "tunggal" : "jamak"} sehingga bentuk kata kerja dan kata bantu mengikuti kata inti tersebut.`);
@@ -128,6 +134,7 @@ function sentenceParts(q: Question): SentenceGuide["parts"] {
     }
   }
   if (q.relativeClause) mark(q.relativeClause.clause, "Klausa relatif");
+  if (q.reasonClause) mark(`because ${q.reasonClause.clause}`, "Klausa alasan");
   mark(q.timeSignal, "Keterangan waktu / frekuensi");
   mark(q.whWord, "Kata tanya");
   if (q.mode === "passive") {

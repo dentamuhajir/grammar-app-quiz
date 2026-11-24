@@ -33,18 +33,27 @@ function matchScore(diff: DiffToken[]): number {
  */
 export function checkAnswer(q: Question, raw: string): CheckResult {
   const canonical = checkReference(q, raw);
+  if (canonical.empty || canonical.correct) return canonical;
+  if (q.reasonClause) {
+    const fronted = checkReference({ ...q, answer: q.reasonClause.frontedAnswer }, raw);
+    return fronted.correct || errorCount(fronted) < errorCount(canonical) ? fronted : canonical;
+  }
   const relative = q.relativeClause;
-  if (!relative || canonical.empty || canonical.correct) return canonical;
+  if (!relative) return canonical;
   let closest = canonical;
-  let errors = canonical.diff.filter(token => token.op !== "match").length;
+  let errors = errorCount(canonical);
   for (const clause of relative.alternatives) {
     const candidate = { ...q, answer: q.answer.replace(relative.clause, clause), relativeClause: { ...relative, clause } };
     const result = checkReference(candidate, raw);
     if (result.correct) return result;
-    const count = result.diff.filter(token => token.op !== "match").length;
+    const count = errorCount(result);
     if (count < errors) { closest = result; errors = count; }
   }
   return closest;
+}
+
+function errorCount(result: CheckResult): number {
+  return result.diff.filter(token => token.op !== "match").length;
 }
 
 function checkReference(q: Question, raw: string): CheckResult {
