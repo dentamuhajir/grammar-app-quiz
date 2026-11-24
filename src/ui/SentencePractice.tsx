@@ -15,7 +15,7 @@ import {
   TENSE_ORDER,
 } from "../grammar/labels";
 import { implicitContextCue, sentenceGuide } from "../grammar/explanations";
-import type { Question } from "../grammar/types";
+import type { ClauseCues, Question } from "../grammar/types";
 import { SentenceFilters } from "./SentenceFilters";
 import { SentenceExplanation } from "./SentenceExplanation";
 import { BottomSheet } from "./BottomSheet";
@@ -82,12 +82,12 @@ function PromptChips({ q }: { q: Question }) {
 const PRAISE = ["Benar!", "Tepat!", "Jawabanmu sesuai!"];
 
 function RelativePrompt({ q, relative }: { q: Question; relative: NonNullable<Question["relativeClause"]> }) {
-  const mainCues = [
-    q.whWord, relative.antecedent,
-    q.mode === "nominal" ? `be ${q.complement!.text}` : q.verb!.base,
-    q.mode === "passive" ? `by ${q.subject.text}` : q.verb?.object,
-    q.timeSignal,
-  ].filter((cue): cue is string => Boolean(cue));
+  const mainCues: ClauseCues = {
+    wh: q.whWord, subject: relative.antecedent,
+    verb: q.mode === "nominal" ? "be" : q.verb!.base,
+    complement: q.mode === "passive" ? `by ${q.subject.text}` : q.complement?.text ?? q.verb?.object,
+    time: q.timeSignal,
+  };
   const rows = [
     { label: "Kalimat utama", detail: [TENSE_LABELS[q.tense], MODE_LABELS[q.mode].split(" (")[0], FORM_LABELS[q.form].split(" (")[0]].join(" · "), cues: mainCues },
     { label: "Sisipan", detail: TENSE_LABELS[relative.tense], cues: relative.cues },
@@ -95,12 +95,26 @@ function RelativePrompt({ q, relative }: { q: Question; relative: NonNullable<Qu
   return <ClausePrompt rows={rows} instruction={<>Rangkai satu kalimat. Apit informasi tambahan tentang <strong lang="en">{relative.antecedent}</strong> dengan dua koma.</>} />;
 }
 
-function ClausePrompt({ rows, instruction }: { rows: { label: string; detail: string; cues: string[] }[]; instruction: ReactNode }) {
+function ClauseChips({ cues }: { cues: ClauseCues }) {
+  const chips = [
+    { text: cues.wh, role: "wh" },
+    { text: cues.subject, role: "subject" },
+    { text: cues.verb, role: "cue", plus: Boolean(cues.subject) },
+    { text: cues.complement, role: "object", plus: true },
+    { text: cues.time, role: "time" },
+  ];
+  return <ul lang="en">{chips.filter(chip => chip.text).map(chip => <li key={chip.role}>
+    {chip.plus && <span className="plus" aria-hidden="true">+</span>}
+    <span className={`chip chip-${chip.role}`}>{chip.text}</span>
+  </li>)}</ul>;
+}
+
+function ClausePrompt({ rows, instruction }: { rows: { label: string; detail: string; cues: ClauseCues }[]; instruction: ReactNode }) {
   return <section aria-label="Bahan kalimat" className="relative-prompt">
     <p>{instruction}</p>
     {rows.map(row => <section key={row.label} aria-label={row.label}>
       <header><strong>{row.label}</strong><small>{row.detail}</small></header>
-      <ul lang="en">{row.cues.map((cue, index) => <li className="chip" key={index}>{cue}</li>)}</ul>
+      <ClauseChips cues={row.cues} />
     </section>)}
   </section>;
 }
@@ -282,7 +296,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
           )}
 
           {reason ? <ClausePrompt instruction={<>Hubungkan kejadian dan alasannya dengan <strong lang="en">because</strong>.</>} rows={[
-            { label: "Kejadian", detail: TENSE_LABELS[question.tense], cues: [question.subject.text, question.verb!.base, question.verb!.object] },
+            { label: "Kejadian", detail: TENSE_LABELS[question.tense], cues: { subject: question.subject.text, verb: question.verb!.base, complement: question.verb!.object } },
             { label: "Alasan", detail: TENSE_LABELS[question.tense], cues: reason.cues },
           ]} /> : relative ? <RelativePrompt q={question} relative={relative} /> : practiceMode === "translate" ? <section className="translation-prompt" aria-label="Terjemahkan ke bahasa Inggris">
             <p className="basics-prompt" lang="id">

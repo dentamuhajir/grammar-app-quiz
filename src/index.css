@@ -726,6 +726,7 @@ textarea::placeholder {
 .relative-prompt header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .65rem; }
 .relative-prompt small { color: var(--muted); }
 .relative-prompt ul { display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; padding: 0; margin: .45rem 0 0; }
+.relative-prompt li { display: inline-flex; align-items: center; gap: .4rem; max-width: 100%; }
 .relative-prompt .chip { font-size: 1rem; padding: .3rem .65rem; }
 .spoken-word mark { color: var(--ink); background: var(--yellow-card); padding-inline: .1em; border-radius: .18em; }
 

@@ -26,7 +26,7 @@ export function buildHint(q: Question, diff: DiffToken[]): string {
   const role = issue.correctIndex === undefined ? "" : roles[issue.correctIndex];
   if (q.reasonClause && role === "Klausa alasan") {
     if (expected === "because") return "Gunakan because sebelum bagian yang menjawab pertanyaan “mengapa?”.";
-    return `Periksa bagian alasan setelah because. Gunakan subjek “${q.reasonClause.cues[0]}” dan bentuk kata kerja ${TENSE_LABELS[q.tense]}.`;
+    return `Periksa bagian alasan setelah because. Gunakan subjek “${q.reasonClause.cues.subject}” dan bentuk kata kerja ${TENSE_LABELS[q.tense]}.`;
   }
   if (q.relativeClause && role === "Klausa relatif") {
     const { pronoun, antecedent, tense: clauseTense } = q.relativeClause;
