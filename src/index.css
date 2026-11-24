@@ -2552,6 +2552,24 @@ button:focus-visible {
   cursor: pointer;
 }
 
+.personal-review-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.personal-review-list li {
+  display: grid;
+  gap: .45rem;
+  padding-block: .85rem;
+  border-top: 1px solid var(--line);
+}
+
+.personal-review-list p { margin: 0; }
+.personal-review-list .spoken-sentence-block { align-items: flex-start; }
+
 .story-missions-header {
   display: flex;
   align-items: center;

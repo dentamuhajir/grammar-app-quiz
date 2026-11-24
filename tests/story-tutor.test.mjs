@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { handleStory } from "../api/story.js";
+import { personalSentences } from "../src/grammar/story/personalSentences.js";
 
 const exercise = {
   scenario: "Describe missing a train.", story: "I missed my train.",
@@ -66,12 +67,59 @@ test("personal reflection accepts one optional grammar suggestion", async t => {
   t.mock.method(globalThis, "fetch", async (_, options) => {
     const payload = JSON.parse(options.body);
     assert.match(JSON.stringify(payload), /grammar focus is optional/i);
-    return gemini({ ...mission, focus: "complete" });
+    return gemini({ strength: "Kegiatanmu jelas.", sentences: [{ number: 1, revision: "", feedback: "" }], nextStep: "" });
   });
   const result = await submit(personal);
   assert.equal(result.status, 200);
   assert.equal(result.body.focus, "complete");
+  assert.deepEqual(result.body.sentences, [{ original: personal.story, revision: "", feedback: "" }]);
   assert.equal((await submit({ ...personal, mode: undefined })).status, 400);
+});
+
+test("free writing reviews every sentence of the reported draft and retries an incomplete review", async t => {
+  const originals = [
+    "I would like to consist in learning machine learning.",
+    "If i had more time, i would practice after work office.",
+    "The problem is that I had overtime in previous week.",
+  ];
+  const personal = { mode: "personal", story: originals.join(" "), scenario: "What would you change in your routine?",
+    missions: [{ label: "Would like to", formula: "would like to + verb" }] };
+  const sentences = [
+    { number: 1, revision: "I would like to study machine learning more consistently.", feedback: "Gunakan consistently untuk menyatakan keinginan belajar secara rutin." },
+    { number: 2, revision: "If I had more time, I would practice after work.", feedback: "Tulis I dengan huruf kapital. After work sudah berarti sepulang kerja." },
+    { number: 3, revision: "The problem is that I worked overtime last week.", feedback: "Gunakan worked overtime untuk kegiatan lembur dan last week untuk minggu lalu." },
+  ];
+  const review = { strength: "Kamu menjelaskan tujuan dan hambatannya.", sentences, nextStep: "" };
+  const provider = t.mock.method(globalThis, "fetch", async (url, options) => {
+    const payload = JSON.parse(options.body);
+    if (String(url).includes("groq.com")) {
+      const schema = payload.response_format.json_schema.schema.properties.sentences;
+      assert.equal(schema.type, "array");
+      assert.equal(schema.items.additionalProperties, false);
+      assert.equal(schema.items.properties.number.type, "integer");
+      const partial = { ...review, sentences: sentences.slice(0, 1) };
+      return Response.json({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify(partial) } }] });
+    }
+    const context = JSON.parse(payload.contents[0].parts[0].text);
+    assert.deepEqual(context.sentences, originals.map((text, index) => ({ number: index + 1, text })));
+    return gemini(review);
+  });
+  const result = await submit(personal, "test-key", "groq-test-key");
+  assert.equal(provider.mock.callCount(), 2);
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body.sentences, sentences.map(({ revision, feedback }, index) => ({
+    original: originals[index], revision, feedback,
+  })));
+  for (const invalid of [sentences.slice(0, 1), [sentences[1], sentences[1], sentences[2]]]) {
+    provider.mock.mockImplementation(async () => gemini({ ...review, sentences: invalid }));
+    assert.equal((await submit(personal)).status, 503);
+  }
+});
+
+test("personal writing keeps lowercase starts, quoted endings, abbreviations and decimals with their sentences", () => {
+  assert.deepEqual(personalSentences('Dr. Lee paid 3.50. she asked “Why?” I answered'), [
+    "Dr. Lee paid 3.50.", "she asked “Why?”", "I answered",
+  ]);
 });
 
 test("corrections include a revision and complete stories receive only the strength", async t => {

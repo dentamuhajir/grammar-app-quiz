@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { PERSONAL_PROMPTS, type PersonalPrompt } from "../grammar/story/personal";
+import { personalSentences } from "../grammar/story/personalSentences.js";
 import { SpokenSentence } from "./SpokenSentence";
 import { VoiceInputBar } from "./VoiceInputBar";
 import { BottomSheet } from "./BottomSheet";
@@ -9,10 +10,8 @@ import { writingHintsFor, type WritingHint } from "../grammar/story/writingHints
 
 interface Review {
   strength: string;
-  focus: "correction" | "mission" | "complete";
-  revision: string;
-  feedback: string;
-  explanation: string;
+  sentences: { original: string; revision: string; feedback: string }[];
+  nextStep: string;
 }
 
 const HISTORY_KEY = "grammar-app-personal-story-history";
@@ -46,7 +45,8 @@ export function PersonalStoryPractice() {
   const pending = useRef<AbortController | null>(null);
   const answer = drafts[prompt.id] ?? "";
   const hints = writingHintsFor(prompt);
-  const sentenceCount = answer.split(/[.!?]+/).filter(sentence => /[a-zA-Z]/.test(sentence)).length;
+  const sentences = personalSentences(answer);
+  const sentenceCount = sentences.filter(sentence => /[a-zA-Z]/.test(sentence)).length;
 
   useEffect(() => () => { pending.current?.abort(); pending.current = null; }, []);
   useEffect(() => {
@@ -78,7 +78,7 @@ export function PersonalStoryPractice() {
     if (answer.length > 8000) { setNotice("Cerita dapat berisi hingga 8.000 karakter."); return; }
     const controller = new AbortController();
     pending.current = controller;
-    const timeout = window.setTimeout(() => controller.abort(), 25_000);
+    const timeout = window.setTimeout(() => controller.abort(), 75_000);
     setBusy(true);
     setNotice("");
     setReview(null);
@@ -94,8 +94,12 @@ export function PersonalStoryPractice() {
           : data?.error === "unconfigured" ? "Tutor AI belum diaktifkan."
             : "Tutor AI belum tersedia. Coba lagi.");
       }
-      if (!data || !["correction", "mission", "complete"].includes(data.focus)
-        || ![data.strength, data.revision, data.feedback, data.explanation].every(value => typeof value === "string")) {
+      if (typeof data?.strength !== "string" || typeof data.nextStep !== "string"
+        || !Array.isArray(data.sentences) || data.sentences.length !== sentences.length
+        || !sentences.every((original, index) => {
+          const row = data.sentences[index];
+          return row?.original === original && typeof row.revision === "string" && typeof row.feedback === "string";
+        })) {
         throw new Error("Jawaban tutor belum dapat diproses. Coba lagi.");
       }
       if (pending.current === controller) setReview(data);
@@ -157,12 +161,18 @@ export function PersonalStoryPractice() {
       {notice && <p role="status">{notice}</p>}
       {review && <section className="feedback feedback-reveal" aria-label="Umpan balik tutor" role="status">
         <strong>Umpan balik tutor</strong><p>{review.strength}</p>
-        {review.focus !== "complete" && <>
-          <strong>{review.focus === "correction" ? "Saran perbaikan" : "Kembangkan cerita"}</strong>
-          {review.revision && <SpokenSentence text={review.revision} />}
-          <p>{review.feedback}</p>
-          {review.explanation && <details><summary>Bahas lebih lanjut</summary><p>{review.explanation}</p></details>}
-        </>}
+        <ol className="personal-review-list" aria-label="Umpan balik per kalimat">
+          {review.sentences.map((row, index) => <li key={index}>
+            <strong>Kalimat {index + 1}{row.revision ? "" : " · Sudah tepat"}</strong>
+            <p lang="en">{row.original}</p>
+            {row.revision && <>
+              <strong>Saran perbaikan</strong>
+              <SpokenSentence text={row.revision} />
+              <p>{row.feedback}</p>
+            </>}
+          </li>)}
+        </ol>
+        {review.nextStep && <><strong>Kembangkan cerita</strong><p>{review.nextStep}</p></>}
       </section>}
     </form>
     <BottomSheet open={hint !== null} onClose={() => setHint(null)} title={hint?.label ?? "Bantuan menulis"}>

@@ -67,7 +67,7 @@ export function createTutorHandler(prepare, getProviders) {
         }
 
         const start = Date.now();
-        const timeout = AbortSignal.timeout(timeoutMs);
+        const timeout = AbortSignal.timeout(exercise.timeoutMs?.[name] ?? timeoutMs);
         const signal = AbortSignal.any([timeout, disconnected.signal]);
         try {
           const tutor = await generate(exercise, key, signal);

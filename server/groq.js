@@ -2,10 +2,17 @@ import { ProviderError } from "./tutor.js";
 
 const url = "https://api.groq.com/openai/v1/chat/completions";
 
+function strictSchema(field) {
+  const schema = { ...field, type: field.type.toLowerCase() };
+  if (field.properties) {
+    schema.properties = Object.fromEntries(Object.entries(field.properties).map(([key, value]) => [key, strictSchema(value)]));
+    schema.additionalProperties = false;
+  }
+  if (field.items) schema.items = strictSchema(field.items);
+  return schema;
+}
+
 async function generate(exercise, apiKey, signal) {
-  // Roleplay has a flat object of string fields and an optional branch enum.
-  const properties = Object.fromEntries(Object.entries(exercise.schema.properties)
-    .map(([name, field]) => [name, { ...field, type: "string" }]));
   const upstream = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
@@ -16,10 +23,10 @@ async function generate(exercise, apiKey, signal) {
         { role: "system", content: exercise.instructions },
         { role: "user", content: JSON.stringify(exercise.context) },
       ],
-      max_completion_tokens: 1024,
+      max_completion_tokens: exercise.maxOutputTokens ?? 1024,
       reasoning_effort: "low",
       response_format: { type: "json_schema", json_schema: { name: "roleplay_turn", strict: true,
-        schema: { type: "object", properties, required: exercise.schema.required, additionalProperties: false } } },
+        schema: strictSchema(exercise.schema) } },
     }),
   });
   if (!upstream.ok) {

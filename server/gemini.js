@@ -29,7 +29,7 @@ async function generate(exercise, apiKey, signal) {
       systemInstruction: { parts: [{ text: exercise.instructions }] },
       contents: [{ role: "user", parts: [{ text: JSON.stringify(exercise.context) }] }],
       generationConfig: {
-        maxOutputTokens: 1024,
+        maxOutputTokens: exercise.maxOutputTokens ?? 1024,
         responseMimeType: "application/json",
         responseSchema: exercise.schema,
       },
