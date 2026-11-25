@@ -2071,6 +2071,23 @@ export function buildQuestionPool(): BasicsQuestion[] {
     });
   }
 
+  const foundationQuestions: BasicsQuestion[] = [
+    { id: "foundation-agreement-everyone", topic: "plurals", rule: "Subject–verb agreement", prompt: "Everyone in the class ___ ready.", cue: "is / are", answer: "is", hint: "Everyone adalah subjek tunggal. Pilih bentuk be yang sesuai.", explanation: "Everyone diperlakukan sebagai subjek tunggal, sehingga memakai is." },
+    { id: "foundation-agreement-students", topic: "plurals", rule: "Subject–verb agreement", prompt: "The students in the classroom ___ ready.", cue: "is / are", answer: "are", hint: "Cari kata inti subjek sebelum memilih bentuk be.", explanation: "Kata inti subjek adalah students, yang jamak, sehingga memakai are." },
+    { id: "foundation-agreement-basket", topic: "plurals", rule: "Subject–verb agreement", prompt: "The basket of apples ___ on the table.", cue: "is / are", answer: "is", hint: "Cari benda utama yang dibicarakan, bukan kata benda setelah of.", explanation: "Kata inti subjek adalah basket yang tunggal, sehingga memakai is." },
+    { id: "foundation-agreement-works", topic: "plurals", rule: "Subject–verb agreement", prompt: "My sister ___ at a hospital.", cue: "work / works", answer: "works", hint: "Subjek tunggal orang ketiga memerlukan bentuk present simple yang sesuai.", explanation: "My sister adalah subjek tunggal orang ketiga, sehingga work menjadi works." },
+    { id: "foundation-count-books", topic: "quantifiers", rule: "Countable nouns", prompt: "There are three ___ on the shelf.", cue: "book / books", answer: "books", hint: "Book dapat dihitung dan jumlahnya lebih dari satu.", explanation: "Book dapat dihitung. Setelah three gunakan bentuk jamak books." },
+    { id: "foundation-count-water", topic: "quantifiers", rule: "Uncountable nouns", prompt: "Please give me a glass of ___.", cue: "water / waters", answer: "water", hint: "Water biasanya tidak dihitung langsung. Glass menyatakan satuannya.", explanation: "Water biasanya uncountable. Jumlahnya dapat dinyatakan dengan satuan a glass of water." },
+    { id: "foundation-count-advice", topic: "quantifiers", rule: "Uncountable nouns", prompt: "She gave me a piece of ___.", cue: "advice / advices", answer: "advice", hint: "Advice adalah uncountable noun. Piece menyatakan satuannya.", explanation: "Advice tidak memakai bentuk jamak advices. Gunakan a piece of advice." },
+    { id: "foundation-frequency-verb", topic: "adjectives", rule: "Adverbs of frequency", prompt: "She ___ breakfast before work.", cue: "usually eats / eats usually", answer: "usually eats", hint: "Usually umumnya diletakkan sebelum kata kerja utama.", explanation: "Usually biasanya berada sebelum kata kerja utama eats." },
+    { id: "foundation-frequency-be", topic: "adjectives", rule: "Adverbs of frequency", prompt: "He ___ for class.", cue: "is always / always is", answer: "is always", hint: "Always umumnya diletakkan setelah bentuk be.", explanation: "Always biasanya diletakkan setelah kata kerja be, seperti is always." },
+    { id: "foundation-frequency-aux", topic: "adjectives", rule: "Adverbs of frequency", prompt: "They have ___ finished their work on time.", cue: "often / oftens", answer: "often", hint: "Pilih bentuk adverb yang tepat setelah kata bantu have.", explanation: "Often tidak berubah mengikuti subjek dan dapat berada setelah kata bantu have." },
+    { id: "foundation-possessive-singular", topic: "pronouns", rule: "Possessive nouns", prompt: "This is ___ book.", cue: "Rina's / Rinas", answer: "Rina's", acceptedAnswers: ["Rina's", "Rina’s"], hint: "Tambahkan apostrof dan s pada nama pemilik tunggal.", explanation: "Tambahkan 's pada Rina untuk menunjukkan bahwa buku itu miliknya." },
+    { id: "foundation-possessive-plural", topic: "pronouns", rule: "Possessive nouns", prompt: "The ___ room is next to the library.", context: "Ruangan ini milik beberapa siswa.", cue: "students' / student's", answer: "students'", acceptedAnswers: ["students'", "students’"], hint: "Ruangan ini milik beberapa students. Letakkan apostrof setelah s jamak.", explanation: "Untuk pemilik jamak berakhiran s, tambahkan apostrof setelah s: students'." },
+    { id: "foundation-possessive-irregular", topic: "pronouns", rule: "Possessive nouns", prompt: "The ___ toys are in the box.", cue: "children's / childrens'", answer: "children's", acceptedAnswers: ["children's", "children’s"], hint: "Children sudah jamak dan tidak berakhir dengan s.", explanation: "Children adalah bentuk jamak tidak beraturan, sehingga bentuk kepemilikannya children's." },
+  ];
+  foundationQuestions.forEach(add);
+
   for (const lesson of TOPIC_WRITING_LESSONS) {
     add({
       id: lesson.id, skillId: `writing_${lesson.topic}`, topic: lesson.topic,
@@ -2113,6 +2130,7 @@ export function completedSentence(q: BasicsQuestion): string {
 }
 
 export function mistakeHint(q: BasicsQuestion, input: string): string {
+  if (q.id.startsWith("foundation-")) return q.hint;
   if (q.skillId === `writing_${q.topic}`) return q.explanation;
   const word = input.trim().toLowerCase().replace(/\s+/g, " ");
   if (q.topic === "articles") {
@@ -2318,6 +2336,7 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   plurals: {
     summary: "Singular & Plural mengatur perubahan kata benda dari tunggal (satu) menjadi jamak (lebih dari satu).",
     rules: [
+      { label: "Subject–verb agreement", detail: "Kata kerja mengikuti kata inti subjek. Everyone is ready dan the students are ready. Dalam the basket of apples is, basket adalah inti subjek. Pada present simple, she works memakai -s." },
       { label: "Reguler (+s / +es)", detail: "Umumnya ditambah -s (books, desks). Kata berakhiran -s, -x, -ch, -sh ditambah -es (boxes, buses)." },
       { label: "Akhiran huruf -y", detail: "Konsonan + y berubah menjadi -ies (baby → babies). Vokal + y cukup ditambah -s (toy → toys)." },
       { label: "Irregular (Tidak beraturan)", detail: "Berubah bentuk atau tetap sama: child → children, person → people, mouse → mice, sheep → sheep." },
@@ -2331,6 +2350,7 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   pronouns: {
     summary: "Pronouns & Possessives menggantikan kata benda sesuai posisinya (subjek, objek, kepemilikan, atau diri sendiri).",
     rules: [
+      { label: "Possessive nouns", detail: "Tambahkan 's pada pemilik tunggal (Rina's book). Untuk bentuk jamak berakhiran s, tambahkan apostrof setelah s (students' room). Bentuk jamak tidak beraturan memakai 's (children's toys)." },
       { label: "Subject vs Object", detail: "Subjek di awal sebelum kata kerja (I, she, they). Objek setelah kata kerja/preposisi (me, her, them)." },
       { label: "Possessive Adjective", detail: "Wajib diikuti kata benda: my, your, his, her, our, their (my bag, her laptop)." },
       { label: "Possessive Pronoun", detail: "Berdiri sendiri tanpa kata benda sesudahnya: mine, yours, his, hers, ours, theirs (This bag is mine)." },
@@ -2345,6 +2365,7 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   quantifiers: {
     summary: "Quantifiers menyatakan jumlah atau kuantitas benda berdasarkan apakah benda tersebut dapat dihitung (countable) atau tidak (uncountable).",
     rules: [
+      { label: "Countable vs uncountable nouns", detail: "Countable nouns dapat dihitung: one book, three books. Uncountable nouns seperti water dan advice biasanya memakai satuan: a glass of water, a piece of advice." },
       { label: "many vs much", detail: "many + benda jamak dapat dihitung (many books) · much + benda tak dapat dihitung (much water, much time, much money)." },
       { label: "a few vs a little", detail: "a few = beberapa (+ countable jamak: a few minutes) · a little = sedikit (+ uncountable: a little sugar, a little patience)." },
       { label: "some vs any", detail: "some untuk kalimat positif & tawaran sopan (Would you like some tea?) · any untuk kalimat negatif & tanya (don't have any bread)." },
@@ -2371,6 +2392,7 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   adjectives: {
     summary: "Adjectives menerangkan kata benda (atau kondisi subjek), sedangkan Adverbs menerangkan cara suatu kata kerja dilakukan.",
     rules: [
+      { label: "Posisi adverbs of frequency", detail: "Usually dan always umumnya berada sebelum kata kerja utama (she usually eats), setelah be (he is always late), atau setelah kata bantu pertama (they have often finished early)." },
       { label: "Adjective vs Adverb (-ly)", detail: "Adjective menerangkan benda/linking verb (quick, careful). Adverb menerangkan kata kerja aksi, umumnya +ly (quickly, carefully)." },
       { label: "Irregular Adverb", detail: "good → well (speak English well) · fast → fast · hard → hard (work hard; hati-hati: hardly = hampir tidak)." },
       { label: "Adjective -ed vs -ing", detail: "-ed menggambarkan perasaan orang (bored, tired, interested) · -ing menggambarkan sifat penyebabnya (boring movie, tiring day)." },
