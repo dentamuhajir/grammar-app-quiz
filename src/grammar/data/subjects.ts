@@ -15,6 +15,15 @@ export const SUBJECTS: Subject[] = [
   { text: "she", person: 3, number: "singular", entity: "person", objectForm: "her" },
   { text: "it", person: 3, number: "singular", entity: "thing", objectForm: "it" },
 
+  { text: "everyone", person: 3, number: "singular", entity: "person" },
+  { text: "everybody", person: 3, number: "singular", entity: "person" },
+  { text: "someone", person: 3, number: "singular", entity: "person" },
+  { text: "somebody", person: 3, number: "singular", entity: "person" },
+  { text: "anyone", person: 3, number: "singular", entity: "person" },
+  { text: "anybody", person: 3, number: "singular", entity: "person" },
+  { text: "nobody", person: 3, number: "singular", entity: "person" },
+  { text: "no one", person: 3, number: "singular", entity: "person" },
+
   // Noun subjects -> all 3rd person
   { text: "a pilot", person: 3, number: "singular", entity: "person" },
   { text: "the teacher", person: 3, number: "singular", entity: "person" },
@@ -49,3 +58,5 @@ export const SUBJECTS: Subject[] = [
 
 /** Person subjects only (used for passive "by ..." agents). */
 export const PERSON_SUBJECTS = SUBJECTS.filter((s) => s.entity === "person");
+
+export const INDEFINITE_PERSONS = ["everyone", "everybody", "someone", "somebody", "anyone", "anybody", "nobody", "no one"];

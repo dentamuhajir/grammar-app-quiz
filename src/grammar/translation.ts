@@ -7,6 +7,10 @@ const SUBJECTS_ID: Record<string, string> = {
   "my bike": "sepeda saya", "the car": "mobil itu",
   I: "saya", you: "kamu", we: "kita", they: "mereka",
   he: "dia laki-laki", she: "dia perempuan", it: "benda itu",
+  everyone: "semua orang", everybody: "semua orang",
+  someone: "seseorang", somebody: "seseorang",
+  anyone: "ada orang yang", anybody: "ada orang yang",
+  nobody: "tidak seorang pun", "no one": "tidak seorang pun",
   "a pilot": "seorang pilot", "the teacher": "guru itu", "my brother": "saudara laki-laki saya",
   "the engineer": "insinyur itu", "the dog": "anjing itu", "the students": "para siswa itu",
   "the children": "anak-anak itu", "my parents": "orang tua saya", "the workers": "para pekerja itu",
@@ -137,7 +141,10 @@ export function sentenceTranslation(q: Question): {text: string; context: string
   const tense = effectiveTense(q);
   const negative = q.form === "negative";
   let marker = ASPECT_ID[tense][negative ? 1 : 0];
-  const noun = q.mode === "passive" ? PHRASES_ID[q.verb!.object] ?? SUBJECTS_ID[q.verb!.object] : SUBJECTS_ID[q.subject.text];
+  const notEveryone = negative && q.mode !== "passive" && ["everyone", "everybody"].includes(q.subject.text);
+  if (notEveryone) marker = ASPECT_ID[tense][0];
+  const noun = q.mode === "passive" ? PHRASES_ID[q.verb!.object] ?? SUBJECTS_ID[q.verb!.object]
+    : notEveryone ? "tidak semua orang" : SUBJECTS_ID[q.subject.text];
   const subject = noun && q.relativeClause ? `${noun}, ${q.relativeClause.meaning},` : noun;
   let predicate: string | undefined;
   let object = "";
@@ -146,8 +153,8 @@ export function sentenceTranslation(q: Question): {text: string; context: string
     predicate = PHRASES_ID[q.subject.number === "plural" && comp.kind === "noun" ? comp.plural! : comp.text];
     if (tense.endsWith("Continuous")) predicate = predicate === undefined ? undefined : `bersikap ${predicate}`;
     if (q.whWord && ["What", "Where", "How"].includes(q.whWord)) predicate = "";
-    if (negative && comp.kind === "noun" && tense.endsWith("Simple")) marker = tense === "futureSimple" ? "tidak akan menjadi" : "bukan";
-    if (!negative && tense === "futureSimple" && comp.kind === "noun") marker = "akan menjadi";
+    if (negative && !notEveryone && comp.kind === "noun" && tense.endsWith("Simple")) marker = tense === "futureSimple" ? "tidak akan menjadi" : "bukan";
+    if ((!negative || notEveryone) && tense === "futureSimple" && comp.kind === "noun") marker = "akan menjadi";
   } else {
     predicate = VERBS_ID[q.verb!.base]?.[q.mode === "passive" ? 1 : 0];
     if (q.subject.entity === "thing" && q.verb!.base === "run") predicate = "beroperasi";
@@ -162,7 +169,7 @@ export function sentenceTranslation(q: Question): {text: string; context: string
   if (time === undefined) return null;
   let adjunct = time;
   if (q.timeSignal === "already") adjunct = "";
-  if (q.timeSignal === "just") { marker = negative ? "belum" : "baru saja"; adjunct = ""; }
+  if (q.timeSignal === "just") { marker = negative && !notEveryone ? "belum" : "baru saja"; adjunct = ""; }
   if (["usually", "often", "always"].includes(q.timeSignal ?? "")) {
     marker = [time, marker].filter(Boolean).join(" ");
     adjunct = "";
@@ -203,7 +210,16 @@ function equivalentTranslation(q: Question, input: string): string {
 
 /** Small lexical alternatives retain the exact tense, subject and polarity. */
 export function checkTranslationAnswer(q: Question, input: string) {
-  const equivalent = equivalentTranslation(q, input);
+  let equivalent = equivalentTranslation(q, input);
+  const personAliases: Record<string, string> = {
+    everyone: "everybody", everybody: "everyone", someone: "somebody", somebody: "someone",
+    anyone: "anybody", anybody: "anyone", nobody: "no one", "no one": "nobody",
+  };
+  const alias = personAliases[q.subject.text];
+  if (alias && q.mode !== "passive") {
+    const pattern = new RegExp(`\\b${alias}\\b`, "gi");
+    equivalent = equivalent.replace(pattern, q.subject.text);
+  }
   const original = checkAnswer(q, equivalent);
   if (original.correct || !q.verb) return original;
   const object = q.verb.object;

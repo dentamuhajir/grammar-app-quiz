@@ -2,7 +2,7 @@ import { BEHAVIORAL_ADJECTIVES, COMPLEMENTS } from "./data/complements";
 import { buildRelativeQuestion } from "./relativeSentences";
 import { buildReasonQuestion } from "./reasonSentences";
 import { buildFocusedQuestion, FOCUSED_FORMS, QUANTIFIER_TENSES, type FocusPattern } from "./focusedSentences";
-import { PERSON_SUBJECTS, SUBJECTS } from "./data/subjects";
+import { INDEFINITE_PERSONS, PERSON_SUBJECTS, SUBJECTS } from "./data/subjects";
 import { TIME_SIGNALS, type TimeSignal } from "./data/timeSignals";
 import { DYNAMIC_VERBS, PASSIVE_VERBS, STATIVE_VERBS, VERBS } from "./data/verbs";
 import {
@@ -292,8 +292,15 @@ function whForPassive(tense: Tense): WhWord {
 // ---------- subject selection ----------
 
 /** Match the subject to the verb: no "the dog develops the app", no "the children help the children". */
-function pickSubjectFor(verb: Verb): Subject {
+export function subjectFitsForm(subject: Subject, form: SentenceForm): boolean {
+  if (subject.text === "anyone" || subject.text === "anybody") return form === "yesNoQuestion";
+  if (subject.text === "nobody" || subject.text === "no one") return form === "positive";
+  return true;
+}
+
+function pickSubjectFor(verb: Verb, form: SentenceForm): Subject {
   const pool = SUBJECTS.filter((s) => {
+    if (!subjectFitsForm(s, form)) return false;
     if (s.text === verb.object) return false;
     if (s.entity === "person") return true;
     if (s.entity === "animal") return ANIMAL_VERBS.has(verb.base);
@@ -302,9 +309,10 @@ function pickSubjectFor(verb: Verb): Subject {
   return pick(pool);
 }
 
-function pickSubjectForComplement(comp: Complement, being: boolean): Subject {
+function pickSubjectForComplement(comp: Complement, being: boolean, form: SentenceForm): Subject {
   const root = comp.text.replace(/^(a|an|the) /, "").replace(/^good /, "");
   const pool = SUBJECTS.filter((s) => {
+    if (!subjectFitsForm(s, form)) return false;
     if (s.text.includes(root)) return false; // the engineer is an engineer
     if (s.entity === "person") return true;
     if (being) return s.entity === "animal" && comp.text === "noisy"; // the dog is being noisy
@@ -324,7 +332,7 @@ function buildVerbal(tense: Tense, form: SentenceForm, allowStative: boolean): Q
   if (useThing) {
     subject = Math.random() < 0.5 ? IT_SUBJECT : pick(DEVICE_SUBJECTS);
   } else {
-    subject = pickSubjectFor(verb);
+    subject = pickSubjectFor(verb, form);
   }
   const choice = form === "whQuestion" ? whForVerbal(tense, verb) : undefined;
   const wh = choice?.wh;
@@ -366,7 +374,7 @@ function buildNominal(tense: Tense, form: SentenceForm): Question {
     comp = pick(COMPLEMENTS);
   }
 
-  const subject = pickSubjectForComplement(comp, being);
+  const subject = pickSubjectForComplement(comp, being, form);
   const wh = form === "whQuestion" ? whForNominal(tense, comp, being) : undefined;
   const signals = TIME_SIGNALS[tense];
   // When What/Where/How replaces the complement, a mid adverb would end the
@@ -399,7 +407,7 @@ function buildPassive(tense: Tense, form: SentenceForm): Question {
   // Active doer (agent) is a person; passive subject is the verb's object.
   // Avoid the agent coinciding with the object (children helped by children).
   const objRoot = verb.object.replace(/^(a|an|the) /, "");
-  const agentPool = PERSON_SUBJECTS.filter((s) => !s.text.includes(objRoot));
+  const agentPool = PERSON_SUBJECTS.filter((s) => !INDEFINITE_PERSONS.includes(s.text) && !s.text.includes(objRoot));
   const agent = pick(agentPool.length ? agentPool : PERSON_SUBJECTS);
   const passiveSubject = {
     text: verb.object, // e.g. "the lesson"
@@ -455,7 +463,7 @@ export function generateStativeTrap(tense: Tense = "presentPerfectContinuous"): 
   const fallback = STATIVE_FALLBACK[tense] ?? STATIVE_FALLBACK.presentPerfectContinuous;
   const labelTense = STATIVE_FALLBACK[tense] ? tense : "presentPerfectContinuous";
   const verb = pick(STATIVE_VERBS);
-  const subject = pick(PERSON_SUBJECTS.filter((s) => s.text !== verb.object));
+  const subject = pick(PERSON_SUBJECTS.filter((s) => s.text !== verb.object && !INDEFINITE_PERSONS.includes(s.text)));
   const answer = conjugateVerbal(fallback.tense, subject, verb, "positive", {
     tail: fallback.tail,
   });

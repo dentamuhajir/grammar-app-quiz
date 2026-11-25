@@ -4,14 +4,14 @@ import { conjugateNominal, conjugatePassive, conjugateVerbal } from "../src/gram
 import { implicitContextCue, sentenceGuide } from "../src/grammar/explanations";
 import { checkAnswer } from "../src/grammar/check";
 import { VERBS } from "../src/grammar/data/verbs";
-import { SUBJECTS } from "../src/grammar/data/subjects";
+import { INDEFINITE_PERSONS, SUBJECTS } from "../src/grammar/data/subjects";
 import { COMPLEMENTS } from "../src/grammar/data/complements";
 import { TIME_SIGNALS } from "../src/grammar/data/timeSignals";
 import { WRITING_PACKS } from "../src/grammar/writingPacks";
 import { TOPIC_WRITING_LESSONS } from "../src/grammar/topicWriting";
 import { changeExplorerQuestion, EXPLORER_VERBS, EXPLORER_COMPLEMENTS, explorerRestriction, initialExplorerQuestion } from "../src/grammar/explorer";
 import { sentenceReading } from "../src/grammar/sentenceReadings";
-import { DEFAULT_FILTER, DEFAULT_MULTI_FILTER, createQuestionCycle, quizCombinations, generateQuestion, generateStativeTrap, type MultiQuizFilter } from "../src/grammar/generator";
+import { DEFAULT_FILTER, DEFAULT_MULTI_FILTER, createQuestionCycle, quizCombinations, generateQuestion, generateStativeTrap, subjectFitsForm, type MultiQuizFilter } from "../src/grammar/generator";
 import { TENSE_LABELS, TENSE_ORDER } from "../src/grammar/labels";
 import type { Mode, Question, SentenceForm, Subject, Tense } from "../src/grammar/types";
 import { sentenceTranslation, checkTranslationAnswer } from "../src/grammar/translation";
@@ -19,6 +19,31 @@ import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode"
 import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
 import { buildReasonQuestion } from "../src/grammar/reasonSentences";
 import { FOCUS_PATTERNS } from "../src/grammar/focusedSentences";
+
+test("indefinite person subjects use singular agreement and translate equivalent forms", () => {
+  const work = VERBS.find(item => item.base === "work")!;
+  const equivalents: Record<string, string> = {
+    everyone: "everybody", everybody: "everyone", someone: "somebody", somebody: "someone",
+    anyone: "anybody", anybody: "anyone", nobody: "no one", "no one": "nobody",
+  };
+  for (const text of INDEFINITE_PERSONS) {
+    const subject = SUBJECTS.find(item => item.text === text)!;
+    assert.equal(subject.number, "singular");
+    assert.equal(subject.person, 3);
+    const form = text === "anyone" || text === "anybody" ? "yesNoQuestion" : "positive";
+    const answer = conjugateVerbal("presentSimple", subject, work, form);
+    const q: Question = { subject, verb: work, tense: "presentSimple", mode: "verbal", form, answer };
+    assert.match(answer, form === "yesNoQuestion" ? /^Does / : /works/i);
+    assert.ok(sentenceTranslation(q));
+    assert.ok(checkTranslationAnswer(q, answer.replace(new RegExp(text, "i"), equivalents[text])).correct);
+    if (text === "nobody" || text === "no one") assert.equal(subjectFitsForm(subject, "negative"), false);
+    if (text === "anyone" || text === "anybody") assert.equal(subjectFitsForm(subject, "positive"), false);
+  }
+  const everyone = SUBJECTS.find(subject => subject.text === "everyone")!;
+  const negative: Question = { subject: everyone, verb: work, tense: "presentSimple", mode: "verbal",
+    form: "negative", answer: conjugateVerbal("presentSimple", everyone, work, "negative") };
+  assert.match(sentenceTranslation(negative)!.text, /^Tidak semua orang/);
+});
 
 test("focused quantifier and conditional cycles keep their pattern and accept supported answers", () => {
   for (const focus of ["quantifiers", "conditionals"] as const) {
