@@ -228,7 +228,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
   return (
     <>
       <Confetti fire={confetti} />
-      {onBack && <button type="button" className="inline-popup-link" onClick={onBack}>← Kembali ke Grammar Practice</button>}
+      {onBack && <button type="button" className="inline-popup-link" onClick={onBack}>← Kembali ke Grammar Topics</button>}
 
       <div className="qa-mode-switch" role="group" aria-label="Pilihan latihan">
         <button type="button" className="btn btn-ghost" onClick={() => applyFilter(BEGINNER_FILTER, practiceMode)}>Mulai dari dasar</button>

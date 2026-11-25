@@ -28,7 +28,7 @@ export function SkillWriting({ session, onExit }: { session: WritingSession; onE
   const solved = revealed || result?.status === "correct";
   const series = !session.review && session.from === "sentences";
   const hasNext = series && step + 1 < pack.lessons.length;
-  const back = session.from === "basics" ? "Kembali ke Grammar Practice" : "Kembali ke Sentence Practice";
+  const back = session.from === "basics" ? "Kembali ke Grammar Topics" : "Kembali ke Sentence Practice";
 
   function edit(value: string) {
     setInput(value);

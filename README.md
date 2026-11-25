@@ -49,7 +49,7 @@ juga diterima.
 Present Simple atau Past Simple. Kedua urutan klausa dengan *because* diterima,
 misalnya *I stayed home because I felt sick* dan *Because I felt sick, I stayed home*.
 
-Pada Sentence Practice dan Grammar Basics, geser kartu ke kiri untuk **Skip Soal**
+Pada Sentence Practice dan Grammar Topics, geser kartu ke kiri untuk **Skip Soal**
 dan ke kanan untuk **Materi**. Swipe kiri dibatasi saat ada draft yang belum selesai.
 Badge tetap dapat diketuk untuk membuka materi.
 
@@ -60,7 +60,7 @@ Setelah jawaban yang belum tepat, pengguna dapat membuka petunjuk atau contoh ja
 Jawaban yang benar atau dibuka contohnya dapat ditelaah melalui pembahasan pola
 dan fungsi bagian kalimat, lalu dilanjutkan dengan **Soal berikutnya**.
 
-### Grammar Basics
+### Grammar Topics
 
 Latihan isian untuk mengenali aturan sebelum menerapkannya dalam kalimat.
 Tersedia **403 soal pada 15 topik**, yang dapat dikerjakan per topik atau dalam
@@ -226,7 +226,7 @@ Buka alamat lokal yang ditampilkan Vite.
 
 ## Offline, suara, dan tutor AI
 
-Pemeriksaan Sentence Practice dan Grammar Basics serta materi Tenses Explorer
+Pemeriksaan Sentence Practice dan Grammar Topics serta materi Tenses Explorer
 berjalan di browser. Aplikasi mendukung instalasi PWA dan cache aset untuk
 penggunaan offline setelah dimuat melalui jaringan.
 

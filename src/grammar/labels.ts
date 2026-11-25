@@ -2,7 +2,7 @@ import type { Mode, SentenceForm, Tense } from "./types";
 
 export const PRACTICE_LABELS = {
   sentences: "Sentence Practice",
-  basics: "Grammar Practice",
+  basics: "Grammar Topics",
   articles: "Article Lab",
   story: "Story Challenge",
   qa: "Question & Answer",

@@ -144,6 +144,25 @@ function ModeIcon({ mode }: { mode: PracticeMode }) {
       </svg>
     );
   }
+  if (mode === "explorer") {
+    return (
+      <svg
+        width="26"
+        height="26"
+        viewBox="0 0 28 28"
+        fill="none"
+        stroke="#141414"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="14" cy="14" r="10" fill="#a5e8fc" />
+        <path d="M14 7.5V14L18.5 16.5" />
+        <circle cx="14" cy="14" r="1.2" fill="#141414" stroke="none" />
+      </svg>
+    );
+  }
   return (
     <svg
       width="26"

@@ -291,7 +291,7 @@ export function BasicsPractice({ onWrite }: WritingLink) {
         onClick={() => setFiltersOpen(true)}
       >
         <span className="filter-toggle-text">
-          <span className="filter-toggle-label">Topik Grammar Practice</span>
+          <span className="filter-toggle-label">Grammar Topics</span>
           <span className="filter-toggle-summary">{summary}</span>
         </span>
         <span className="filter-pill-action">⚙ Pilih Topik</span>
@@ -301,7 +301,7 @@ export function BasicsPractice({ onWrite }: WritingLink) {
       <BottomSheet
         open={filtersOpen}
         onClose={() => setFiltersOpen(false)}
-        title="Pilih Topik Grammar Practice"
+        title="Pilih Topik Grammar"
       >
         <div className="topic-grid">
           <button
