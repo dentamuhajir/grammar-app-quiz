@@ -1,5 +1,4 @@
 import { BASICS_LABELS } from "../labels";
-import { RELATIVE_INSERTS, RELATIVE_INSERTS_LABEL, relativeInsertQuestions } from "./relativeInserts";
 import { FOR_SINCE, FOR_SINCE_LESSONS, timeExplanation, timeHint } from "../forSince";
 import { INTERESTED_IN, INTEREST_LESSONS, activityHint, prepositionHint } from "../interestedIn";
 import { ARTICLE_WRITING, ARTICLE_LESSONS, knownHint, soundHint } from "../articleWriting";
@@ -7,12 +6,10 @@ import type { WritingSkill } from "../writingPacks";
 import { TOPIC_WRITING_LESSONS } from "../topicWriting";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
-export type BasicsFilter = BasicsTopic | "all" | WritingSkill | typeof RELATIVE_INSERTS;
+export type BasicsFilter = BasicsTopic | "all" | WritingSkill;
 export const NO_WORD = "∅";
 
 export interface BasicsQuestion {
-  reading?: { sentence: string; choices: readonly string[] };
-  subtopic?: typeof RELATIVE_INSERTS;
   skillId?: WritingSkill;
   id: string;
   topic: BasicsTopic;
@@ -247,6 +244,29 @@ export function buildQuestionPool(): BasicsQuestion[] {
       answer: "for",
       explanation: "Gunakan “responsible for” untuk menyatakan tanggung jawab atas suatu tugas.",
     },
+  ];
+  for (const item of advancedPreps) {
+    add({
+      id: `prep-${item.key}`,
+      topic: "prepositions",
+      rule: item.rule,
+      cue: item.cue,
+      prompt: item.prompt,
+      hint: `${item.hintDetail ? `${item.hintDetail} ` : ""}Perhatikan pasangan preposisi: for (durasi) vs since (titik awal), to (arah) vs for (manfaat), interested in, good at, atau responsible for.`,
+      answer: item.answer,
+      explanation: item.explanation,
+    });
+  }
+
+  const habitQuestions: Array<{
+    key: string;
+    rule: string;
+    hintDetail: string;
+    cue: string;
+    prompt: string;
+    answer: string;
+    explanation: string;
+  }> = [
     {
       key: "used-to-past",
       rule: "Kebiasaan masa lalu · used to + V1",
@@ -266,14 +286,14 @@ export function buildQuestionPool(): BasicsQuestion[] {
       explanation: "Jika diikuti V-ing (driving) dan bermakna “sudah terbiasa”, gunakan “be used to” (am used to).",
     },
   ];
-  for (const item of advancedPreps) {
+  for (const item of habitQuestions) {
     add({
-      id: `prep-${item.key}`,
-      topic: "prepositions",
+      id: `habit-${item.key}`,
+      topic: "habits",
       rule: item.rule,
       cue: item.cue,
       prompt: item.prompt,
-      hint: `${item.hintDetail ? `${item.hintDetail} ` : ""}Perhatikan pasangan preposisi: for (durasi) vs since (titik awal), to (arah) vs for (manfaat), interested in, good at, atau used to + V1 vs be used to + V-ing.`,
+      hint: `${item.hintDetail} Bedakan: used to + V1 (kebiasaan masa lalu yang sudah berhenti) vs be used to + V-ing (sekarang sudah terbiasa).`,
       answer: item.answer,
       explanation: item.explanation,
     });
@@ -1162,7 +1182,6 @@ export function buildQuestionPool(): BasicsQuestion[] {
   }
 
   // 5. Relative Pronouns (that / which / who / whose)
-  pool.push(...relativeInsertQuestions);
   const relNonDefining = [
     { key: "laptop", prompt: "My laptop, ___ I bought in 2022, still works well." },
     { key: "car", prompt: "His car, ___ was parked outside, is electric." },
@@ -2069,8 +2088,6 @@ export const BASICS_POOL = buildQuestionPool();
 
 /** Shuffle a complete cycle, without repeating its last item at the next boundary. */
 export function createDeck(filter: BasicsFilter, previousId?: string): BasicsQuestion[] {
-  // The focused lesson builds from finding the subject to reducing a passive clause.
-  if (filter === RELATIVE_INSERTS) return [...relativeInsertQuestions];
   const deck = BASICS_POOL.filter((q) => filter === "all" || q.topic === filter || q.skillId === filter);
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -2096,7 +2113,6 @@ export function completedSentence(q: BasicsQuestion): string {
 }
 
 export function mistakeHint(q: BasicsQuestion, input: string): string {
-  if (q.subtopic === RELATIVE_INSERTS) return q.hint;
   if (q.skillId === `writing_${q.topic}`) return q.explanation;
   const word = input.trim().toLowerCase().replace(/\s+/g, " ");
   if (q.topic === "articles") {
@@ -2108,9 +2124,12 @@ export function mistakeHint(q: BasicsQuestion, input: string): string {
   if (q.topic === "prepositions") {
     if (q.answer === "for" && word === "since") return "Setelah bagian kosong adalah rentang/durasi waktu (berapa lama), jadi gunakan “for”, bukan “since”.";
     if (q.answer === "since" && word === "for") return "Setelah bagian kosong adalah titik awal waktu (sejak kapan), jadi gunakan “since”, bukan “for”.";
+    return `Pilihan ${word === NO_WORD || word === "-" || word === "none" ? "tanpa preposisi" : `“${word}”`} belum sesuai dengan keterangan waktu, posisi, atau pasangan kata pada konteks ini.`;
+  }
+  if (q.topic === "habits") {
     if (q.answer === "used to" && word === "am used to") return "Diikuti V1 murni (kebiasaan masa lalu yang sudah berhenti): gunakan “used to”, bukan “am used to”.";
     if (q.answer === "am used to" && word === "used to") return "Diikuti V-ing dan bermakna “sudah terbiasa sekarang”: gunakan “am used to”, bukan “used to”.";
-    return `Pilihan ${word === NO_WORD || word === "-" || word === "none" ? "tanpa preposisi" : `“${word}”`} belum sesuai dengan keterangan waktu, posisi, atau pasangan kata pada konteks ini.`;
+    return `Pilihan “${input.trim()}” belum sesuai. Perhatikan apakah kata kerja sesudahnya berbentuk V1 (used to) atau V-ing (be used to).`;
   }
   if (q.topic === "conditionals") {
     if (q.prompt.startsWith("If ") && q.prompt.indexOf("___") < q.prompt.indexOf(",") && (word.startsWith("will ") || word.startsWith("would "))) {
@@ -2261,14 +2280,28 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
       { label: "in / on / at (Waktu)", detail: "in = bulan/tahun (in July, in 2024) · on = hari/tanggal (on Monday) · at = jam/titik waktu (at 7 a.m., at noon)." },
       { label: "in / on / at (Tempat)", detail: "in = di dalam ruang/wadah (in the box) · on = menempel di permukaan (on the table) · at = titik spesifik (at the bus stop)." },
       { label: "for vs since", detail: "for + durasi waktu (for three hours) · since + titik awal waktu (since Monday / since 2022)." },
-      { label: "Pasangan tetap & used to", detail: "interested in, good at, afraid of, responsible for · used to + V1 (dulu terbiasa) vs be used to + V-ing (sekarang terbiasa)." },
+      { label: "Pasangan tetap (adjective/verb + preposition)", detail: "interested in, good at, afraid of, responsible for, wait for, listen to, talk about, look at." },
       { label: "Verb + preposition dalam pertanyaan", detail: "wait for, listen to, talk about, look at, shop for. Saat objek preposisi ditanyakan, preposisi sering berada di akhir: Who are you waiting for? Bentuk formal For whom are you waiting? juga benar." },
     ],
     examples: [
       "The meeting is on Monday at 9 a.m.",
       "She has lived in Jakarta since 2022 (for four years).",
       "He is very good at solving problems.",
+      "Who are you waiting for?",
+    ],
+  },
+  habits: {
+    summary: "“Used to” dan “be used to” sama-sama tentang kebiasaan, tetapi berbeda makna dan tata bahasa. Perhatikan bentuk kata kerja yang mengikutinya.",
+    rules: [
+      { label: "used to + V1", detail: "Kebiasaan atau keadaan di masa lalu yang sekarang sudah tidak terjadi lagi. Diikuti kata kerja dasar (V1): I used to smoke. · She used to live in Bali." },
+      { label: "be used to + V-ing / kata benda", detail: "Berarti “sudah terbiasa (dengan)” sekarang. “be” menyesuaikan subjek (am/is/are/was), diikuti V-ing atau kata benda: I am used to waking up early. · He is used to the noise." },
+      { label: "Bentuk negatif & tanya (used to)", detail: "Masa lalu: didn't use to + V1 (I didn't use to like coffee) dan Did you use to …? (perhatikan “use”, bukan “used”)." },
+    ],
+    examples: [
       "I used to wake up late, but now I am used to waking up early.",
+      "She used to live in a village when she was a child.",
+      "After three months here, he is used to driving on the left.",
+      "Did you use to play football at school?",
     ],
   },
   questions: {
@@ -2372,7 +2405,6 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
       { label: "who (Orang)", detail: "Menjelaskan manusia sebagai subjek/objek klausa (The doctor who treated me)." },
       { label: "which dan that untuk benda", detail: "Dalam the book that I bought, that juga dapat diganti dengan which. Untuk memberi informasi tambahan di antara koma, gunakan which jika kata penghubungnya ditulis." },
       { label: "whose (Kepemilikan) & where (Tempat)", detail: "whose + benda milik (the student whose laptop was lost) · where untuk tempat terjadinya aksi (the cafe where we met)." },
-      { label: RELATIVE_INSERTS_LABEL, detail: "My bike, fixed yesterday, is ready to ride. Lewati bagian di antara koma untuk membaca kalimat intinya, My bike is ready to ride. Fixed yesterday menerangkan sepeda dan bisa diperluas menjadi which was fixed yesterday. Bentuk ringkas seperti ini disebut reduced relative clause. Saat membacanya keras-keras, kamu bisa memberi jeda ringan di kedua koma." },
     ],
     examples: [
       "The woman who called you earlier is our new project manager.",

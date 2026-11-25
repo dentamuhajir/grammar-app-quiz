@@ -23,6 +23,7 @@ export const BASICS_LABELS = {
   modals: "Modals",
   conjunctions: "Conjunctions",
   conditionals: "Conditionals (If)",
+  habits: "Used to & Kebiasaan",
   collocations: "Collocations & Chunks",
   phrasalVerbs: "Phrasal Verbs & Everyday Expressions",
   causatives: "Causative Verbs",
