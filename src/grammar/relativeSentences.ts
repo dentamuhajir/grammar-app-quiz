@@ -39,9 +39,9 @@ function verb(base: string) {
   return VERBS.find(v => v.base === base)!;
 }
 
-export function buildRelativeQuestion(tense: Tense, mode: Mode, form: SentenceForm, previous?: string): Question {
+export function buildRelativeQuestion(tense: Tense, mode: Mode, form: SentenceForm, previous?: string, pronoun?: "who" | "which"): Question {
   // Only people can be "being careful". All other patterns work with either pool.
-  const candidates = mode === "nominal" && isContinuous(tense) ? people : [...people, ...things];
+  const candidates = pronoun === "who" || (mode === "nominal" && isContinuous(tense)) ? people : pronoun === "which" ? things : [...people, ...things];
   const noun = pick(candidates.filter(text => text !== previous));
   const person = people.includes(noun);
   const head: Subject = { text: noun, number: "singular", person: 3, entity: person ? "person" : "thing" };

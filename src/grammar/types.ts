@@ -104,6 +104,13 @@ export interface ClauseCues {
 
 /** A single generated quiz question. */
 export interface Question {
+  focused?: {
+    label: string;
+    instruction: string;
+    rows: { label: string; detail: string; cues: ClauseCues }[];
+    explanation: string;
+    alternatives: string[];
+  };
   reasonClause?: {
     cues: ClauseCues & { subject: string };
     clause: string;

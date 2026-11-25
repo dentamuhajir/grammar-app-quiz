@@ -13,6 +13,20 @@ import { SkillWriting, type WritingSession } from "./ui/SkillWriting";
 import { TensesExplorer } from "./ui/TensesExplorer";
 import type { Question } from "./grammar/types";
 import { ThemePicker } from "./ui/ThemePicker";
+import { BEGINNER_FILTER, type MultiQuizFilter } from "./grammar/generator";
+
+const DYNAMIC_LESSONS: Record<string, Partial<MultiQuizFilter>> = {
+  "write-conjunctions-because": { focus: "reasonClause", tenses: ["presentSimple", "pastSimple"], modes: ["verbal"], forms: ["positive"] },
+  "write-relatives-who": { focus: "relativeClause", focusPattern: "who", modes: ["verbal"] },
+  "write-relatives-which": { focus: "relativeClause", focusPattern: "which", modes: ["verbal"] },
+  "write-quantifiers-much": { focus: "quantifiers", focusPattern: "much" },
+  "write-quantifiers-many": { focus: "quantifiers", focusPattern: "many" },
+  "write-quantifiers-some": { focus: "quantifiers", focusPattern: "some" },
+  "write-conditionals-ice": { focus: "conditionals", focusPattern: "zero" },
+  "write-conditionals-rain": { focus: "conditionals", focusPattern: "first" },
+  "write-conditionals-rich": { focus: "conditionals", focusPattern: "second" },
+  "write-conditionals-third": { focus: "conditionals", focusPattern: "third" },
+};
 
 type PracticeMode = keyof typeof PRACTICE_LABELS;
 type ExtraPracticeMode = "articles" | "story" | "qa" | "explorer";
@@ -208,11 +222,24 @@ export default function App() {
   const [extraMode, setExtraMode] = useState<ExtraPracticeMode>("qa");
   const [extraOpen, setExtraOpen] = useState(false);
   const [writing, setWriting] = useState<WritingSession | null>(null);
+  const [dynamicFilter, setDynamicFilter] = useState<MultiQuizFilter | null>(null);
   const [explorer, setExplorer] = useState<{source?: Question; from: PracticeMode; scrollY: number} | null>(null);
   const isCorePractice = practice === "basics" || practice === "sentences";
 
   function openWriting(session: WritingSession) {
     setWriting(session);
+    setPractice("sentences");
+  }
+
+  function openBasicsWriting(lessonId: string) {
+    const focus = DYNAMIC_LESSONS[lessonId];
+    if (!focus) return openWriting({ from: "basics", lessonId });
+    const focusedDefaults = focus.focus === "quantifiers"
+      ? { tenses: ["presentSimple"] as const, modes: ["verbal"] as const, forms: ["positive", "negative", "yesNoQuestion"] as const }
+      : focus.focus === "conditionals"
+        ? { modes: ["verbal"] as const, forms: ["positive", "negative", "yesNoQuestion"] as const }
+        : {};
+    setDynamicFilter({ ...BEGINNER_FILTER, ...focusedDefaults, ...focus } as MultiQuizFilter);
     setPractice("sentences");
   }
 
@@ -244,6 +271,7 @@ export default function App() {
 
   function selectExtraMode(mode: ExtraPracticeMode) {
     setWriting(null);
+    setDynamicFilter(null);
     setExtraMode(mode);
     if (mode === "explorer") openExplorer();
     else {
@@ -266,12 +294,13 @@ export default function App() {
       </header>
 
       {isCorePractice && !writing && <WritingReviewLink key={practice} from={practice} onOpen={openWriting} />}
-      {(practice === "basics" || writing?.from === "basics") && <div style={{display: writing ? "none" : "contents"}}>
-        <BasicsPractice onWrite={lessonId => openWriting({ from: "basics", lessonId })} />
+      {(practice === "basics" || writing?.from === "basics" || dynamicFilter) && <div style={{display: writing || dynamicFilter ? "none" : "contents"}}>
+        <BasicsPractice onWrite={openBasicsWriting} />
       </div>}
       {!writing && (practice === "sentences" || explorer?.from === "sentences") && (
         <div style={{display: practice === "sentences" ? "contents" : "none"}}>
-          <SentencePractice onExplore={openExplorer} />
+          <SentencePractice onExplore={openExplorer} initialFilter={dynamicFilter ?? undefined}
+            onBack={dynamicFilter ? () => { setDynamicFilter(null); setPractice("basics"); } : undefined} />
         </div>
       )}
       {writing ? <SkillWriting session={writing} onExit={exitWriting} />
@@ -295,7 +324,7 @@ export default function App() {
               type="button"
               className="bottom-nav-item"
               aria-pressed={practice === mode}
-              onClick={() => { setWriting(null); setExplorer(null); setPractice(mode); }}
+              onClick={() => { setWriting(null); setDynamicFilter(null); setExplorer(null); setPractice(mode); }}
             >
               <ModeIcon mode={mode} />
               <span>{PRACTICE_LABELS[mode]}</span>

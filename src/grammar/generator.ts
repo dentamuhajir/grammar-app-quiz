@@ -1,6 +1,7 @@
 import { BEHAVIORAL_ADJECTIVES, COMPLEMENTS } from "./data/complements";
 import { buildRelativeQuestion } from "./relativeSentences";
 import { buildReasonQuestion } from "./reasonSentences";
+import { buildFocusedQuestion, FOCUSED_FORMS, QUANTIFIER_TENSES, type FocusPattern } from "./focusedSentences";
 import { PERSON_SUBJECTS, SUBJECTS } from "./data/subjects";
 import { TIME_SIGNALS, type TimeSignal } from "./data/timeSignals";
 import { DYNAMIC_VERBS, PASSIVE_VERBS, STATIVE_VERBS, VERBS } from "./data/verbs";
@@ -51,7 +52,8 @@ export const DEFAULT_FILTER: QuizFilter = {
 };
 
 export interface MultiQuizFilter {
-  focus?: "relativeClause" | "reasonClause";
+  focus?: "relativeClause" | "reasonClause" | "quantifiers" | "conditionals";
+  focusPattern?: FocusPattern;
   tenses: Tense[];
   modes: Mode[];
   forms: SentenceForm[];
@@ -75,6 +77,15 @@ export const BEGINNER_FILTER: MultiQuizFilter = {
 export const REASON_TENSES = ["presentSimple", "pastSimple"] as const;
 
 export function quizCombinations(filter: MultiQuizFilter) {
+  if (filter.focus === "quantifiers") {
+    return filter.tenses.filter(tense => QUANTIFIER_TENSES.includes(tense)).flatMap(tense =>
+      filter.modes.flatMap(mode => filter.forms.filter(form => FOCUSED_FORMS.includes(form)).map(form => ({ tense, mode, form }))));
+  }
+  if (filter.focus === "conditionals") {
+    if (!filter.modes.includes("verbal")) return [];
+    return filter.forms.filter(form => FOCUSED_FORMS.includes(form))
+      .map(form => ({ tense: "presentSimple" as const, mode: "verbal" as const, form }));
+  }
   if (filter.focus === "reasonClause") {
     if (!filter.modes.includes("verbal") || !filter.forms.includes("positive")) return [];
     return REASON_TENSES.filter(tense => filter.tenses.includes(tense))
@@ -82,6 +93,7 @@ export function quizCombinations(filter: MultiQuizFilter) {
   }
   return filter.tenses.flatMap(tense => filter.modes.flatMap(mode => {
     if (mode === "nominal" && (isPerfectContinuous(tense) || tense === "futureContinuous")) return [];
+    if (filter.focus === "relativeClause" && filter.focusPattern === "which" && mode === "nominal" && isContinuous(tense)) return [];
     if (mode === "passive" && isRarePassive(tense) && !filter.includeRare) return [];
     return filter.forms.map(form => ({tense, mode, form}));
   }));
@@ -95,6 +107,7 @@ export function createQuestionCycle(filter: MultiQuizFilter): () => Question {
   let previous: typeof combinations[number] | undefined;
   let previousNoun: string | undefined;
   let previousReasonVerb: string | undefined;
+  let previousFocusedAnswer: string | undefined;
   return () => {
     if (!remaining.length) {
       remaining = [...combinations];
@@ -109,13 +122,19 @@ export function createQuestionCycle(filter: MultiQuizFilter): () => Question {
     const combination = remaining.pop()!;
     previous = combination;
     const {tense, mode, form} = combination;
+    if (filter.focus === "quantifiers" || filter.focus === "conditionals") {
+      const question = buildFocusedQuestion(filter.focus, filter.focusPattern, tense, mode, form, previousFocusedAnswer);
+      previousFocusedAnswer = question.answer;
+      return question;
+    }
     if (filter.focus === "reasonClause" && (tense === "presentSimple" || tense === "pastSimple")) {
       const question = buildReasonQuestion(tense, previousReasonVerb);
       previousReasonVerb = question.verb!.base;
       return question;
     }
     if (filter.focus === "relativeClause") {
-      const question = buildRelativeQuestion(tense, mode, form, previousNoun);
+      const pronoun = filter.focusPattern === "who" || filter.focusPattern === "which" ? filter.focusPattern : undefined;
+      const question = buildRelativeQuestion(tense, mode, form, previousNoun, pronoun);
       previousNoun = question.relativeClause!.antecedent;
       return question;
     }

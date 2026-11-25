@@ -18,6 +18,76 @@ import { sentenceTranslation, checkTranslationAnswer } from "../src/grammar/tran
 import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode";
 import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
 import { buildReasonQuestion } from "../src/grammar/reasonSentences";
+import { FOCUS_PATTERNS } from "../src/grammar/focusedSentences";
+
+test("focused quantifier and conditional cycles keep their pattern and accept supported answers", () => {
+  for (const focus of ["quantifiers", "conditionals"] as const) {
+    for (const pattern of FOCUS_PATTERNS[focus]) {
+      const cycle = createQuestionCycle({ ...DEFAULT_MULTI_FILTER, focus, focusPattern: pattern.value });
+      for (let i = 0; i < 12; i++) {
+        const q = cycle();
+        assert.ok(q.focused?.rows[0].detail.startsWith(pattern.value));
+        assert.ok(checkAnswer(q, q.answer).correct);
+        for (const alternative of q.focused?.alternatives ?? []) assert.ok(checkAnswer(q, alternative).correct);
+        assert.equal(checkAnswer(q, "incorrect answer").correct, false);
+      }
+    }
+  }
+});
+
+test("relative clause focus respects the requested pronoun", () => {
+  for (const pronoun of ["who", "which"] as const) {
+    const cycle = createQuestionCycle({ ...DEFAULT_MULTI_FILTER, focus: "relativeClause", focusPattern: pronoun });
+    for (let i = 0; i < 50; i++) {
+      const question = cycle();
+      assert.equal(question.relativeClause?.pronoun, pronoun);
+      assert.ok(checkAnswer(question, question.answer).correct);
+    }
+  }
+});
+
+test("quantifier filters generate every supported tense, sentence type and form", () => {
+  for (const tense of ["presentSimple", "pastSimple", "futureSimple"] as const) {
+    for (const mode of ["verbal", "nominal", "passive"] as const) {
+      for (const form of ["positive", "negative", "yesNoQuestion"] as const) {
+        const cycle = createQuestionCycle({ ...DEFAULT_MULTI_FILTER, focus: "quantifiers", focusPattern: "many",
+          tenses: [tense], modes: [mode], forms: [form] });
+        const q = cycle();
+        assert.equal(q.tense, tense);
+        assert.equal(q.mode, mode);
+        assert.equal(q.form, form);
+        assert.match(q.answer, /many books/i);
+        assert.equal(q.focused?.rows[0].cues.subject, mode === "verbal" ? q.subject.text : "many books");
+        assert.ok(q.focused?.rows[0].cues.verb);
+        assert.match(q.focused!.rows[0].detail, /Positive|Negative|Yes\/No/);
+        assert.ok(checkAnswer(q, q.answer).correct);
+        if (form === "negative") assert.match(q.answer, /\bnot\b/i);
+        if (form === "yesNoQuestion") assert.ok(q.answer.endsWith("?"));
+      }
+    }
+  }
+  assert.equal(quizCombinations({ ...DEFAULT_MULTI_FILTER, focus: "quantifiers",
+    tenses: ["presentContinuous"] }).length, 0);
+});
+
+test("conditional pattern and form filters keep both clause orders", () => {
+  for (const pattern of ["zero", "first", "second", "third"] as const) {
+    for (const form of ["positive", "negative", "yesNoQuestion"] as const) {
+      const cycle = createQuestionCycle({ ...DEFAULT_MULTI_FILTER, focus: "conditionals",
+        focusPattern: pattern, modes: ["verbal"], forms: [form] });
+      const q = cycle();
+      assert.equal(q.form, form);
+      assert.equal(q.focused?.rows[0].detail, pattern);
+      assert.deepEqual(q.focused?.rows.map(row => row.label), ["Syarat", "Hasil"]);
+      assert.equal(q.focused?.rows[0].cues.wh, "if");
+      assert.ok(q.focused?.rows.every(row => row.cues.subject && row.cues.verb));
+      assert.ok(checkAnswer(q, q.answer).correct);
+      for (const alternative of q.focused?.alternatives ?? []) assert.ok(checkAnswer(q, alternative).correct);
+      if (form === "negative") assert.match(q.answer, /\bnot\b/i);
+      if (form === "yesNoQuestion") assert.ok(q.answer.endsWith("?"));
+    }
+  }
+});
 
 test("reason practice accepts both clause orders and keeps the direction of the explanation", t => {
   const random = t.mock.method(Math, "random", () => 0);

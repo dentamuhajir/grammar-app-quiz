@@ -34,6 +34,15 @@ function matchScore(diff: DiffToken[]): number {
 export function checkAnswer(q: Question, raw: string): CheckResult {
   const canonical = checkReference(q, raw);
   if (canonical.empty || canonical.correct) return canonical;
+  if (q.focused) {
+    let closest = canonical;
+    for (const answer of q.focused.alternatives) {
+      const result = checkReference({ ...q, answer }, raw);
+      if (result.correct) return result;
+      if (errorCount(result) < errorCount(closest)) closest = result;
+    }
+    return { ...closest, hint: q.focused.explanation };
+  }
   if (q.reasonClause) {
     const fronted = checkReference({ ...q, answer: q.reasonClause.frontedAnswer }, raw);
     return fronted.correct || errorCount(fronted) < errorCount(canonical) ? fronted : canonical;
@@ -103,7 +112,7 @@ function checkReference(q: Question, raw: string): CheckResult {
     correct,
     alternativeOrder: correct && bestAccepted !== acceptedVariants[0] || undefined,
     diff,
-    hint: correct ? "" : buildHint(q, diff),
+    hint: correct ? "" : q.focused?.explanation ?? buildHint(q, diff),
     normalizedAnswer: bestAccepted,
     empty: false,
   };

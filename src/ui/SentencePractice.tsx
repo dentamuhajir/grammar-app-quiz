@@ -98,7 +98,7 @@ function RelativePrompt({ q, relative }: { q: Question; relative: NonNullable<Qu
 function ClauseChips({ cues }: { cues: ClauseCues }) {
   const chips = [
     { text: cues.wh, role: "wh" },
-    { text: cues.subject, role: "subject" },
+    { text: cues.subject, role: "subject", plus: Boolean(cues.wh) },
     { text: cues.verb, role: "cue", plus: Boolean(cues.subject) },
     { text: cues.complement, role: "object", plus: true },
     { text: cues.time, role: "time" },
@@ -121,6 +121,7 @@ function ClausePrompt({ rows, instruction }: { rows: { label: string; detail: st
 
 function filterSummary(f: MultiQuizFilter): string {
   if (f.focus === "reasonClause") return `Sebab dan alasan · ${f.tenses.map(tense => TENSE_LABELS[tense]).join(" / ")}`;
+  if (f.focus === "quantifiers" || f.focus === "conditionals") return `${f.focus === "quantifiers" ? "Quantifiers" : "If / Conditionals"} · ${f.focusPattern ?? "Semua pola"} · ${f.forms.length} bentuk${f.focus === "quantifiers" ? ` · ${f.tenses.map(tense => TENSE_LABELS[tense]).join(" / ")}` : ""}`;
   const parts = [
     f.tenses.length === TENSE_ORDER.length ? "Semua tense"
       : f.tenses.length === 1 ? TENSE_LABELS[f.tenses[0]] : `${f.tenses.length} tense`,
@@ -133,11 +134,11 @@ function filterSummary(f: MultiQuizFilter): string {
   return parts.join(" · ");
 }
 
-export function SentencePractice({ onExplore }: { onExplore: (question: Question) => void }) {
-  const [filter, setFilter] = useState<MultiQuizFilter>(BEGINNER_FILTER);
+export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplore: (question: Question) => void; initialFilter?: MultiQuizFilter; onBack?: () => void }) {
+  const [filter, setFilter] = useState<MultiQuizFilter>(initialFilter ?? BEGINNER_FILTER);
   const generalFilter = useRef(BEGINNER_FILTER);
   const cycle = useRef<ReturnType<typeof createQuestionCycle> | null>(null);
-  if (!cycle.current) cycle.current = createQuestionCycle(BEGINNER_FILTER);
+  if (!cycle.current) cycle.current = createQuestionCycle(initialFilter ?? BEGINNER_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
     cycle.current!(),
   );
@@ -149,14 +150,14 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [materialOpen, setMaterialOpen] = useState(false);
-  const [practiceMode, setPracticeMode] = useState(loadPracticeMode);
+  const [practiceMode, setPracticeMode] = useState(() => initialFilter ? "arrange" : loadPracticeMode());
   const [modeOpen, setModeOpen] = useState(false);
   const [showWordHint, setShowWordHint] = useState(false);
   const [hasIncorrectAttempt, setHasIncorrectAttempt] = useState(false);
   const answerRef = useAutoResizeTextarea(input);
   const relative = question.relativeClause;
   const reason = question.reasonClause;
-  const focusLabel = relative ? "Relative clause" : reason ? "Sebab dan alasan" : undefined;
+  const focusLabel = relative ? "Relative clause" : reason ? "Sebab dan alasan" : question.focused?.label;
   const translation = practiceMode === "translate" ? sentenceTranslation(question) : null;
   const relativeFeedback = relative && <p className="basics-explanation">
     <strong lang="en">{relative.pronoun}</strong> merujuk pada <strong lang="en">{relative.antecedent}</strong>, {relative.pronoun === "who" ? "orang" : "benda"} yang dijelaskan dalam sisipan.
@@ -208,7 +209,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
   function applyFilter(selected: MultiQuizFilter, mode: SentencePracticeMode, general?: MultiQuizFilter) {
     const activeFilter = mode === "arrange" ? selected : { ...selected, focus: undefined };
     cycle.current = createQuestionCycle(activeFilter);
-    if (activeFilter.focus !== "reasonClause") generalFilter.current = activeFilter;
+    if (!activeFilter.focus || activeFilter.focus === "relativeClause") generalFilter.current = { ...activeFilter, focus: undefined };
     else if (general && quizCombinations(general).length) generalFilter.current = general;
     setFilter(activeFilter);
     selectPracticeMode(mode);
@@ -227,6 +228,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
   return (
     <>
       <Confetti fire={confetti} />
+      {onBack && <button type="button" className="inline-popup-link" onClick={onBack}>← Kembali ke Grammar Practice</button>}
 
       <div className="qa-mode-switch" role="group" aria-label="Pilihan latihan">
         <button type="button" className="btn btn-ghost" onClick={() => applyFilter(BEGINNER_FILTER, practiceMode)}>Mulai dari dasar</button>
@@ -295,7 +297,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
             </p>
           )}
 
-          {reason ? <ClausePrompt instruction={<>Hubungkan kejadian dan alasannya dengan <strong lang="en">because</strong>.</>} rows={[
+          {question.focused ? <ClausePrompt instruction={question.focused.instruction} rows={question.focused.rows} /> : reason ? <ClausePrompt instruction={<>Hubungkan kejadian dan alasannya dengan <strong lang="en">because</strong>.</>} rows={[
             { label: "Kejadian", detail: TENSE_LABELS[question.tense], cues: { subject: question.subject.text, verb: question.verb!.base, complement: question.verb!.object } },
             { label: "Alasan", detail: TENSE_LABELS[question.tense], cues: reason.cues },
           ]} /> : relative ? <RelativePrompt q={question} relative={relative} /> : practiceMode === "translate" ? <section className="translation-prompt" aria-label="Terjemahkan ke bahasa Inggris">
@@ -371,7 +373,8 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
                 <SuccessBadge />
                 <span>{praise}</span>
               </span>
-              <SentencePlayback text={practiceMode === "translate" ? input.trim() : reviewed.answer} question={reviewed} />
+              <SentencePlayback text={question.focused ? input.trim() : practiceMode === "translate" ? input.trim() : reviewed.answer} question={question.focused ? undefined : reviewed} />
+              {question.focused && <p className="basics-explanation">{question.focused.explanation}</p>}
               {relativeFeedback}
               {reason && <p className="basics-explanation"><strong lang="en">Because {reason.clause}</strong> menjelaskan mengapa kejadian itu terjadi.
                 {fronted && !input.includes(",") && " Saat alasan ditulis di awal, tambahkan koma sebelum klausa utama."}</p>}
@@ -384,14 +387,14 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
                   adalah susunan acuan.
                 </p>
               )}
-              <button
+              {!question.focused && <button
                 type="button"
                 className="inline-popup-link"
                 onClick={() => setGuideOpen(true)}
               >
                 <BookIcon />
                 <span>Lihat analisis &amp; bagian kalimat →</span>
-              </button>
+              </button>}
             </div>
           )}
 
@@ -411,16 +414,17 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
           {revealed && !result?.correct && (
             <div className="feedback feedback-reveal">
               <strong>Contoh jawaban</strong>
-              <SentencePlayback text={question.answer} question={question} />
+              <SentencePlayback text={question.answer} question={question.focused ? undefined : question} />
+              {question.focused && <p className="basics-explanation">{question.focused.explanation}</p>}
               {relativeFeedback}
-              <button
+              {!question.focused && <button
                 type="button"
                 className="inline-popup-link"
                 onClick={() => setGuideOpen(true)}
               >
                 <BookIcon />
                 <span>Lihat mengapa bentuknya begitu →</span>
-              </button>
+              </button>}
             </div>
           )}
 
@@ -444,7 +448,7 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
 
       <BottomSheet open={modeOpen} closeButtonOnly onClose={() => setModeOpen(false)} title="Mode latihan">
         <PracticeModePicker value={practiceMode} onChange={mode => {
-          if (filter.focus && mode !== "arrange") applyFilter(filter.focus === "reasonClause" ? generalFilter.current : filter, mode);
+          if (filter.focus && mode !== "arrange") applyFilter(generalFilter.current, mode);
           else selectPracticeMode(mode);
           setModeOpen(false);
         }} />
@@ -456,9 +460,9 @@ export function SentencePractice({ onExplore }: { onExplore: (question: Question
         onClose={() => setMaterialOpen(false)}
         title="Materi kalimat"
       >
-        <SentenceMaterial question={reviewed} solved={solved} attempted={hasIncorrectAttempt}
+        {question.focused ? <p className="note">{question.focused.explanation}</p> : <SentenceMaterial question={reviewed} solved={solved} attempted={hasIncorrectAttempt}
           hint={result && !result.correct && !result.empty ? result.hint : undefined}
-          onExplore={selected => { setMaterialOpen(false); onExplore(selected); }} />
+          onExplore={selected => { setMaterialOpen(false); onExplore(selected); }} />}
       </BottomSheet>
 
       <BottomSheet
