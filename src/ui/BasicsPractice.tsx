@@ -21,6 +21,14 @@ import { SwipeGuide } from "./SwipeGuide";
 
 type WritingLink = { onWrite: (lessonId: string) => void };
 
+const TOPIC_GROUPS: { label: string; topics: BasicsTopic[] }[] = [
+  { label: "Kata benda & penentu", topics: ["articles", "plurals", "pronouns", "determiners", "quantifiers"] },
+  { label: "Kata kerja & bentuknya", topics: ["gerunds", "modals", "habits", "causatives"] },
+  { label: "Kata sifat, keterangan & preposisi", topics: ["adjectives", "comparatives", "prepositions"] },
+  { label: "Kalimat & klausa", topics: ["questions", "relatives", "conjunctions", "conditionals", "reportedSpeech", "nounClauses", "participles", "inversion"] },
+  { label: "Ungkapan", topics: ["collocations", "phrasalVerbs"] },
+];
+
 function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLink) {
   const [deck, setDeck] = useState<BasicsQuestion[]>(() => createDeck(filter));
   const [index, setIndex] = useState(0);
@@ -283,7 +291,7 @@ export function BasicsPractice({ onWrite }: WritingLink) {
         onClick={() => setFiltersOpen(true)}
       >
         <span className="filter-toggle-text">
-          <span className="filter-toggle-label">Topik Grammar Basics</span>
+          <span className="filter-toggle-label">Topik Grammar Practice</span>
           <span className="filter-toggle-summary">{summary}</span>
         </span>
         <span className="filter-pill-action">⚙ Pilih Topik</span>
@@ -293,7 +301,7 @@ export function BasicsPractice({ onWrite }: WritingLink) {
       <BottomSheet
         open={filtersOpen}
         onClose={() => setFiltersOpen(false)}
-        title="Pilih Topik Grammar Basics"
+        title="Pilih Topik Grammar Practice"
       >
         <div className="topic-grid">
           <button
@@ -306,7 +314,11 @@ export function BasicsPractice({ onWrite }: WritingLink) {
           >
             Campuran · semua topik
           </button>
-          {(Object.keys(BASICS_LABELS) as BasicsTopic[]).map((topic) => (
+        </div>
+        {TOPIC_GROUPS.map(group => <section key={group.label} className="topic-group">
+          <h3 className="topic-group-heading">{group.label}</h3>
+          <div className="topic-grid">
+          {group.topics.map((topic) => (
             <button
               type="button"
               key={topic}
@@ -319,7 +331,8 @@ export function BasicsPractice({ onWrite }: WritingLink) {
               {BASICS_LABELS[topic]}
             </button>
           ))}
-        </div>
+          </div>
+        </section>)}
       </BottomSheet>
     </>
   );

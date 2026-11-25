@@ -4,6 +4,7 @@ import { INTERESTED_IN, INTEREST_LESSONS, activityHint, prepositionHint } from "
 import { ARTICLE_WRITING, ARTICLE_LESSONS, knownHint, soundHint } from "../articleWriting";
 import type { WritingSkill } from "../writingPacks";
 import { TOPIC_WRITING_LESSONS } from "../topicWriting";
+import { EXTENDED_GUIDES, EXTENDED_QUESTIONS } from "./extended";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
 export type BasicsFilter = BasicsTopic | "all" | WritingSkill;
@@ -2087,6 +2088,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
     { id: "foundation-possessive-irregular", topic: "pronouns", rule: "Possessive nouns", prompt: "The ___ toys are in the box.", cue: "children's / childrens'", answer: "children's", acceptedAnswers: ["children's", "children’s"], hint: "Children sudah jamak dan tidak berakhir dengan s.", explanation: "Children adalah bentuk jamak tidak beraturan, sehingga bentuk kepemilikannya children's." },
   ];
   foundationQuestions.forEach(add);
+  EXTENDED_QUESTIONS.forEach(add);
 
   for (const lesson of TOPIC_WRITING_LESSONS) {
     add({
@@ -2130,7 +2132,7 @@ export function completedSentence(q: BasicsQuestion): string {
 }
 
 export function mistakeHint(q: BasicsQuestion, input: string): string {
-  if (q.id.startsWith("foundation-")) return q.hint;
+  if (q.id.startsWith("foundation-") || q.id.startsWith("ext-")) return q.hint;
   if (q.skillId === `writing_${q.topic}`) return q.explanation;
   const word = input.trim().toLowerCase().replace(/\s+/g, " ");
   if (q.topic === "articles") {
@@ -2277,6 +2279,7 @@ export interface BasicsTopicGuide {
 }
 
 export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
+  ...EXTENDED_GUIDES,
   articles: {
     summary: "Articles (a, an, the, atau tanpa artikel) menentukan apakah suatu kata benda bersifat umum (belum spesifik) atau sudah spesifik/diketahui bersama.",
     rules: [
@@ -2325,6 +2328,7 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   questions: {
     summary: "Pertanyaan memakai kata bantu dan kata tanya untuk meminta informasi.",
     rules: [
+      { label: "Question tags", detail: "Pernyataan positif biasanya diikuti tag negatif: She's ready, isn't she? Pernyataan negatif memakai tag positif: They don't drive, do they? Sesuaikan kata bantu dan subjek." },
       { label: "Yes/No dan Wh-", detail: "Letakkan kata bantu sebelum subjek: Does she work? Where does she work? Setelah do, does, dan did gunakan kata kerja dasar." },
       { label: "Be dan modal", detail: "Letakkan be atau modal sebelum subjek: Are they ready? What can you do?" },
       { label: "Who sebagai subjek", detail: "Who called you? menanyakan pelaku. Who did you call? menanyakan orang yang dihubungi." },
@@ -2392,6 +2396,7 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   adjectives: {
     summary: "Adjectives menerangkan kata benda (atau kondisi subjek), sedangkan Adverbs menerangkan cara suatu kata kerja dilakukan.",
     rules: [
+      { label: "Word order", detail: "Too mendahului adjective (too hot), sedangkan enough mengikutinya (light enough). Pendapat biasanya mendahului usia: a beautiful old house." },
       { label: "Posisi adverbs of frequency", detail: "Usually dan always umumnya berada sebelum kata kerja utama (she usually eats), setelah be (he is always late), atau setelah kata bantu pertama (they have often finished early)." },
       { label: "Adjective vs Adverb (-ly)", detail: "Adjective menerangkan benda/linking verb (quick, careful). Adverb menerangkan kata kerja aksi, umumnya +ly (quickly, carefully)." },
       { label: "Irregular Adverb", detail: "good → well (speak English well) · fast → fast · hard → hard (work hard; hati-hati: hardly = hampir tidak)." },
@@ -2437,6 +2442,7 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   modals: {
     summary: "Modals (can, could, should, must, might, may, would) adalah kata kerja bantu yang menambahkan makna kemampuan, saran, kewajiban, larangan, atau kemungkinan. Semua modal wajib diikuti V1 murni (tanpa to).",
     rules: [
+      { label: "Past modals", detail: "Should have + V3 menyatakan saran atau penyesalan tentang masa lalu. Might have + V3 menyatakan kemungkinan, sedangkan must have + V3 menyatakan kesimpulan kuat." },
       { label: "can vs could (Kemampuan & Permintaan)", detail: "can = kemampuan saat ini · could = kemampuan masa lalu (when I was young) atau permintaan sopan (Could you help me?)." },
       { label: "should / should not (Saran)", detail: "Digunakan untuk memberi nasihat atau anjuran yang baik (You should take a rest)." },
       { label: "must vs must not (Kewajiban & Larangan)", detail: "must = aturan/keharusan wajib · must not / cannot = larangan keras (Visitors must not smoke)." },

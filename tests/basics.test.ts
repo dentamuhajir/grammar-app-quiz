@@ -78,7 +78,7 @@ test("guided writing rejects mistakes in grammar and meaning while accepting con
 });
 
 test("expanded practice includes question formation and 122 writing situations without duplicate IDs", () => {
-  assert.equal(BASICS_POOL.filter(q => q.topic === "questions").length, 12);
+  assert.equal(BASICS_POOL.filter(q => q.topic === "questions").length, 15);
   const writing = WRITING_PACKS.flatMap(pack => pack.lessons);
   assert.equal(writing.length, 122);
   assert.equal(new Set(writing.map(lesson => lesson.id)).size, writing.length);

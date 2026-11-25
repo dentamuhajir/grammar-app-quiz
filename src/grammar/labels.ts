@@ -2,7 +2,7 @@ import type { Mode, SentenceForm, Tense } from "./types";
 
 export const PRACTICE_LABELS = {
   sentences: "Sentence Practice",
-  basics: "Grammar Basics",
+  basics: "Grammar Practice",
   articles: "Article Lab",
   story: "Story Challenge",
   qa: "Question & Answer",
@@ -27,6 +27,11 @@ export const BASICS_LABELS = {
   collocations: "Collocations & Chunks",
   phrasalVerbs: "Phrasal Verbs & Everyday Expressions",
   causatives: "Causative Verbs",
+  determiners: "Determiners & Demonstratives",
+  reportedSpeech: "Reported Speech",
+  nounClauses: "Noun Clauses",
+  participles: "Participles & Reduced Clauses",
+  inversion: "Inversion & Emphasis",
 };
 
 export const TENSE_LABELS: Record<Tense, string> = {

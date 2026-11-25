@@ -1556,9 +1556,12 @@ button:focus-visible {
   box-shadow: 0 4px 0 -2px var(--violet-700), 0 4px 0 0 var(--shadow);
 }
 
-.topic-pill:first-child {
+.topic-grid > .topic-pill:only-child {
   grid-column: 1 / -1;
 }
+
+.topic-group { margin-top: 1.25rem; }
+.topic-group-heading { margin: 0 0 .6rem; font-size: .9rem; color: var(--muted); }
 
 /* ---- Basics & Q&A specifics ---- */
 .basics-context {
