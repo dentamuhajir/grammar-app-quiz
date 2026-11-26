@@ -23,6 +23,7 @@ const CONTRACTIONS: Array<[RegExp, string]> = [
   [/\bcouldn't\b/g, "could not"],
   [/\bshouldn't\b/g, "should not"],
   [/\bmustn't\b/g, "must not"],
+  [/\bmightn't\b/g, "might not"],
   // subject + auxiliary contractions
   [/\bi'm\b/g, "i am"],
   [/\b(he|she|it)'s\b/g, "$1 is"],

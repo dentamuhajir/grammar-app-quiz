@@ -20,6 +20,169 @@ import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
 import { buildReasonQuestion } from "../src/grammar/reasonSentences";
 import { FOCUS_PATTERNS } from "../src/grammar/focusedSentences";
 import { buildFrequencyQuestion, FREQUENCY_ADVERBS, FREQUENCY_TENSES } from "../src/grammar/frequencySentences";
+import { buildModalQuestion, MODAL_PATTERNS, MODAL_FUNCTIONS, MODAL_TIMES, modalPatterns, modalForms, modalSummary } from "../src/grammar/modalSentences";
+
+test("modal focus uses the selected pattern and forms without a tense selector", () => {
+  for (const { value: modal } of MODAL_PATTERNS.filter(p => ["can", "should", "must"].includes(p.value))) {
+    const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "modals", focusPattern: modal, tenses: [] };
+    assert.equal(quizCombinations(filter).length, 3);
+    assert.equal(quizCombinations({ ...filter, modes: ["nominal", "passive"] }).length, 0);
+    assert.equal(quizCombinations({ ...filter, forms: ["whQuestion"] }).length, 0);
+    const cycle = createQuestionCycle(filter);
+    const forms = new Set<string>();
+    const answers = new Set<string>();
+    for (let i = 0; i < 60; i++) {
+      const q = cycle();
+      forms.add(q.form);
+      answers.add(q.answer);
+      assert.equal(q.mode, "verbal");
+      assert.equal(q.focused!.rows[0].cues.modal, modal);
+      assert.equal(q.focused!.rows[0].cues.verb, q.verb!.base);
+      assert.equal(q.focused!.rows[0].cues.complement, q.verb!.object);
+      assert.ok(!q.focused!.rows[0].detail.includes("Present Simple"));
+      assert.equal(checkAnswer(q, q.answer).correct, true);
+      assert.equal(checkAnswer(q, q.answer.replace(q.verb!.base, `to ${q.verb!.base}`)).correct, false);
+      assert.equal(checkAnswer(q, q.answer.replace(q.verb!.base, q.verb!.thirdSingular)).correct, false);
+      if (q.form === "negative") {
+        const contracted = q.answer.replace("cannot", "can't").replace("should not", "shouldn't").replace("must not", "mustn't");
+        assert.equal(checkAnswer(q, contracted).correct, true);
+      }
+    }
+    assert.equal(forms.size, 3);
+    assert.ok(answers.size > 10);
+  }
+});
+
+test("modal clauses keep V1, invert directly and distinguish inability, advice and prohibition", () => {
+  const original = Math.random;
+  Math.random = () => 0;
+  try {
+    assert.equal(buildModalQuestion("positive", "can").answer, "I can play football now.");
+    const cannot = buildModalQuestion("negative", "can");
+    assert.equal(cannot.answer, "I cannot play football now.");
+    assert.equal(checkAnswer(cannot, "I can not play football now.").correct, true);
+    assert.match(cannot.focused!.instruction, /Ketidakmampuan/);
+    assert.equal(buildModalQuestion("yesNoQuestion", "can").answer, "Can I play football now?");
+    const advice = buildModalQuestion("negative", "should");
+    assert.equal(advice.answer, "I should not study English now.");
+    assert.match(advice.focused!.instruction, /sebaiknya tidak/);
+    const prohibition = buildModalQuestion("negative", "must");
+    assert.equal(prohibition.answer, "I must not study English now.");
+    assert.match(prohibition.focused!.instruction, /tidak boleh, bukan tidak perlu/);
+    assert.equal(checkAnswer(prohibition, "I do not have to study English now.").correct, false);
+    const question = buildModalQuestion("yesNoQuestion", "should");
+    assert.equal(question.answer, "Should I study English now?");
+    assert.equal(checkAnswer(question, "Do I should study English now?").correct, false);
+    assert.equal(checkAnswer(question, "Must I study English now?").correct, false);
+    assert.throws(() => buildModalQuestion("whQuestion", "can"), RangeError);
+  } finally {
+    Math.random = original;
+  }
+});
+
+test("modal function/time filters cover only compatible patterns and cycle through all supported forms", () => {
+  for (const fn of MODAL_FUNCTIONS) for (const time of MODAL_TIMES) {
+    const selection = { modalFunction: fn.value, modalTime: time.value };
+    const patterns = modalPatterns(selection);
+    const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "modals", ...selection };
+    const combinations = quizCombinations(filter);
+    assert.equal(combinations.length, patterns.reduce((n, p) => n + p.forms.length, 0));
+    if (fn.value === "deduction" && time.value === "future") {
+      assert.equal(combinations.length, 0);
+      assert.throws(() => createQuestionCycle(filter), RangeError);
+      continue;
+    }
+    assert.ok(combinations.length);
+    const seen = new Set<string>();
+    const cycle = createQuestionCycle(filter);
+    for (let i = 0; i < combinations.length; i++) {
+      const q = cycle();
+      const detail = q.focused!.rows[0].detail;
+      const p = patterns.find(item => detail.includes(` · ${item.label} · `))!;
+      assert.ok(p, detail);
+      assert.ok(p.forms.includes(q.form));
+      assert.ok(detail.includes(fn.label) && detail.includes(time.label), detail);
+      assert.equal(q.tense, time.value === "past" ? "pastSimple" : time.value === "future" ? "futureSimple" : "presentSimple");
+      assert.equal(checkAnswer(q, q.answer).correct, true);
+      seen.add(`${p.value}/${q.form}`);
+    }
+    assert.equal(seen.size, combinations.length);
+  }
+  for (const p of MODAL_PATTERNS) {
+    const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "modals", modalPattern: p.value };
+    assert.equal(quizCombinations(filter).length, p.forms.length);
+    for (const form of ["positive", "negative", "yesNoQuestion", "whQuestion"] as SentenceForm[]) {
+      if (!p.forms.includes(form)) {
+        assert.throws(() => buildModalQuestion(form, p.value), RangeError);
+        assert.equal(quizCombinations({ ...filter, forms: [form] }).length, 0);
+      } else {
+        for (let i = 0; i < 8; i++) {
+          const q = buildModalQuestion(form, p.value);
+          assert.equal(checkAnswer(q, q.answer).correct, true);
+          assert.equal(checkAnswer(q, q.answer.replace(q.timeSignal!, "last century")).correct, false);
+        }
+      }
+    }
+  }
+  assert.deepEqual(modalForms({ modalPattern: "mustHave" }), ["positive"]);
+  assert.deepEqual(modalForms({ modalPattern: "cannotHave" }), ["negative"]);
+  assert.deepEqual(modalForms({ modalPattern: "couldPermission" }), ["yesNoQuestion"]);
+  assert.equal(modalSummary({ modalFunction: "obligation", modalTime: "past", modalPattern: "hadTo" }), "Kewajiban · Masa lalu · had to");
+});
+
+test("modal time structures handle have to, be able/allowed to and perfect infinitives", () => {
+  const original = Math.random;
+  Math.random = () => 0;
+  try {
+    for (const [pattern, form, expected] of [
+      ["hadTo", "positive", "I had to study English yesterday."],
+      ["hadTo", "negative", "I did not have to study English yesterday."],
+      ["hadTo", "yesNoQuestion", "Did I have to study English yesterday?"],
+      ["willHaveTo", "negative", "I will not have to study English tomorrow."],
+      ["willHaveTo", "yesNoQuestion", "Will I have to study English tomorrow?"],
+      ["beAble", "positive", "I am able to play football now."],
+      ["wasAble", "positive", "I was able to play football yesterday."],
+      ["willAble", "negative", "I will not be able to play football tomorrow."],
+      ["willAble", "yesNoQuestion", "Will I be able to play football tomorrow?"],
+      ["wasAllowed", "positive", "I was allowed to open the door yesterday."],
+      ["willAllowed", "negative", "I will not be allowed to open the door tomorrow."],
+      ["couldPermission", "yesNoQuestion", "Could I open the door now?"],
+      ["shouldHave", "positive", "I should have studied English yesterday."],
+      ["shouldHave", "negative", "I should not have studied English yesterday."],
+      ["shouldHave", "yesNoQuestion", "Should I have studied English yesterday?"],
+      ["mustHave", "positive", "I must have known him yesterday."],
+      ["cannotHave", "negative", "I cannot have known him yesterday."],
+      ["mightHave", "negative", "I might not have known him yesterday."],
+    ] as const) {
+      const q = buildModalQuestion(form, pattern);
+      assert.equal(q.answer, expected);
+      assert.equal(checkAnswer(q, expected).correct, true);
+    }
+    const past = buildModalQuestion("positive", "mustHave");
+    assert.equal(checkAnswer(past, "I must have knew him yesterday.").correct, false);
+    assert.equal(checkAnswer(past, "I must has known him yesterday.").correct, false);
+    assert.match(past.focused!.instruction, /kesimpulan kuat.*bukan kewajiban/);
+    const unnecessary = buildModalQuestion("negative", "hadTo");
+    assert.match(unnecessary.focused!.instruction, /tidak perlu, bukan tidak boleh/);
+    assert.equal(checkAnswer(unnecessary, "I must not study English yesterday.").correct, false);
+    assert.equal(checkAnswer(unnecessary, "I didn't have to study English yesterday.").correct, true);
+    assert.equal(checkAnswer(unnecessary, "Yesterday, I didn't have to study English.").correct, true);
+    const impossible = buildModalQuestion("negative", "cannotHave");
+    assert.equal(checkAnswer(impossible, "I can't have known him yesterday.").correct, true);
+    assert.equal(checkAnswer(impossible, "I might not have known him yesterday.").correct, false);
+    assert.equal(checkAnswer(buildModalQuestion("negative", "mightHave"), "I mightn't have known him yesterday.").correct, true);
+    assert.equal(checkAnswer(buildModalQuestion("positive", "mayHave"), "I must have known him yesterday.").correct, false);
+    Math.random = () => 0.65;
+    assert.match(buildModalQuestion("positive", "haveTo").answer, /^She has to /);
+    assert.match(buildModalQuestion("negative", "haveTo").answer, /^She does not have to /);
+    assert.match(buildModalQuestion("yesNoQuestion", "haveTo").answer, /^Does she have to /);
+    assert.match(buildModalQuestion("positive", "wasAble").answer, /^She was able to /);
+    Math.random = () => 0.3;
+    assert.match(buildModalQuestion("positive", "wasAllowed").answer, /^We were allowed to /);
+  } finally {
+    Math.random = original;
+  }
+});
 
 test("frequency focus honors supported filters and cycles through every combination", () => {
   const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "frequencyAdverbs", focusPattern: "often" };

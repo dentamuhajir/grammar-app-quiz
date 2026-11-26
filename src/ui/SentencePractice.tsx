@@ -31,6 +31,7 @@ import { PracticeModePicker } from "./PracticeModePicker";
 import { useAutoResizeTextarea } from "./useAutoResizeTextarea";
 import { SwipeGuide } from "./SwipeGuide";
 import { SentenceMaterial } from "./SentenceMaterial";
+import { modalSummary } from "../grammar/modalSentences";
 
 /** The chips shown as the puzzle prompt. */
 function PromptChips({ q }: { q: Question }) {
@@ -99,13 +100,14 @@ function ClauseChips({ cues }: { cues: ClauseCues }) {
   const chips = [
     { text: cues.wh, role: "wh" },
     { text: cues.subject, role: "subject", plus: Boolean(cues.wh) },
+    { text: cues.modal, role: "modal", plus: true },
     { text: cues.verb, role: "cue", plus: Boolean(cues.subject) },
     { text: cues.complement, role: "object", plus: true },
     { text: cues.time, role: "time" },
   ];
   return <ul lang="en">{chips.filter(chip => chip.text).map(chip => <li key={chip.role}>
     {chip.plus && <span className="plus" aria-hidden="true">+</span>}
-    <span className={`chip chip-${chip.role}`}>{chip.text}</span>
+    <span className={`chip chip-${chip.role === "modal" ? "cue" : chip.role}`}>{chip.text}</span>
   </li>)}</ul>;
 }
 
@@ -120,6 +122,7 @@ function ClausePrompt({ rows, instruction }: { rows: { label: string; detail: st
 }
 
 function filterSummary(f: MultiQuizFilter): string {
+  if (f.focus === "modals") return `Modals · ${modalSummary(f)} · Verbal · ${f.forms.length} bentuk`;
   if (f.focus === "reasonClause") return `Sebab dan alasan · ${f.tenses.map(tense => TENSE_LABELS[tense]).join(" / ")}`;
   if (f.focus === "quantifiers" || f.focus === "conditionals") return `${f.focus === "quantifiers" ? "Quantifiers" : "If / Conditionals"} · ${f.focusPattern ?? "Semua pola"} · ${f.forms.length} bentuk${f.focus === "quantifiers" ? ` · ${f.tenses.map(tense => TENSE_LABELS[tense]).join(" / ")}` : ""}`;
   const parts = [

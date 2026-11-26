@@ -18,6 +18,7 @@ setiap kombinasi yang ditawarkan menghasilkan soal yang valid dan wajar.
 
 | Fokus | Cara menghasilkan soal | Batas saat ini |
 |---|---|---|
+| **Modals** | Menyaring pola menurut fungsi dan waktu/konteks, lalu merangkai tindakan dengan modal, have to, be able to, atau be allowed to. | Enam fungsi, 30 pola, konteks sekarang/masa lalu/masa depan sesuai dukungan. Positif/negatif/tanya dibatasi per pola. Verbal; belum mencakup nominal/passive, modal continuous, atau would hipotetis. |
 | **Adverbs of Frequency** | Memilih usually/often/always, subjek orang, verb atau pelengkap terkurasi, lalu merangkai dengan `conjugate*` dan slot `mid`. | Simple dan Perfect Simple; verbal/nominal; positif, negatif, Yes/No Question. Negatif menargetkan posisi setelah not. Checker mendukung usually/often di awal kalimat positif dan often di akhir. |
 | **Relative clause** | Klausa utama memakai `conjugate*`; sisipan memakai daftar deskripsi dan pola peristiwa terkurasi. | Beberapa kombinasi dikecualikan oleh `quizCombinations`, termasuk nominal perfect continuous dan `which` + nominal continuous. Tense pilihan berlaku untuk klausa utama. |
 | **Sebab & alasan** | Memilih situasi terkurasi dan subjek, lalu membentuk klausa dengan engine. | Present/Past Simple, verbal, positif. |
@@ -29,6 +30,44 @@ Rujukan kode: [generator](../src/grammar/generator.ts),
 [sebab & alasan](../src/grammar/reasonSentences.ts), dan
 [quantifiers/conditionals](../src/grammar/focusedSentences.ts).
 Fokus frekuensi: [frequencySentences](../src/grammar/frequencySentences.ts).
+Fokus modal: [modalSentences](../src/grammar/modalSentences.ts).
+
+### Cakupan Modals yang sudah diterapkan
+
+UI menyediakan **Fungsi modal**, **Waktu / konteks**, **Pola latihan**, dan
+**Bentuk kalimat**. Pilihan waktu menunjukkan rujukan makna, bukan pemetaan modal
+ke 12 tense secara bebas. Pola dan bentuk yang ditawarkan mengikuti fungsi/waktu;
+setiap kombinasi pola–bentuk yang didukung mendapat giliran dalam siklus soal.
+
+| Fungsi | Sekarang | Masa lalu | Masa depan |
+|---|---|---|---|
+| Kemampuan | can, be able to | could untuk kemampuan umum; was/were able to untuk satu kesempatan | will be able to |
+| Izin | can/may; could khusus permintaan sopan | was/were allowed to | will be allowed to |
+| Saran | should | should have + V3 | should + V1 dengan penanda waktu masa depan |
+| Kewajiban | must, have/has to | had to | will have to |
+| Kemungkinan | may/might/could + V1 | may/might/could have + V3 | may/might/could + V1 dengan penanda waktu masa depan |
+| Kesimpulan kuat | must untuk kesimpulan positif; cannot untuk ketidakmungkinan | must have / cannot have + V3 | Belum ditawarkan pada cakupan ini |
+
+- **Must not** menyatakan larangan; **do/does/did not have to** menyatakan tidak
+  adanya kewajiban. Petunjuk membedakan kedua makna ini.
+- **Must have + V3** menyatakan kesimpulan tentang masa lalu, bukan kewajiban
+  masa lalu. **Could** untuk izin sopan merujuk sekarang, bukan otomatis masa lalu.
+- Latihan kemungkinan memakai pernyataan. Could untuk kemungkinan hanya positif
+  pada cakupan ini agar bentuk negatif tidak beralih ke ketidakmungkinan atau
+  ketidakmampuan. Kesimpulan kuat memakai must positif atau cannot negatif.
+- Bentuk tanya permintaan izin can/may/could menggunakan I/we. Bentuk pertanyaan
+  izin masa lalu menanyakan apakah izin pernah diberikan.
+- Bahan menampilkan subjek, pola modal, V1, pelengkap, dan penanda waktu; informasi
+  fungsi, waktu, dan bentuk terlihat pada label/petunjuk. Pengguna mengubah V1 ke
+  V3 pada perfect infinitive dan menyesuaikan have/be saat pola memerlukannya.
+- Checker mempertahankan target pola, menerima kontraksi yang didukung serta
+  pemindahan penanda waktu utuh untuk pernyataan. Sinonim modal dengan makna
+  berbeda tidak dianggap otomatis setara.
+
+Rujukan perbedaan makna: British Council tentang
+[izin dan kewajiban](https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/modals-permission-obligation),
+[kemampuan masa lalu](https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/past-ability), dan
+[kesimpulan tentang masa lalu](https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/modals-deductions-about-past).
 
 Conditionals yang sekarang memakai lookup adalah kondisi implementasi, bukan
 bukti bahwa topiknya harus statis. Relative clause juga menunjukkan bahwa bahan
@@ -115,8 +154,8 @@ atau generator tidak cukup sebagai alasan tunggal untuk memindahkan suatu topik.
 
 1. **Frequency adverbs** — cakupan awal sudah ditambahkan sesuai tabel kondisi
    kode di atas; manner/place dievaluasi sebagai perluasan terpisah.
-2. **Modals** — mulai dari fungsi yang jelas dan pola sempit, tanpa filter
-   present/past yang menyederhanakan makna secara keliru.
+2. **Modals** — enam fungsi dan pilihan waktu sudah ditambahkan sesuai tabel
+   kondisi kode; would hipotetis dan struktur lanjutan memerlukan rancangan berikutnya.
 3. **Conditionals** — perluas variasi bahan dari fokus yang sudah ada dengan
    generator berpola dan pasangan klausa terkurasi.
 
