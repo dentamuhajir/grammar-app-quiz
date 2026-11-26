@@ -1,6 +1,7 @@
 import { BEHAVIORAL_ADJECTIVES, COMPLEMENTS } from "./data/complements";
 import { buildRelativeQuestion } from "./relativeSentences";
 import { buildReasonQuestion } from "./reasonSentences";
+import { buildFrequencyQuestion, FREQUENCY_FORMS, FREQUENCY_MODES, FREQUENCY_TENSES } from "./frequencySentences";
 import { buildFocusedQuestion, FOCUSED_FORMS, QUANTIFIER_TENSES, type FocusPattern } from "./focusedSentences";
 import { INDEFINITE_PERSONS, PERSON_SUBJECTS, SUBJECTS } from "./data/subjects";
 import { TIME_SIGNALS, type TimeSignal } from "./data/timeSignals";
@@ -52,7 +53,7 @@ export const DEFAULT_FILTER: QuizFilter = {
 };
 
 export interface MultiQuizFilter {
-  focus?: "relativeClause" | "reasonClause" | "quantifiers" | "conditionals";
+  focus?: "relativeClause" | "reasonClause" | "quantifiers" | "conditionals" | "frequencyAdverbs";
   focusPattern?: FocusPattern;
   tenses: Tense[];
   modes: Mode[];
@@ -77,6 +78,11 @@ export const BEGINNER_FILTER: MultiQuizFilter = {
 export const REASON_TENSES = ["presentSimple", "pastSimple"] as const;
 
 export function quizCombinations(filter: MultiQuizFilter) {
+  if (filter.focus === "frequencyAdverbs") {
+    return filter.tenses.filter(t => FREQUENCY_TENSES.includes(t)).flatMap(tense =>
+      filter.modes.filter(m => FREQUENCY_MODES.includes(m)).flatMap(mode =>
+        filter.forms.filter(f => FREQUENCY_FORMS.includes(f)).map(form => ({ tense, mode, form }))));
+  }
   if (filter.focus === "quantifiers") {
     return filter.tenses.filter(tense => QUANTIFIER_TENSES.includes(tense)).flatMap(tense =>
       filter.modes.flatMap(mode => filter.forms.filter(form => FOCUSED_FORMS.includes(form)).map(form => ({ tense, mode, form }))));
@@ -122,6 +128,7 @@ export function createQuestionCycle(filter: MultiQuizFilter): () => Question {
     const combination = remaining.pop()!;
     previous = combination;
     const {tense, mode, form} = combination;
+    if (filter.focus === "frequencyAdverbs") return buildFrequencyQuestion(tense, mode, form, filter.focusPattern);
     if (filter.focus === "quantifiers" || filter.focus === "conditionals") {
       const question = buildFocusedQuestion(filter.focus, filter.focusPattern, tense, mode, form, previousFocusedAnswer);
       previousFocusedAnswer = question.answer;

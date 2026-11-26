@@ -19,6 +19,60 @@ import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode"
 import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
 import { buildReasonQuestion } from "../src/grammar/reasonSentences";
 import { FOCUS_PATTERNS } from "../src/grammar/focusedSentences";
+import { buildFrequencyQuestion, FREQUENCY_ADVERBS, FREQUENCY_TENSES } from "../src/grammar/frequencySentences";
+
+test("frequency focus honors supported filters and cycles through every combination", () => {
+  const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "frequencyAdverbs", focusPattern: "often" };
+  const combinations = quizCombinations(filter);
+  assert.equal(combinations.length, 36);
+  assert.equal(quizCombinations({ ...filter, modes: ["passive"] }).length, 0);
+  assert.equal(quizCombinations({ ...filter, forms: ["whQuestion"] }).length, 0);
+  assert.equal(quizCombinations({ ...filter, tenses: ["presentContinuous"] }).length, 0);
+  const cycle = createQuestionCycle(filter);
+  const seen = new Set<string>();
+  for (let i = 0; i < combinations.length; i++) {
+    const q = cycle();
+    seen.add(`${q.tense}/${q.mode}/${q.form}`);
+    assert.ok(FREQUENCY_TENSES.includes(q.tense));
+    assert.equal(q.focused?.rows[0].cues.time, "often");
+    assert.match(q.focused!.rows[0].detail, new RegExp(TENSE_LABELS[q.tense]));
+    assert.equal(checkAnswer(q, q.answer).correct, true);
+    assert.equal(checkAnswer(q, q.answer.replace(/often/g, "always")).correct, false);
+    assert.equal(checkAnswer(q, q.answer.replace(/often /g, "")).correct, false);
+    for (const alternative of q.focused!.alternatives) assert.equal(checkAnswer(q, alternative).correct, true);
+  }
+  assert.equal(seen.size, 36);
+});
+
+test("frequency adverbs keep agreement, auxiliary placement and negative scope", () => {
+  const original = Math.random;
+  Math.random = () => 0;
+  try {
+    const make = (tense: Tense, mode: Mode, form: SentenceForm, adverb = "usually") => buildFrequencyQuestion(tense, mode, form, adverb);
+    assert.equal(make("presentSimple", "verbal", "positive").answer, "I usually play football.");
+    assert.equal(make("presentSimple", "nominal", "positive").answer, "I am usually careful.");
+    assert.equal(make("presentPerfect", "verbal", "positive", "often").answer, "I have often played football.");
+    assert.equal(make("pastSimple", "verbal", "yesNoQuestion").answer, "Did I usually play football?");
+    assert.equal(make("futurePerfect", "verbal", "positive").answer, "I will usually have played football.");
+    const negative = make("presentSimple", "verbal", "negative", "always");
+    assert.equal(negative.answer, "I do not always play football.");
+    assert.equal(checkAnswer(negative, "I don't always play football.").correct, true);
+    assert.equal(checkAnswer(negative, "I always do not play football.").correct, false);
+    const positive = make("presentSimple", "verbal", "positive");
+    assert.equal(checkAnswer(positive, "Usually, I play football.").correct, true);
+    assert.equal(checkAnswer(positive, "Usually, I plays football.").correct, false);
+    const always = make("presentSimple", "verbal", "positive", "always");
+    assert.equal(checkAnswer(always, "Always I play football.").correct, false);
+    Math.random = () => 0.65;
+    assert.equal(make("presentSimple", "verbal", "positive").answer, "She usually eats breakfast.");
+    assert.equal(make("presentSimple", "verbal", "yesNoQuestion").answer, "Does she usually eat breakfast?");
+    for (const adverb of FREQUENCY_ADVERBS) {
+      assert.equal(make("pastPerfect", "nominal", "negative", adverb).focused!.rows[0].cues.time, adverb);
+    }
+  } finally {
+    Math.random = original;
+  }
+});
 
 test("indefinite person subjects use singular agreement and translate equivalent forms", () => {
   const work = VERBS.find(item => item.base === "work")!;

@@ -130,7 +130,7 @@ function filterSummary(f: MultiQuizFilter): string {
     f.forms.length === 4 ? "Semua bentuk"
       : f.forms.length === 1 ? FORM_LABELS[f.forms[0]].replace(/\s*\(.*\)/, "") : `${f.forms.length} bentuk`,
   ];
-  if (f.focus) parts.unshift("Relative clause");
+  if (f.focus) parts.unshift(f.focus === "frequencyAdverbs" ? `Adverbs of Frequency · ${f.focusPattern ?? "Semua adverb"}` : "Relative clause");
   return parts.join(" · ");
 }
 
