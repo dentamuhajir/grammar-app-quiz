@@ -31,6 +31,8 @@ import { PracticeModePicker } from "./PracticeModePicker";
 import { useAutoResizeTextarea } from "./useAutoResizeTextarea";
 import { SwipeGuide } from "./SwipeGuide";
 import { SentenceMaterial } from "./SentenceMaterial";
+import { STRUCTURE_LABELS, STRUCTURE_PATTERNS, usesStructureBank, type StructureFocus } from "../grammar/structureSentences";
+import { BASICS_TOPIC_GUIDES } from "../grammar/basics/engine";
 import { modalSummary } from "../grammar/modalSentences";
 
 /** The chips shown as the puzzle prompt. */
@@ -102,12 +104,16 @@ function ClauseChips({ cues }: { cues: ClauseCues }) {
     { text: cues.subject, role: "subject", plus: Boolean(cues.wh) },
     { text: cues.modal, role: "modal", plus: true },
     { text: cues.verb, role: "cue", plus: Boolean(cues.subject) },
+    { text: cues.recipient, role: "object", plus: true },
     { text: cues.complement, role: "object", plus: true },
+    { text: cues.objectComplement, role: "complement", plus: true },
+    { text: cues.manner, role: "manner", plus: true },
+    { text: cues.place, role: "place", plus: true },
     { text: cues.time, role: "time" },
   ];
-  return <ul lang="en">{chips.filter(chip => chip.text).map(chip => <li key={chip.role}>
+  return <ul lang="en">{chips.filter(chip => chip.text).map(chip => <li key={`${chip.role}-${chip.text}`}>
     {chip.plus && <span className="plus" aria-hidden="true">+</span>}
-    <span className={`chip chip-${chip.role === "modal" ? "cue" : chip.role}`}>{chip.text}</span>
+    <span className={`chip chip-${chip.role === "modal" ? "cue" : ["complement", "manner", "place"].includes(chip.role) ? "object" : chip.role}`}>{chip.text}</span>
   </li>)}</ul>;
 }
 
@@ -122,6 +128,11 @@ function ClausePrompt({ rows, instruction }: { rows: { label: string; detail: st
 }
 
 function filterSummary(f: MultiQuizFilter): string {
+  if (usesStructureBank(f.focus, f.focusPattern)) {
+    const focus = f.focus as StructureFocus;
+    const pattern = STRUCTURE_PATTERNS[focus].find(item => item.value === f.focusPattern)?.label ?? "Semua pola";
+    return `${STRUCTURE_LABELS[focus]} · ${pattern} · ${f.tenses.map(t => TENSE_LABELS[t]).join(" / ")} · ${f.forms.length} bentuk`;
+  }
   if (f.focus === "modals") return `Modals · ${modalSummary(f)} · Verbal · ${f.forms.length} bentuk`;
   if (f.focus === "reasonClause") return `Sebab dan alasan · ${f.tenses.map(tense => TENSE_LABELS[tense]).join(" / ")}`;
   if (f.focus === "quantifiers" || f.focus === "conditionals") return `${f.focus === "quantifiers" ? "Quantifiers" : "If / Conditionals"} · ${f.focusPattern ?? "Semua pola"} · ${f.forms.length} bentuk${f.focus === "quantifiers" ? ` · ${f.tenses.map(tense => TENSE_LABELS[tense]).join(" / ")}` : ""}`;
@@ -161,6 +172,10 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
   const relative = question.relativeClause;
   const reason = question.reasonClause;
   const focusLabel = relative ? "Relative clause" : reason ? "Sebab dan alasan" : question.focused?.label;
+  const structureFocus = usesStructureBank(filter.focus, filter.focusPattern) ? filter.focus as StructureFocus : undefined;
+  const focusGuide = structureFocus
+    ? BASICS_TOPIC_GUIDES[structureFocus === "relativeClause" ? "relatives" : structureFocus === "reasonClause" ? "conjunctions" : structureFocus]
+    : undefined;
   const translation = practiceMode === "translate" ? sentenceTranslation(question) : null;
   const relativeFeedback = relative && <p className="basics-explanation">
     <strong lang="en">{relative.pronoun}</strong> merujuk pada <strong lang="en">{relative.antecedent}</strong>, {relative.pronoun === "who" ? "orang" : "benda"} yang dijelaskan dalam sisipan.
@@ -168,7 +183,8 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
   const acceptedClause = result?.correct && relative?.alternatives.find(clause => result.normalizedAnswer.includes(clause.toLowerCase()));
   const fronted = result?.correct && reason && result.normalizedAnswer.startsWith("because ");
   const reviewed = fronted ? { ...question, answer: reason.frontedAnswer } : acceptedClause && relative ? { ...question, answer: question.answer.replace(relative.clause, acceptedClause),
-    relativeClause: { ...relative, clause: acceptedClause } } : question;
+    relativeClause: { ...relative, clause: acceptedClause } } : result?.correct && question.focused?.analysis
+      ? { ...question, answer: result.normalizedAnswer } : question;
 
   const next = useCallback(() => {
     setQuestion(cycle.current!());
@@ -212,7 +228,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
   function applyFilter(selected: MultiQuizFilter, mode: SentencePracticeMode, general?: MultiQuizFilter) {
     const activeFilter = mode === "arrange" ? selected : { ...selected, focus: undefined };
     cycle.current = createQuestionCycle(activeFilter);
-    if (!activeFilter.focus || activeFilter.focus === "relativeClause") generalFilter.current = { ...activeFilter, focus: undefined };
+    if (!activeFilter.focus || activeFilter.focus === "relativeClause" && !usesStructureBank(activeFilter.focus, activeFilter.focusPattern)) generalFilter.current = { ...activeFilter, focus: undefined, focusPattern: undefined };
     else if (general && quizCombinations(general).length) generalFilter.current = general;
     setFilter(activeFilter);
     selectPracticeMode(mode);
@@ -256,7 +272,9 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
           style={cardStyle}
         >
           <div className="tags">
-            {focusLabel && <span className="tag tag-tense">{focusLabel}</span>}
+            {focusLabel && (question.focused?.analysis ? <button type="button" className="tag tag-tense tag-clickable"
+              onClick={() => setMaterialOpen(true)} title="Buka materi fokus latihan">{focusLabel} ⓘ</button>
+              : <span className="tag tag-tense">{focusLabel}</span>)}
             {showBadges && !focusLabel && (
               <button
                 type="button"
@@ -390,7 +408,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
                   adalah susunan acuan.
                 </p>
               )}
-              {!question.focused && <button
+              {(!question.focused || question.focused.analysis) && <button
                 type="button"
                 className="inline-popup-link"
                 onClick={() => setGuideOpen(true)}
@@ -420,7 +438,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
               <SentencePlayback text={question.answer} question={question.focused ? undefined : question} />
               {question.focused && <p className="basics-explanation">{question.focused.explanation}</p>}
               {relativeFeedback}
-              {!question.focused && <button
+              {(!question.focused || question.focused.analysis) && <button
                 type="button"
                 className="inline-popup-link"
                 onClick={() => setGuideOpen(true)}
@@ -463,7 +481,12 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
         onClose={() => setMaterialOpen(false)}
         title="Materi kalimat"
       >
-        {question.focused ? <p className="note">{question.focused.explanation}</p> : <SentenceMaterial question={reviewed} solved={solved} attempted={hasIncorrectAttempt}
+        {question.focused?.analysis && focusGuide ? <div className="sheet-content-stack">
+          <p>{focusGuide.summary}</p>
+          {focusGuide.rules.map(rule => <section key={rule.label}>
+            <h3>{rule.label}</h3><p>{rule.detail}</p>
+          </section>)}
+        </div> : question.focused ? <p className="note">{question.focused.explanation}</p> : <SentenceMaterial question={reviewed} solved={solved} attempted={hasIncorrectAttempt}
           hint={result && !result.correct && !result.empty ? result.hint : undefined}
           onExplore={selected => { setMaterialOpen(false); onExplore(selected); }} />}
       </BottomSheet>

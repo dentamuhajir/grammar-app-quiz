@@ -1,5 +1,6 @@
 import { BEHAVIORAL_ADJECTIVES, COMPLEMENTS } from "./data/complements";
 import { buildRelativeQuestion } from "./relativeSentences";
+import { buildStructureQuestion, structureItems, usesStructureBank, type StructureFocus } from "./structureSentences";
 import { buildReasonQuestion } from "./reasonSentences";
 import { buildModalQuestion, modalPatterns, type ModalSelection } from "./modalSentences";
 import { buildFrequencyQuestion, FREQUENCY_FORMS, FREQUENCY_MODES, FREQUENCY_TENSES } from "./frequencySentences";
@@ -54,7 +55,7 @@ export const DEFAULT_FILTER: QuizFilter = {
 };
 
 export interface MultiQuizFilter extends ModalSelection {
-  focus?: "relativeClause" | "reasonClause" | "quantifiers" | "conditionals" | "frequencyAdverbs" | "modals";
+  focus?: "relativeClause" | "reasonClause" | "quantifiers" | "conditionals" | "frequencyAdverbs" | "modals" | "sentenceStructure" | "thereIt";
   focusPattern?: FocusPattern;
   tenses: Tense[];
   modes: Mode[];
@@ -80,6 +81,12 @@ export const REASON_TENSES = ["presentSimple", "pastSimple"] as const;
 
 interface QuizCombination { tense: Tense; mode: Mode; form: SentenceForm; modalPattern?: string }
 export function quizCombinations(filter: MultiQuizFilter): QuizCombination[] {
+  if (usesStructureBank(filter.focus, filter.focusPattern)) {
+    const items = structureItems(filter.focus as StructureFocus, filter.focusPattern);
+    return filter.tenses.flatMap(tense => filter.modes.flatMap(mode => filter.forms
+      .filter(form => items.some(item => item.tense === tense && item.mode === mode && item.form === form))
+      .map(form => ({ tense, mode, form }))));
+  }
   if (filter.focus === "modals") {
     if (!filter.modes.includes("verbal")) return [];
     return modalPatterns({ ...filter, modalPattern: filter.modalPattern ?? filter.focusPattern }).flatMap(pattern =>
@@ -136,6 +143,11 @@ export function createQuestionCycle(filter: MultiQuizFilter): () => Question {
     const combination = remaining.pop()!;
     previous = combination;
     const {tense, mode, form} = combination;
+    if (usesStructureBank(filter.focus, filter.focusPattern)) {
+      const question = buildStructureQuestion(filter.focus as StructureFocus, filter.focusPattern, tense, mode, form, previousFocusedAnswer);
+      previousFocusedAnswer = question.answer;
+      return question;
+    }
     if (filter.focus === "modals") return buildModalQuestion(form, combination.modalPattern, filter);
     if (filter.focus === "frequencyAdverbs") return buildFrequencyQuestion(tense, mode, form, filter.focusPattern);
     if (filter.focus === "quantifiers" || filter.focus === "conditionals") {

@@ -65,9 +65,9 @@ export function SentenceExplanation({
             ))}
           </section>
 
-          <button type="button" className="btn btn-ghost" onClick={onExplore}>
+          {!question.focused && <button type="button" className="btn btn-ghost" onClick={onExplore}>
             Buka di Tenses Explorer
-          </button>
+          </button>}
         </>
       )}
     </div>

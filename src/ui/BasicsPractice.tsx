@@ -25,7 +25,7 @@ const TOPIC_GROUPS: { label: string; topics: BasicsTopic[] }[] = [
   { label: "Kata benda & penentu", topics: ["articles", "plurals", "pronouns", "determiners", "quantifiers"] },
   { label: "Kata kerja & bentuknya", topics: ["gerunds", "modals", "habits", "causatives"] },
   { label: "Kata sifat, keterangan & preposisi", topics: ["adjectives", "comparatives", "prepositions"] },
-  { label: "Kalimat & klausa", topics: ["questions", "relatives", "conjunctions", "conditionals", "reportedSpeech", "nounClauses", "participles", "inversion"] },
+  { label: "Kalimat & klausa", topics: ["sentenceStructure", "thereIt", "questions", "relatives", "conjunctions", "conditionals", "reportedSpeech", "nounClauses", "participles", "inversion"] },
   { label: "Ungkapan", topics: ["collocations", "phrasalVerbs"] },
 ];
 

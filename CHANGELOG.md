@@ -3,6 +3,24 @@
 Catatan ini merangkum perkembangan berdasarkan tanggal commit Git.
 Versi pada `package.json` saat ini adalah `0.1.0`.
 
+## 2026-11-27
+
+### Struktur kalimat dan variasi susunan
+
+- Menambahkan topik **Sentence Structure & Word Order** dan **There & It** di
+  Grammar Topics, beserta panduan dan 22 soal isian.
+- Menambahkan dua fokus tersebut di mode Susun Sentence Practice: pola S–V,
+  S–V–C, S–V–O, dua objek, pelengkap objek, posisi keterangan, dan there/it.
+- Memperluas Relative clause dengan defining clause: pronoun sebagai subjek
+  wajib ditulis; pronoun sebagai objek boleh dihilangkan.
+- Memperluas latihan sebab/alasan menjadi pilihan penghubung antarklausa:
+  because, when, before, after, dan although, dengan kedua urutan klausa.
+- Menambahkan enam soal dan penjelasan pada Relative Pronouns dan Conjunctions.
+- Menampilkan bahan sebagai frasa bermakna dan kelompok klausa berlabel.
+  Filter hanya menghasilkan kombinasi tense, jenis, bentuk, dan pola yang didukung.
+- Menambahkan akses materi serta anatomi jawaban untuk fokus baru, termasuk
+  analisis sesuai alternatif jawaban yang diterima.
+
 ## 2026-11-22
 
 ### Latihan dan materi

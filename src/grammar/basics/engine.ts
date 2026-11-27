@@ -5,6 +5,7 @@ import { ARTICLE_WRITING, ARTICLE_LESSONS, knownHint, soundHint } from "../artic
 import type { WritingSkill } from "../writingPacks";
 import { TOPIC_WRITING_LESSONS } from "../topicWriting";
 import { EXTENDED_GUIDES, EXTENDED_QUESTIONS } from "./extended";
+import { STRUCTURE_GUIDES, STRUCTURE_QUESTIONS } from "./structures";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
 export type BasicsFilter = BasicsTopic | "all" | WritingSkill;
@@ -2089,6 +2090,7 @@ export function buildQuestionPool(): BasicsQuestion[] {
   ];
   foundationQuestions.forEach(add);
   EXTENDED_QUESTIONS.forEach(add);
+  STRUCTURE_QUESTIONS.forEach(add);
 
   for (const lesson of TOPIC_WRITING_LESSONS) {
     add({
@@ -2280,6 +2282,7 @@ export interface BasicsTopicGuide {
 
 export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   ...EXTENDED_GUIDES,
+  ...STRUCTURE_GUIDES,
   articles: {
     summary: "Articles (a, an, the, atau tanpa artikel) menentukan apakah suatu kata benda bersifat umum (belum spesifik) atau sudah spesifik/diketahui bersama.",
     rules: [
@@ -2430,7 +2433,9 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
     summary: "Relative Clauses (who, which, that, whose, where) menggabungkan dan memperjelas informasi tentang orang, benda, kepemilikan, atau tempat.",
     rules: [
       { label: "who (Orang)", detail: "Menjelaskan manusia sebagai subjek/objek klausa (The doctor who treated me)." },
-      { label: "which dan that untuk benda", detail: "Dalam the book that I bought, that juga dapat diganti dengan which. Untuk memberi informasi tambahan di antara koma, gunakan which jika kata penghubungnya ditulis." },
+      { label: "which dan that untuk benda", detail: "Dalam the book that I bought, that juga dapat diganti dengan which. Untuk memberi informasi tambahan di antara koma (non-defining), gunakan which untuk benda; pronoun tidak boleh dihilangkan dan tidak boleh diganti that." },
+      { label: "Pronoun objek boleh dihilangkan", detail: "Dalam defining relative clause tanpa koma, pronoun yang menjadi objek boleh dihilangkan: The book (that/which) I bought is expensive. I adalah subjek bought; the book adalah objek yang dijelaskan. Jadi The book I bought is expensive juga benar." },
+      { label: "Pronoun subjek wajib ditulis", detail: "The woman who called me lives next door: who adalah subjek called, sehingga tidak boleh dihilangkan. Dalam defining clause tentang orang ini, that juga dapat menggantikan who. Jangan menentukan penghilangan hanya dari ada/tidaknya subjek setelah pronoun; periksa fungsi pronoun dan jenis klausa." },
       { label: "whose (Kepemilikan) & where (Tempat)", detail: "whose + benda milik (the student whose laptop was lost) · where untuk tempat terjadinya aksi (the cafe where we met)." },
     ],
     examples: [
@@ -2462,6 +2467,8 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
       { label: "Sebab & Akibat: because vs so", detail: "because + alasan/penyebab · so + hasil/akibat setelah koma." },
       { label: "Syarat: if vs unless", detail: "if = jika · unless = kecuali jika / jika tidak (if ... not)." },
       { label: "Waktu: while vs until", detail: "while = sementara/ketika dua aksi berlangsung bersamaan · until = sampai batas waktu tertentu." },
+      { label: "When, before, after", detail: "When menyatakan ketika, before sebelum, dan after sesudah. Contoh: Maya washed her hands before she ate lunch. Pertahankan hubungan waktu saat menukar urutan klausa: Before she ate lunch, Maya washed her hands." },
+      { label: "Urutan klausa dan koma", detail: "Anak kalimat dengan because, when, before, after, atau although dapat berada di awal atau akhir. Jika di awal, pisahkan dengan koma: Although it rained, Maya went out. Jangan tambahkan but pada pola although ini." },
     ],
     examples: [
       "Although it was raining heavily, they continued the match.",

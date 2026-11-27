@@ -10,6 +10,8 @@ export const PRACTICE_LABELS = {
 };
 
 export const BASICS_LABELS = {
+  sentenceStructure: "Sentence Structure & Word Order",
+  thereIt: "There & It",
   articles: "Articles",
   prepositions: "Prepositions",
   questions: "Question Formation",

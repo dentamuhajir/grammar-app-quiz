@@ -3,7 +3,7 @@ import { expandVariants, normalize } from "./check/normalize";
 import type { WritingResult } from "./writingPacks";
 import { PATTERN_LESSONS } from "./patternLessons";
 
-type NewWritingTopic = Exclude<keyof typeof BASICS_LABELS, "articles" | "prepositions" | "habits" | "determiners" | "reportedSpeech" | "nounClauses" | "participles" | "inversion">;
+type NewWritingTopic = Exclude<keyof typeof BASICS_LABELS, "articles" | "prepositions" | "habits" | "determiners" | "reportedSpeech" | "nounClauses" | "participles" | "inversion" | "sentenceStructure" | "thereIt">;
 
 export interface TopicWritingLesson {
   id: string;

@@ -19,8 +19,140 @@ import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode"
 import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
 import { buildReasonQuestion } from "../src/grammar/reasonSentences";
 import { FOCUS_PATTERNS } from "../src/grammar/focusedSentences";
+import { buildStructureQuestion, STRUCTURE_ITEMS, STRUCTURE_PATTERNS, type StructureFocus } from "../src/grammar/structureSentences";
+import { normalize } from "../src/grammar/check/normalize";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server.browser";
+import { SentencePractice } from "../src/ui/SentencePractice";
+import { SentenceFilters } from "../src/ui/SentenceFilters";
+import { SentenceExplanation } from "../src/ui/SentenceExplanation";
 import { buildFrequencyQuestion, FREQUENCY_ADVERBS, FREQUENCY_TENSES } from "../src/grammar/frequencySentences";
-import { buildModalQuestion, MODAL_PATTERNS, MODAL_FUNCTIONS, MODAL_TIMES, modalPatterns, modalForms, modalSummary } from "../src/grammar/modalSentences";
+import { buildModalQuestion, MODAL_PATTERNS, MODAL_FUNCTIONS, MODAL_TIMES, modalForms, modalPatterns, modalSummary } from "../src/grammar/modalSentences";
+
+test("structure filters only generate selected patterns, tenses, modes and forms", () => {
+  for (const focus of Object.keys(STRUCTURE_PATTERNS) as StructureFocus[]) {
+    for (const { value: focusPattern } of STRUCTURE_PATTERNS[focus]) {
+      const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus, focusPattern };
+      const combinations = quizCombinations(filter);
+      assert.ok(combinations.length, focusPattern);
+      const cycle = createQuestionCycle(filter);
+      for (let i = 0; i < combinations.length * 4; i++) {
+        const q = cycle();
+        assert.ok(STRUCTURE_ITEMS.some(item => item.focus === focus && item.pattern === focusPattern && item.answer === q.answer));
+        assert.ok(filter.tenses.includes(q.tense));
+        assert.ok(filter.modes.includes(q.mode));
+        assert.ok(filter.forms.includes(q.form));
+        assert.ok(q.focused?.rows.every(row => row.detail.includes(TENSE_LABELS[q.tense])));
+        assert.equal(checkAnswer(q, q.answer).correct, true, q.answer);
+      }
+      for (const combination of combinations) {
+        const narrowed: MultiQuizFilter = { ...filter, tenses: [combination.tense], modes: [combination.mode], forms: [combination.form] };
+        assert.equal(quizCombinations(narrowed).length, 1);
+        const q = createQuestionCycle(narrowed)();
+        assert.equal(q.tense, combination.tense);
+        assert.equal(q.mode, combination.mode);
+        assert.equal(q.form, combination.form);
+      }
+      assert.equal(quizCombinations({ ...filter, tenses: ["futurePerfect"] }).length, 0);
+      assert.equal(quizCombinations({ ...filter, modes: ["passive"] }).length, 0);
+      assert.equal(quizCombinations({ ...filter, forms: ["whQuestion"] }).length, 0);
+      if (focus === "sentenceStructure" || focus === "thereIt") assert.equal(quizCombinations({ ...filter, focusPattern: "must" }).length, 0);
+    }
+  }
+});
+
+test("structure answer checking and anatomy cover every reference and supported alternative", () => {
+  for (const item of STRUCTURE_ITEMS) {
+    const base = buildStructureQuestion(item.focus, item.pattern, item.tense, item.mode, item.form);
+    const q: Question = { ...base, answer: item.answer, focused: { ...base.focused!,
+      alternatives: item.alternatives ?? [], analysis: { parts: item.parts }, explanation: item.explanation } };
+    for (const answer of [item.answer, ...(item.alternatives ?? [])]) {
+      const result = checkAnswer(q, answer);
+      assert.equal(result.correct, true, answer);
+      const guide = sentenceGuide({ ...q, answer: result.normalizedAnswer });
+      assert.equal(normalize(guide.parts.map(part => part.text).join(" ")), normalize(answer));
+      assert.ok(guide.formula.length > 0);
+      assert.equal(guide.reasons[0], item.explanation);
+      assert.ok(guide.parts.every(part => part.role !== "Penghubung / preposisi" || part.text === "to"), answer);
+    }
+    assert.equal(checkAnswer(q, "").empty, true);
+    assert.equal(checkAnswer(q, "Some unrelated words").correct, false);
+  }
+});
+
+test("structure drills reject wrong agreement, dummy subjects and targeted adverb order", () => {
+  const there = buildStructureQuestion("thereIt", "existence", "presentSimple", "nominal", "positive");
+  const wrongAgreement = there.answer.includes(" is ") ? there.answer.replace(" is ", " are ") : there.answer.replace(" are ", " is ");
+  assert.equal(checkAnswer(there, wrongAgreement).correct, false);
+  assert.equal(checkAnswer(there, there.answer.replace("There", "It")).correct, false);
+  const weather = buildStructureQuestion("thereIt", "weather", "pastSimple", "nominal", "negative");
+  assert.equal(checkAnswer(weather, "It wasn't cold.").correct, true);
+  const evaluation = buildStructureQuestion("thereIt", "evaluation", "presentSimple", "nominal", "positive");
+  assert.equal(checkAnswer(evaluation, "It's important to practice every day.").correct, true);
+  assert.equal(checkAnswer(evaluation, "It is important practise every day.").correct, false);
+  const order = buildStructureQuestion("sentenceStructure", "adverbOrder", "presentSimple", "verbal", "positive");
+  assert.equal(checkAnswer(order, "Every morning, Maya works quietly at home.").correct, false);
+  const time = buildStructureQuestion("sentenceStructure", "timePosition", "pastSimple", "verbal", "positive");
+  assert.equal(checkAnswer(time, "Yesterday they visited the museum.").correct, true);
+  const clause = buildStructureQuestion("sentenceStructure", "timeClause", "pastSimple", "verbal", "positive");
+  assert.deepEqual(clause.focused!.rows.map(row => row.label), ["Waktu", "Kejadian utama"]);
+  assert.equal(checkAnswer(clause, "We stopped talking when the film started.").correct, true);
+  assert.equal(checkAnswer(clause, "When the film started, we stopped to talk.").correct, false);
+  const doubleObject = buildStructureQuestion("sentenceStructure", "svoo", "presentSimple", "verbal", "positive");
+  const alternative = checkAnswer(doubleObject, "Maya gives some books to her brother.");
+  assert.deepEqual(sentenceGuide({ ...doubleObject, answer: alternative.normalizedAnswer }).parts.map(part => part.role),
+    ["Subjek", "Verb", "Objek langsung", "Penghubung / preposisi", "Penerima"]);
+});
+
+test("defining relative clauses distinguish optional objects from required subjects", () => {
+  const object = buildStructureQuestion("relativeClause", "definingObject", "pastSimple", "nominal", "positive");
+  for (const answer of ["The book that I bought was expensive.", "The book which I bought was expensive.", "The book I bought was expensive."]) {
+    assert.equal(checkAnswer(object, answer).correct, true, answer);
+  }
+  assert.equal(checkAnswer(object, "The book bought was expensive.").correct, false);
+  const subject = buildStructureQuestion("relativeClause", "definingSubject", "presentSimple", "verbal", "positive");
+  assert.equal(checkAnswer(subject, "The woman calls me lives next door.").correct, false);
+  assert.equal(checkAnswer(subject, "The woman that calls me lives next door.").correct, true);
+  const nonDefining = buildRelativeQuestion("presentSimple", "nominal", "positive", undefined, "which");
+  assert.equal(checkAnswer(nonDefining, nonDefining.answer.replace("which ", "")).correct, false);
+});
+
+test("conjunction drills preserve timing and meaning in both clause orders", () => {
+  for (const { value: pattern } of STRUCTURE_PATTERNS.reasonClause) {
+    const q = buildStructureQuestion("reasonClause", pattern, "pastSimple", "verbal", "positive");
+    assert.equal(q.focused!.rows.length, 2);
+    for (const answer of q.focused!.alternatives) assert.equal(checkAnswer(q, answer).correct, true, answer);
+    const wrongConnector = pattern === "before" ? "after" : "before";
+    assert.equal(checkAnswer(q, q.answer.replace(pattern, wrongConnector)).correct, false);
+    if (pattern === "although") assert.equal(checkAnswer(q, "Although it rained, but Maya went out.").correct, false);
+  }
+});
+
+test("new focus screens render meaningful chips, active filters and anatomy", () => {
+  for (const focus of Object.keys(STRUCTURE_PATTERNS) as StructureFocus[]) {
+    for (const { value: focusPattern } of STRUCTURE_PATTERNS[focus]) {
+      const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus, focusPattern };
+      const screen = renderToStaticMarkup(createElement(SentencePractice, { initialFilter: filter, onExplore: () => {} }));
+      assert.match(screen, /Buka materi fokus latihan/);
+      assert.match(screen, /Bahan kalimat/);
+      assert.doesNotMatch(screen, /undefined/);
+      const filters = renderToStaticMarkup(createElement(SentenceFilters, { filter, generalFilter: DEFAULT_MULTI_FILTER,
+        practiceMode: "arrange", onApply: () => {}, onClose: () => {} }));
+      assert.match(filters, /aria-pressed="true"/);
+      assert.doesNotMatch(filters, /Kombinasi ini belum didukung/);
+      const q = createQuestionCycle(filter)();
+      const explanation = renderToStaticMarkup(createElement(SentenceExplanation, { question: q, solved: true, onExplore: () => {} }));
+      assert.match(explanation, /Bagian kalimat/);
+      assert.doesNotMatch(explanation, /Buka di Tenses Explorer/);
+    }
+  }
+  const doubleObject = renderToStaticMarkup(createElement(SentencePractice, {
+    initialFilter: { ...DEFAULT_MULTI_FILTER, focus: "sentenceStructure", focusPattern: "svoo", tenses: ["presentSimple"] }, onExplore: () => {},
+  }));
+  assert.match(doubleObject, />her brother<\/span>/);
+  assert.match(doubleObject, />some books<\/span>/);
+  assert.doesNotMatch(doubleObject, /her brother · some books/);
+});
 
 test("modal focus uses the selected pattern and forms without a tense selector", () => {
   for (const { value: modal } of MODAL_PATTERNS.filter(p => ["can", "should", "must"].includes(p.value))) {

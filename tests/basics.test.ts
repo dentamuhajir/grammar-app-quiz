@@ -12,6 +12,25 @@ import { ARTICLE_WRITING, ARTICLE_LESSONS, checkArticleWriting } from "../src/gr
 import { TOPIC_WRITING_LESSONS, checkTopicWriting } from "../src/grammar/topicWriting";
 import { normalize } from "../src/grammar/check/normalize";
 
+test("sentence structure and there/it topics provide guides and independent exercise decks", () => {
+  for (const topic of ["sentenceStructure", "thereIt"] as const) {
+    const deck = createDeck(topic);
+    assert.ok(deck.length >= 10);
+    assert.ok(deck.every(q => q.topic === topic));
+    assert.ok(BASICS_TOPIC_GUIDES[topic].rules.length >= 6);
+    for (const q of deck) assert.equal(checkBasicsAnswer(q, q.answer), "correct");
+  }
+  assert.equal(checkBasicsAnswer(question("there-it-plural"), "is"), "incorrect");
+  assert.equal(checkBasicsAnswer(question("there-it-weather"), "there"), "incorrect");
+  assert.equal(checkBasicsAnswer(question("there-it-evaluation"), "to practice"), "correct");
+  assert.equal(checkBasicsAnswer(question("there-it-reference"), "a book"), "correct");
+  assert.equal(checkBasicsAnswer(question("structure-svoc"), "a letter"), "incorrect");
+  assert.equal(checkBasicsAnswer(question("relative-zero-object"), "-"), "correct");
+  assert.equal(checkBasicsAnswer(question("relative-required-subject"), "-"), "incorrect");
+  assert.equal(checkBasicsAnswer(question("relative-required-nondefining"), "-"), "incorrect");
+  assert.equal(checkBasicsAnswer(question("conjunction-before-time"), "after"), "incorrect");
+});
+
 test("writing applies the rule to a new sentence and rejects copying the recognition answer", () => {
   for (const pack of WRITING_PACKS) for (const lesson of pack.lessons) {
     const source = question(lesson.id);

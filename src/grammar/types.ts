@@ -100,6 +100,10 @@ export interface ClauseCues {
   subject?: string;
   verb: string;
   complement?: string;
+  recipient?: string;
+  objectComplement?: string;
+  manner?: string;
+  place?: string;
   time?: string;
 }
 
@@ -111,6 +115,7 @@ export interface Question {
     rows: { label: string; detail: string; cues: ClauseCues }[];
     explanation: string;
     alternatives: string[];
+    analysis?: { parts: { text: string; role: string; alternatives?: string[] }[] };
   };
   reasonClause?: {
     cues: ClauseCues & { subject: string };

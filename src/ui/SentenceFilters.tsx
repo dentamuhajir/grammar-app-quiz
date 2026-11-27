@@ -8,6 +8,7 @@ import { PracticeModePicker } from "./PracticeModePicker";
 import { FOCUSED_FORMS, FOCUS_PATTERNS, QUANTIFIER_TENSES, type FocusPattern } from "../grammar/focusedSentences";
 import { FREQUENCY_ADVERBS, FREQUENCY_FORMS, FREQUENCY_MODES, FREQUENCY_TENSES } from "../grammar/frequencySentences";
 import { MODAL_FUNCTIONS, MODAL_TIMES, modalForms, modalPatterns, type ModalSelection } from "../grammar/modalSentences";
+import { STRUCTURE_PATTERNS, structureItems, usesStructureBank, type StructureFocus, type StructurePattern } from "../grammar/structureSentences";
 
 function toggle<T>(selected: T[], value: T): T[] {
   return selected.includes(value) ? selected.filter(item => item !== value) : [...selected, value];
@@ -20,19 +21,31 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
   onClose: () => void;
   onApply: (filter: MultiQuizFilter, practiceMode: SentencePracticeMode, generalFilter: MultiQuizFilter) => void;
 }) {
-  const [draft, setDraft] = useState<MultiQuizFilter>({ ...(filter.focus === "quantifiers" || filter.focus === "conditionals" || filter.focus === "frequencyAdverbs" || filter.focus === "modals" ? filter : generalFilter), focus: filter.focus, focusPattern: filter.focusPattern });
+  const [draft, setDraft] = useState<MultiQuizFilter>({ ...(filter.focus === "quantifiers" || filter.focus === "conditionals" || filter.focus === "frequencyAdverbs" || filter.focus === "modals" || usesStructureBank(filter.focus, filter.focusPattern) ? filter : generalFilter), focus: filter.focus, focusPattern: filter.focusPattern });
   const [mode, setMode] = useState(practiceMode);
   const [reasonTenses, setReasonTenses] = useState<Tense[] | undefined>(
     filter.focus === "reasonClause" ? filter.tenses : undefined);
   const compatible = REASON_TENSES.filter(tense => draft.tenses.includes(tense));
-  const reasonFocus = mode === "arrange" && draft.focus === "reasonClause";
+  const reasonFocus = mode === "arrange" && draft.focus === "reasonClause" && !usesStructureBank(draft.focus, draft.focusPattern);
   const patternFocus = mode === "arrange" && (draft.focus === "quantifiers" || draft.focus === "conditionals");
   const quantifierFocus = mode === "arrange" && draft.focus === "quantifiers";
   const conditionalFocus = mode === "arrange" && draft.focus === "conditionals";
   const frequencyFocus = mode === "arrange" && draft.focus === "frequencyAdverbs";
   const modalFocus = mode === "arrange" && draft.focus === "modals";
-  const limitedForms = patternFocus || frequencyFocus || modalFocus;
-  const availableForms = modalFocus ? modalForms(draft) : limitedForms ? FOCUSED_FORMS : ["positive", "negative", "yesNoQuestion", "whQuestion"] as SentenceForm[];
+  const structureFocus = mode === "arrange" && usesStructureBank(draft.focus, draft.focusPattern);
+  const structurePool = structureFocus ? structureItems(draft.focus as StructureFocus, draft.focusPattern) : [];
+  const limitedForms = patternFocus || frequencyFocus || modalFocus || structureFocus;
+  const availableForms = structureFocus ? [...new Set(structurePool.map(item => item.form))] : modalFocus ? modalForms(draft) : limitedForms ? FOCUSED_FORMS : ["positive", "negative", "yesNoQuestion", "whQuestion"] as SentenceForm[];
+  function changeStructure(focus: StructureFocus, pattern?: StructurePattern) {
+    const pool = structureItems(focus, pattern);
+    const tenses = [...new Set(pool.map(item => item.tense))];
+    const modes = [...new Set(pool.map(item => item.mode))];
+    const forms = [...new Set(pool.map(item => item.form))];
+    const retainedTenses = draft.tenses.filter(t => tenses.includes(t));
+    const retainedForms = draft.forms.filter(f => forms.includes(f));
+    setDraft({ ...draft, focus, focusPattern: pattern, tenses: retainedTenses.length ? retainedTenses : tenses,
+      modes, forms: retainedForms.length ? retainedForms : forms });
+  }
   function changeModal(selection: ModalSelection) {
     const next = { ...draft, ...selection };
     const supportedForms = modalForms(next);
@@ -42,8 +55,8 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
   const activeDraft: MultiQuizFilter = reasonFocus
     ? { ...draft, tenses: reasonTenses ?? (compatible.length ? compatible : [...REASON_TENSES]), modes: ["verbal"], forms: ["positive"] }
     : { ...draft, focus: mode === "arrange" ? draft.focus : undefined, focusPattern: mode === "arrange" ? draft.focusPattern : undefined };
-  const availableTenses: readonly Tense[] = reasonFocus ? REASON_TENSES : quantifierFocus ? QUANTIFIER_TENSES : frequencyFocus ? FREQUENCY_TENSES : TENSE_ORDER;
-  const availableModes: Mode[] = frequencyFocus ? FREQUENCY_MODES : ["verbal", "nominal", "passive"];
+  const availableTenses: readonly Tense[] = structureFocus ? [...new Set(structurePool.map(item => item.tense))] : reasonFocus ? REASON_TENSES : quantifierFocus ? QUANTIFIER_TENSES : frequencyFocus ? FREQUENCY_TENSES : TENSE_ORDER;
+  const availableModes: Mode[] = structureFocus ? [...new Set(structurePool.map(item => item.mode))] : frequencyFocus ? FREQUENCY_MODES : ["verbal", "nominal", "passive"];
   const allTenses = availableTenses.every(tense => activeDraft.tenses.includes(tense));
   function setTenses(tenses: Tense[]) {
     if (reasonFocus) setReasonTenses(tenses);
@@ -60,6 +73,12 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
         <div className="tenses-pill-row">
           <button type="button" aria-pressed={!draft.focus} className={`tenses-option-pill ${!draft.focus ? "active" : ""}`}
             onClick={() => setDraft({ ...draft, focus: undefined, focusPattern: undefined })}>Latihan umum</button>
+          <button type="button" aria-pressed={structureFocus && draft.focus === "sentenceStructure"}
+            className={`tenses-option-pill ${structureFocus && draft.focus === "sentenceStructure" ? "active" : ""}`}
+            onClick={() => changeStructure("sentenceStructure")}>Struktur & Urutan Kalimat</button>
+          <button type="button" aria-pressed={structureFocus && draft.focus === "thereIt"}
+            className={`tenses-option-pill ${structureFocus && draft.focus === "thereIt" ? "active" : ""}`}
+            onClick={() => changeStructure("thereIt")}>There & It</button>
           <button type="button" aria-pressed={draft.focus === "relativeClause"}
             className={`tenses-option-pill ${draft.focus === "relativeClause" ? "active" : ""}`}
             onClick={() => setDraft({ ...draft, focus: "relativeClause", focusPattern: undefined })}>Relative clause</button>
@@ -68,8 +87,8 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
               tenses: draft.tenses.some(t => FREQUENCY_TENSES.includes(t)) ? draft.tenses.filter(t => FREQUENCY_TENSES.includes(t)) : ["presentSimple"],
               modes: draft.modes.some(m => FREQUENCY_MODES.includes(m)) ? draft.modes.filter(m => FREQUENCY_MODES.includes(m)) : [...FREQUENCY_MODES],
               forms: draft.forms.some(f => FREQUENCY_FORMS.includes(f)) ? draft.forms.filter(f => FREQUENCY_FORMS.includes(f)) : [...FREQUENCY_FORMS] })}>Adverbs of Frequency</button>
-          <button type="button" aria-pressed={reasonFocus} className={`tenses-option-pill ${reasonFocus ? "active" : ""}`}
-            onClick={() => setDraft({ ...draft, focus: "reasonClause", focusPattern: undefined })}>Sebab dan alasan</button>
+          <button type="button" aria-pressed={draft.focus === "reasonClause"} className={`tenses-option-pill ${draft.focus === "reasonClause" ? "active" : ""}`}
+            onClick={() => changeStructure("reasonClause", "because")}>Penghubung antarklausa</button>
           <button type="button" aria-pressed={modalFocus} className={`tenses-option-pill ${modalFocus ? "active" : ""}`}
             onClick={() => setDraft({ ...draft, focus: "modals", focusPattern: undefined, modalFunction: "ability", modalTime: "present", modalPattern: undefined, modes: ["verbal"],
               forms: draft.forms.some(f => FOCUSED_FORMS.includes(f)) ? draft.forms.filter(f => FOCUSED_FORMS.includes(f)) : [...FOCUSED_FORMS] })}>Modals</button>
@@ -86,9 +105,24 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
           {([["Semua", undefined], ["who", "who"], ["which", "which"]] as const).map(([label, value]) =>
             <button key={label} type="button" aria-pressed={draft.focusPattern === value}
               className={`tenses-option-pill ${draft.focusPattern === value ? "active" : ""}`}
-              onClick={() => setDraft({ ...draft, focusPattern: value })}>{label}</button>)}
+              onClick={() => setDraft({ ...(structureFocus ? generalFilter : draft), focus: "relativeClause", focusPattern: value })}>{label === "Semua" ? "Sisipan berkoma · semua" : label}</button>)}
+          {STRUCTURE_PATTERNS.relativeClause.map(item => <button key={item.value} type="button"
+            aria-pressed={draft.focusPattern === item.value} className={`tenses-option-pill ${draft.focusPattern === item.value ? "active" : ""}`}
+            onClick={() => changeStructure("relativeClause", item.value)}>{item.label}</button>)}
         </div>}
         {reasonFocus && <small>Pilih Present Simple, Past Simple, atau keduanya. Klausa utama memakai bentuk verbal positif.</small>}
+      </fieldset>}
+      {structureFocus && draft.focus !== "relativeClause" && <fieldset className="sentence-filter-group">
+        <legend>Pola latihan</legend>
+        <div className="tenses-pill-row" aria-label="Pola struktur kalimat">
+          {draft.focus !== "reasonClause" && <button type="button" aria-pressed={!draft.focusPattern} className={`tenses-option-pill ${!draft.focusPattern ? "active" : ""}`}
+            onClick={() => changeStructure(draft.focus as StructureFocus)}>Semua pola</button>}
+          {STRUCTURE_PATTERNS[draft.focus as StructureFocus].map(item => <button key={item.value} type="button"
+            aria-pressed={draft.focusPattern === item.value} className={`tenses-option-pill ${draft.focusPattern === item.value ? "active" : ""}`}
+            onClick={() => changeStructure(draft.focus as StructureFocus, item.value)}>{item.label}</button>)}
+        </div>
+        <small>{draft.focus === "thereIt" ? "Present/Past Simple dengan be; positif, negatif, dan pertanyaan yes/no."
+          : "Latihan pernyataan positif. Tense dan jenis mengikuti pola yang dipilih."}</small>
       </fieldset>}
       {frequencyFocus && <fieldset className="sentence-filter-group">
           <legend>Pola latihan</legend>
@@ -211,7 +245,7 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
           </p> : null}
       </div>
       <button type="button" className="btn btn-primary" disabled={empty || !supported}
-        onClick={() => onApply(activeDraft, mode, patternFocus || frequencyFocus || modalFocus ? generalFilter : { ...draft, focus: undefined })}>Terapkan Filter</button>
+        onClick={() => onApply(activeDraft, mode, patternFocus || frequencyFocus || modalFocus || structureFocus ? generalFilter : { ...draft, focus: undefined })}>Terapkan Filter</button>
     </div>
   </BottomSheet>;
 }

@@ -1,6 +1,7 @@
 import { nominalClusters, passiveClusters, verbalClusters } from "./engine";
 import { isContinuous, isPerfectContinuous, TENSE_LABELS } from "./labels";
 import type { Question, Tense, Verb } from "./types";
+import { normalize, tokenize } from "./check/normalize";
 
 export interface SentenceGuide {
   formula: string;
@@ -64,6 +65,29 @@ export function implicitContextCue(q: Question): string {
 }
 
 export function sentenceGuide(q: Question): SentenceGuide {
+  if (q.focused?.analysis) {
+    const words = tokenize(normalize(q.answer));
+    const roles = words.map(() => "Penghubung / preposisi");
+    for (const part of q.focused.analysis.parts) {
+      const spellings = [part.text, ...(part.alternatives ?? [])];
+      for (const spelling of spellings) {
+        const phrase = tokenize(normalize(spelling));
+        const start = words.findIndex((_, i) => phrase.every((word, j) => words[i + j] === word));
+        if (start >= 0) {
+          phrase.forEach((_, i) => { roles[start + i] = part.role; });
+          break;
+        }
+      }
+    }
+    const parts: SentenceGuide["parts"] = [];
+    words.forEach((word, i) => {
+      const last = parts[parts.length - 1];
+      if (last?.role === roles[i]) last.text += ` ${word}`;
+      else parts.push({ text: word, role: roles[i] });
+    });
+    return { formula: parts.map(part => part.role).join(" + "), parts,
+      reasons: [q.focused.explanation], notes: [] };
+  }
   const tense = effectiveTense(q);
   const agreement = q.mode === "passive" && q.verb
     ? { text: q.verb.object, person: 3 as const, number: q.verb.objectNumber }

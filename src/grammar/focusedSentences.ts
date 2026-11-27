@@ -1,8 +1,9 @@
 import { conjugateNominal, conjugatePassive, conjugateVerbal } from "./engine";
 import { FORM_LABELS, MODE_LABELS, TENSE_LABELS } from "./labels";
 import type { ClauseCues, Mode, Question, SentenceForm, Subject, Tense, Verb } from "./types";
+import type { StructurePattern } from "./structureSentences";
 
-export type FocusPattern = "much" | "many" | "some" | "few" | "zero" | "first" | "second" | "third" | "who" | "which" | "usually" | "often" | "always" | "can" | "should" | "must";
+export type FocusPattern = StructurePattern | "much" | "many" | "some" | "few" | "zero" | "first" | "second" | "third" | "who" | "which" | "usually" | "often" | "always" | "can" | "should" | "must";
 export const FOCUS_PATTERNS = {
   quantifiers: [
     { value: "much", label: "much" }, { value: "many", label: "many" },
