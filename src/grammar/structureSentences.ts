@@ -1,5 +1,7 @@
-import type { ClauseCues, Mode, Question, SentenceForm, Tense } from "./types";
+import type { ClauseCues, Mode, Question, SentenceForm, Tense, Verb } from "./types";
 import { FORM_LABELS, MODE_LABELS, TENSE_LABELS } from "./labels";
+import { conjugateVerbal } from "./engine";
+import { VERBS } from "./data/verbs";
 
 export type StructureFocus = "sentenceStructure" | "thereIt" | "reasonClause" | "relativeClause";
 export const STRUCTURE_LABELS: Record<StructureFocus, string> = {
@@ -48,10 +50,26 @@ type Part = { text: string; role: string; alternatives?: string[] };
 type Item = {
   focus: StructureFocus; pattern: StructurePattern; tense: Tense; mode: Mode; form: SentenceForm;
   answer: string; alternatives?: string[]; instruction: string;
-  rows: { label: string; cues: ClauseCues }[]; parts: Part[]; explanation: string;
+  rows: { label: string; cues: ClauseCues; form?: SentenceForm }[]; parts: Part[]; explanation: string;
 };
 const parts = (...entries: [string, string, string[]?][]): Part[] => entries.map(([text, role, alternatives]) => ({ text, role, alternatives }));
 const row = (cues: ClauseCues) => [{ label: "Bahan kalimat", cues }];
+
+// Additional verbs used by the curated conjunction situations.
+const conjunctionVerbs: Verb[] = [
+  ["stay", "stays", "stayed", "stayed", "staying"], ["feel", "feels", "felt", "felt", "feeling"],
+  ["stop", "stops", "stopped", "stopped", "stopping"], ["go", "goes", "went", "gone", "going"],
+  ["rain", "rains", "rained", "rained", "raining"],
+].map(([base, thirdSingular, past, participle, ing]) => ({ base, thirdSingular, past, participle, ing,
+  object: "", transitive: false, stative: false, objectNumber: "singular", oddPassive: false }));
+
+function conjunctionClause(cues: ClauseCues, tense: Tense, form: SentenceForm): string {
+  const action = [...VERBS, ...conjunctionVerbs].find(item => item.base === cues.verb);
+  if (!action || !cues.subject) throw new RangeError("Unsupported conjunction clause");
+  const subject = { text: cues.subject, person: 3 as const,
+    number: cues.subject === "we" ? "plural" as const : "singular" as const, entity: "person" as const };
+  return conjugateVerbal(tense, subject, { ...action, object: cues.complement ?? "" }, form).slice(0, -1);
+}
 
 export const STRUCTURE_ITEMS: Item[] = [
   { focus: "sentenceStructure", pattern: "sv", tense: "presentSimple", mode: "verbal", form: "positive",
@@ -112,19 +130,37 @@ for (const tense of STRUCTURE_TENSES) {
     ["after", "Waktu: sesudah", past ? "Maya called her mother" : "Maya calls her mother", past ? "she finished work" : "she finishes work", { subject: "Maya", verb: "call", complement: "her mother" }, { subject: "she", verb: "finish", complement: "work" }],
     ["although", "Pertentangan", past ? "Maya went out" : "Maya goes out", past ? "it rained" : "it rains", { subject: "Maya", verb: "go", complement: "out" }, { subject: "it", verb: "rain" }],
   ] as const) {
-    const capitalizedMain = main[0].toUpperCase() + main.slice(1);
-    const connector = pattern[0].toUpperCase() + pattern.slice(1);
-    const fronted = `${connector} ${subordinate}, ${main}.`;
-    // Repeated Maya avoids an unclear she before her antecedent in the fronted order.
-    const alternative = subordinate.startsWith("she ") ? fronted.replace(/she /, "Maya ").replace(/, Maya /, ", she ") : undefined;
-    STRUCTURE_ITEMS.push({ focus: "reasonClause", pattern, tense, mode: "verbal", form: "positive",
-      answer: `${capitalizedMain} ${pattern} ${subordinate}.`, alternatives: [fronted, ...(alternative ? [alternative] : [])],
-      instruction: `Hubungkan kedua klausa dengan ${pattern}. Kedua urutan diterima. Pisahkan dengan koma jika klausa ${pattern} di awal.`,
-      rows: [{ label: "Kejadian utama", cues: mainCues }, { label, cues: { wh: pattern, ...subCues } }],
-      parts: [{ text: capitalizedMain, role: "Klausa utama", alternatives: [main.replace(/^Maya /, "she ")] },
-        { text: `${pattern} ${subordinate}`, role: label, alternatives: [`${pattern} ${subordinate.replace(/^she /, "Maya ")}`] }],
-      explanation: `${pattern} menyatakan ${pattern === "because" ? "alasan" : pattern === "although" ? "pertentangan; jangan tambahkan but" : "hubungan waktu"}. Kedua klausa memakai ${TENSE_LABELS[tense]}. Klausa penghubung dapat berada di awal atau akhir.`,
-    });
+    for (const form of STRUCTURE_FORMS) {
+      // Keep each relation meaningful when the main clause is negated.
+      const negativeMain = pattern === "because" ? { subject: "Maya", verb: "go", complement: "out" }
+        : pattern === "although" ? { subject: "Maya", verb: "stay", complement: "home" }
+        : pattern === "before" ? { subject: "Maya", verb: "eat", complement: "lunch" } : mainCues;
+      const targetCues = form === "negative" ? negativeMain : mainCues;
+      const connectorCues = form === "negative" && pattern === "before"
+        ? { subject: "she", verb: "wash", complement: "her hands" } : subCues;
+      const mainBody = form === "positive" ? main : conjunctionClause(targetCues, tense, form);
+      const subBody = form === "negative" && pattern === "before"
+        ? conjunctionClause(connectorCues, tense, "positive").replace(/^She /, "she ") : subordinate;
+      const capitalizedMain = mainBody[0].toUpperCase() + mainBody.slice(1);
+      const embeddedMain = form === "yesNoQuestion" || targetCues.subject === "we"
+        ? mainBody[0].toLowerCase() + mainBody.slice(1) : mainBody;
+      const connector = pattern[0].toUpperCase() + pattern.slice(1);
+      const punctuation = form === "yesNoQuestion" ? "?" : ".";
+      const fronted = `${connector} ${subBody}, ${embeddedMain}${punctuation}`;
+      // Also allow a name-first version that avoids a pronoun before its antecedent.
+      const alternative = subBody.startsWith("she ")
+        ? `${connector} ${subBody.replace(/^she /, "Maya ")}, ${embeddedMain.replace(/\bMaya\b/, "she")}${punctuation}` : undefined;
+      STRUCTURE_ITEMS.push({ focus: "reasonClause", pattern, tense, mode: "verbal", form,
+        answer: `${capitalizedMain} ${pattern} ${subBody}${punctuation}`,
+        alternatives: [fronted, ...(alternative ? [alternative] : [])],
+        instruction: `Hubungkan kedua klausa dengan ${pattern}. Klausa utama: ${FORM_LABELS[form]}; klausa penghubung tetap positif. Kedua urutan diterima. Gunakan koma jika klausa ${pattern} di awal.`,
+        rows: [{ label: "Kejadian utama", cues: targetCues, form },
+          { label, cues: { wh: pattern, ...connectorCues }, form: "positive" }],
+        parts: [{ text: capitalizedMain, role: "Klausa utama", alternatives: [mainBody.replace(/\bMaya\b/, "she")] },
+          { text: `${pattern} ${subBody}`, role: label, alternatives: [`${pattern} ${subBody.replace(/^she /, "Maya ")}`] }],
+        explanation: `${pattern} menyatakan ${pattern === "because" ? "alasan" : pattern === "although" ? "pertentangan; jangan tambahkan but" : "hubungan waktu"}. Kedua klausa memakai ${TENSE_LABELS[tense]}. Bentuk ${FORM_LABELS[form]} hanya berlaku pada klausa utama; klausa penghubung tetap positif dan tidak memakai inversi pertanyaan. Klausa penghubung dapat berada di awal atau akhir.`,
+      });
+    }
   }
   const be = past ? "was" : "is";
   const bought = past ? "bought" : "buy";
@@ -199,7 +235,7 @@ export function buildStructureQuestion(focus: StructureFocus, pattern: string | 
   return { tense, mode, form, answer: item.answer,
     subject: { text: item.rows[0].cues.subject ?? "it", number: "singular", person: 3, entity: "thing" },
     focused: { label: STRUCTURE_LABELS[focus], instruction: item.instruction,
-      rows: item.rows.map(r => ({ ...r, detail: `${TENSE_LABELS[tense]} · ${MODE_LABELS[mode]} · ${FORM_LABELS[form]}` })),
+      rows: item.rows.map(r => ({ ...r, detail: `${TENSE_LABELS[tense]} · ${MODE_LABELS[mode]} · ${FORM_LABELS[r.form ?? form]}` })),
       alternatives: item.alternatives ?? [], explanation: item.explanation,
       analysis: { parts: item.parts },
     },

@@ -5,7 +5,7 @@ import type { Mode, SentenceForm, Tense } from "../grammar/types";
 import { BottomSheet } from "./BottomSheet";
 import type { SentencePracticeMode } from "../grammar/practiceMode";
 import { PracticeModePicker } from "./PracticeModePicker";
-import { FOCUSED_FORMS, FOCUS_PATTERNS, QUANTIFIER_TENSES, type FocusPattern } from "../grammar/focusedSentences";
+import { FOCUSED_FORMS, FOCUS_PATTERNS, QUANTIFIER_TENSES, supportsQuantifier, type FocusPattern } from "../grammar/focusedSentences";
 import { FREQUENCY_ADVERBS, FREQUENCY_FORMS, FREQUENCY_MODES, FREQUENCY_TENSES } from "../grammar/frequencySentences";
 import { MODAL_FUNCTIONS, MODAL_TIMES, modalForms, modalPatterns, type ModalSelection } from "../grammar/modalSentences";
 import { STRUCTURE_PATTERNS, structureItems, usesStructureBank, type StructureFocus, type StructurePattern } from "../grammar/structureSentences";
@@ -35,7 +35,9 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
   const structureFocus = mode === "arrange" && usesStructureBank(draft.focus, draft.focusPattern);
   const structurePool = structureFocus ? structureItems(draft.focus as StructureFocus, draft.focusPattern) : [];
   const limitedForms = patternFocus || frequencyFocus || modalFocus || structureFocus;
-  const availableForms = structureFocus ? [...new Set(structurePool.map(item => item.form))] : modalFocus ? modalForms(draft) : limitedForms ? FOCUSED_FORMS : ["positive", "negative", "yesNoQuestion", "whQuestion"] as SentenceForm[];
+  const availableForms = structureFocus ? [...new Set(structurePool.map(item => item.form))] : modalFocus ? modalForms(draft)
+    : quantifierFocus ? FOCUSED_FORMS.filter(form => !draft.modes.length || draft.modes.some(mode => supportsQuantifier(draft.focusPattern, mode, form)))
+    : limitedForms ? FOCUSED_FORMS : ["positive", "negative", "yesNoQuestion", "whQuestion"] as SentenceForm[];
   function changeStructure(focus: StructureFocus, pattern?: StructurePattern) {
     const pool = structureItems(focus, pattern);
     const tenses = [...new Set(pool.map(item => item.tense))];
@@ -56,7 +58,24 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
     ? { ...draft, tenses: reasonTenses ?? (compatible.length ? compatible : [...REASON_TENSES]), modes: ["verbal"], forms: ["positive"] }
     : { ...draft, focus: mode === "arrange" ? draft.focus : undefined, focusPattern: mode === "arrange" ? draft.focusPattern : undefined };
   const availableTenses: readonly Tense[] = structureFocus ? [...new Set(structurePool.map(item => item.tense))] : reasonFocus ? REASON_TENSES : quantifierFocus ? QUANTIFIER_TENSES : frequencyFocus ? FREQUENCY_TENSES : TENSE_ORDER;
-  const availableModes: Mode[] = structureFocus ? [...new Set(structurePool.map(item => item.mode))] : frequencyFocus ? FREQUENCY_MODES : ["verbal", "nominal", "passive"];
+  const availableModes: Mode[] = structureFocus ? [...new Set(structurePool.map(item => item.mode))] : frequencyFocus ? FREQUENCY_MODES
+    : quantifierFocus ? (["verbal", "nominal", "passive"] as Mode[]).filter(mode => !draft.forms.length || draft.forms.some(form => supportsQuantifier(draft.focusPattern, mode, form)))
+    : ["verbal", "nominal", "passive"];
+  function setForms(forms: SentenceForm[]) {
+    const modes = quantifierFocus && forms.length
+      ? draft.modes.filter(mode => forms.some(form => supportsQuantifier(draft.focusPattern, mode, form))) : draft.modes;
+    setDraft({ ...draft, forms, modes });
+  }
+  function setModes(modes: Mode[]) {
+    const forms = quantifierFocus && modes.length
+      ? draft.forms.filter(form => modes.some(mode => supportsQuantifier(draft.focusPattern, mode, form))) : draft.forms;
+    setDraft({ ...draft, modes, forms });
+  }
+  function setPattern(focusPattern?: FocusPattern) {
+    const modes = quantifierFocus && focusPattern === "some" && draft.forms.length
+      && draft.forms.every(form => form === "negative") && draft.modes.length ? ["verbal"] as Mode[] : draft.modes;
+    setDraft({ ...draft, focusPattern, modes });
+  }
   const allTenses = availableTenses.every(tense => activeDraft.tenses.includes(tense));
   function setTenses(tenses: Tense[]) {
     if (reasonFocus) setReasonTenses(tenses);
@@ -122,6 +141,7 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
             onClick={() => changeStructure(draft.focus as StructureFocus, item.value)}>{item.label}</button>)}
         </div>
         <small>{draft.focus === "thereIt" ? "Present/Past Simple dengan be; positif, negatif, dan pertanyaan yes/no."
+          : draft.focus === "reasonClause" ? "Present/Past Simple. Bentuk positif, negatif, atau Yes/No berlaku pada klausa utama; klausa penghubung tetap positif."
           : "Latihan pernyataan positif. Tense dan jenis mengikuti pola yang dipilih."}</small>
       </fieldset>}
       {frequencyFocus && <fieldset className="sentence-filter-group">
@@ -175,11 +195,11 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
         <legend>Pola latihan</legend>
         <div className="tenses-pill-row">
           <button type="button" className={`tenses-option-pill ${!draft.focusPattern ? "active" : ""}`}
-            aria-pressed={!draft.focusPattern} onClick={() => setDraft({ ...draft, focusPattern: undefined })}>Semua pola</button>
+            aria-pressed={!draft.focusPattern} onClick={() => setPattern()}>Semua pola</button>
           {FOCUS_PATTERNS[draft.focus as "quantifiers" | "conditionals"].map(item =>
             <button key={item.value} type="button" aria-pressed={draft.focusPattern === item.value}
               className={`tenses-option-pill ${draft.focusPattern === item.value ? "active" : ""}`}
-              onClick={() => setDraft({ ...draft, focusPattern: item.value as FocusPattern })}>{item.label}</button>)}
+              onClick={() => setPattern(item.value as FocusPattern)}>{item.label}</button>)}
         </div>
         {conditionalFocus && <small>Jenis conditional menentukan kombinasi tense pada syarat dan hasil.</small>}
       </fieldset>}
@@ -202,17 +222,17 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
         </fieldset>
       </details>
       </>}
-      {quantifierFocus && <p className="note">Saat ini Quantifiers mendukung Present, Past, dan Future Simple.</p>}
+      {quantifierFocus && <p className="note">Quantifiers mendukung Present, Past, dan Future Simple. Some / any negatif tersedia untuk jenis Verbal agar any tetap menjadi objek.</p>}
       <fieldset className="sentence-filter-group" disabled={reasonFocus || conditionalFocus || modalFocus}>
         <legend>Jenis kalimat</legend>
-        {!reasonFocus && !conditionalFocus && !modalFocus && <button type="button" className="inline-popup-link" onClick={() => setDraft({
-          ...draft, modes: availableModes.every(m => draft.modes.includes(m)) ? [] : [...availableModes],
-        })}>{availableModes.every(m => draft.modes.includes(m)) ? "Kosongkan pilihan jenis" : "Pilih semua jenis"}</button>}
+        {!reasonFocus && !conditionalFocus && !modalFocus && <button type="button" className="inline-popup-link"
+          onClick={() => setModes(availableModes.every(m => draft.modes.includes(m)) ? [] : [...availableModes])}>
+          {availableModes.every(m => draft.modes.includes(m)) ? "Kosongkan pilihan jenis" : "Pilih semua jenis"}</button>}
         <div className="tenses-pill-row">
           {(["verbal", "nominal", "passive"] as Mode[]).map(mode =>
             <button key={mode} type="button" disabled={!availableModes.includes(mode)} aria-pressed={activeDraft.modes.includes(mode)}
               className={`tenses-option-pill ${activeDraft.modes.includes(mode) ? "active" : ""}`}
-              onClick={() => setDraft({...draft, modes: toggle(draft.modes, mode)})}>
+              onClick={() => setModes(toggle(draft.modes, mode))}>
               {MODE_LABELS[mode].replace(/\s*\(.*\)/, "")}
             </button>)}
         </div>
@@ -223,13 +243,13 @@ export function SentenceFilters({ filter, generalFilter, practiceMode, onClose, 
         <legend>Bentuk kalimat</legend>
         {!reasonFocus && <button type="button" className="inline-popup-link" onClick={() => {
           const forms = availableForms;
-          setDraft({ ...draft, forms: forms.every(form => draft.forms.includes(form)) ? [] : [...forms] });
+          setForms(forms.every(form => draft.forms.includes(form)) ? [] : [...forms]);
         }}>{availableForms.every(form => draft.forms.includes(form)) ? "Kosongkan pilihan bentuk" : "Pilih semua bentuk"}</button>}
         <div className="tenses-pill-row">
           {(["positive", "negative", "yesNoQuestion", "whQuestion"] as SentenceForm[]).map(form =>
             <button key={form} type="button" disabled={!availableForms.includes(form)} aria-pressed={activeDraft.forms.includes(form)}
               className={`tenses-option-pill ${activeDraft.forms.includes(form) ? "active" : ""}`}
-              onClick={() => setDraft({...draft, forms: toggle(draft.forms, form)})}>
+              onClick={() => setForms(toggle(draft.forms, form))}>
               {FORM_LABELS[form]}
             </button>)}
         </div>

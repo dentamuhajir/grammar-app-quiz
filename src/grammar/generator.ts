@@ -4,7 +4,7 @@ import { buildStructureQuestion, structureItems, usesStructureBank, type Structu
 import { buildReasonQuestion } from "./reasonSentences";
 import { buildModalQuestion, modalPatterns, type ModalSelection } from "./modalSentences";
 import { buildFrequencyQuestion, FREQUENCY_FORMS, FREQUENCY_MODES, FREQUENCY_TENSES } from "./frequencySentences";
-import { buildFocusedQuestion, FOCUSED_FORMS, QUANTIFIER_TENSES, type FocusPattern } from "./focusedSentences";
+import { buildFocusedQuestion, supportsConditional, supportsQuantifier, QUANTIFIER_TENSES, type FocusPattern } from "./focusedSentences";
 import { INDEFINITE_PERSONS, PERSON_SUBJECTS, SUBJECTS } from "./data/subjects";
 import { TIME_SIGNALS, type TimeSignal } from "./data/timeSignals";
 import { DYNAMIC_VERBS, PASSIVE_VERBS, STATIVE_VERBS, VERBS } from "./data/verbs";
@@ -100,11 +100,11 @@ export function quizCombinations(filter: MultiQuizFilter): QuizCombination[] {
   }
   if (filter.focus === "quantifiers") {
     return filter.tenses.filter(tense => QUANTIFIER_TENSES.includes(tense)).flatMap(tense =>
-      filter.modes.flatMap(mode => filter.forms.filter(form => FOCUSED_FORMS.includes(form)).map(form => ({ tense, mode, form }))));
+      filter.modes.flatMap(mode => filter.forms.filter(form => supportsQuantifier(filter.focusPattern, mode, form)).map(form => ({ tense, mode, form }))));
   }
   if (filter.focus === "conditionals") {
     if (!filter.modes.includes("verbal")) return [];
-    return filter.forms.filter(form => FOCUSED_FORMS.includes(form))
+    return filter.forms.filter(form => supportsConditional(filter.focusPattern, form))
       .map(form => ({ tense: "presentSimple" as const, mode: "verbal" as const, form }));
   }
   if (filter.focus === "reasonClause") {

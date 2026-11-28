@@ -45,9 +45,19 @@ jawaban. Untuk sisipan seperti
 *which Dad repaired yesterday*, jawaban *which was repaired by Dad yesterday*
 juga diterima.
 
-**Sebab dan alasan** menyediakan bahan kata untuk kejadian dan alasannya dalam
-Present Simple atau Past Simple. Kedua urutan klausa dengan *because* diterima,
-misalnya *I stayed home because I felt sick* dan *Because I felt sick, I stayed home*.
+**Penghubung antarklausa** menyediakan because, when, before, after, dan although
+dalam Present Simple atau Past Simple. Bentuk positif, negatif, atau Yes/No
+berlaku pada klausa utama; klausa penghubung tetap positif. Kedua urutan diterima,
+misalnya *Did Maya stay home because she felt sick?* dan
+*Because she felt sick, did Maya stay home?*.
+
+**If / Conditionals** merangkai pasangan bahan terkurasi untuk Zero, First,
+Second, dan Third. Syarat tetap positif, sementara hasil mengikuti bentuk
+positif, negatif, atau Yes/No yang dipilih. Kedua urutan klausa diterima.
+
+**Quantifiers** mencakup empat benda countable dan empat uncountable dengan
+subjek yang bervariasi. Frasa seperti *a few chairs* tetap menjadi satu bahan.
+Some/any mengikuti bentuk kalimat; latihan negatif some/any memakai jenis verbal.
 
 Pada Sentence Practice dan Grammar Topics, geser kartu ke kiri untuk **Skip Soal**
 dan ke kanan untuk **Materi**. Swipe kiri dibatasi saat ada draft yang belum selesai.

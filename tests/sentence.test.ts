@@ -18,7 +18,7 @@ import { sentenceTranslation, checkTranslationAnswer } from "../src/grammar/tran
 import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode";
 import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
 import { buildReasonQuestion } from "../src/grammar/reasonSentences";
-import { FOCUS_PATTERNS } from "../src/grammar/focusedSentences";
+import { buildConditionalQuestion, buildFocusedQuestion, FOCUS_PATTERNS } from "../src/grammar/focusedSentences";
 import { buildStructureQuestion, STRUCTURE_ITEMS, STRUCTURE_PATTERNS, type StructureFocus } from "../src/grammar/structureSentences";
 import { normalize } from "../src/grammar/check/normalize";
 import { createElement } from "react";
@@ -430,8 +430,10 @@ test("quantifier filters generate every supported tense, sentence type and form"
         assert.equal(q.tense, tense);
         assert.equal(q.mode, mode);
         assert.equal(q.form, form);
-        assert.match(q.answer, /many books/i);
-        assert.equal(q.focused?.rows[0].cues.subject, mode === "verbal" ? q.subject.text : "many books");
+        assert.match(q.answer, /many (books|chairs|emails|apples)/i);
+        const phrase = q.answer.match(/many (?:books|chairs|emails|apples)/i)![0].toLowerCase();
+        assert.equal(q.focused?.rows[0].cues.subject, mode === "verbal" ? q.subject.text : phrase);
+        if (mode === "verbal") assert.equal(q.focused?.rows[0].cues.complement, phrase);
         assert.ok(q.focused?.rows[0].cues.verb);
         assert.match(q.focused!.rows[0].detail, /Positive|Negative|Yes\/No/);
         assert.ok(checkAnswer(q, q.answer).correct);
@@ -451,7 +453,7 @@ test("conditional pattern and form filters keep both clause orders", () => {
         focusPattern: pattern, modes: ["verbal"], forms: [form] });
       const q = cycle();
       assert.equal(q.form, form);
-      assert.equal(q.focused?.rows[0].detail, pattern);
+      assert.ok(q.focused?.rows[0].detail.startsWith(`${pattern} · `));
       assert.deepEqual(q.focused?.rows.map(row => row.label), ["Syarat", "Hasil"]);
       assert.equal(q.focused?.rows[0].cues.wh, "if");
       assert.ok(q.focused?.rows.every(row => row.cues.subject && row.cues.verb));
@@ -459,6 +461,167 @@ test("conditional pattern and form filters keep both clause orders", () => {
       for (const alternative of q.focused?.alternatives ?? []) assert.ok(checkAnswer(q, alternative).correct);
       if (form === "negative") assert.match(q.answer, /\bnot\b/i);
       if (form === "yesNoQuestion") assert.ok(q.answer.endsWith("?"));
+    }
+  }
+});
+
+function withRandom<T>(value: number | number[], build: () => T): T {
+  const original = Math.random;
+  let index = 0;
+  Math.random = () => Array.isArray(value) ? value[index++ % value.length] : value;
+  try { return build(); } finally { Math.random = original; }
+}
+
+test("conditional rules cover every curated situation, nominal be and irregular verbs", () => {
+  const forms = ["positive", "negative", "yesNoQuestion"] as const;
+  const conditionForms: Record<string, string[]> = {
+    rain: ["it rains", "it rains", "it rained", "it had rained"],
+    study: ["she studies", "she studies", "she studied", "she had studied"],
+    heat: ["you heat ice", "you heat ice", "you heated ice", "you had heated ice"],
+    leave: ["we leave early", "we leave early", "we left early", "we had left early"],
+    have: ["he has time", "he has time", "he had time", "he had had time"],
+  };
+  for (const [index, { value: pattern }] of FOCUS_PATTERNS.conditionals.entries()) {
+    for (const form of forms) {
+      const answers = new Set<string>();
+      for (let sample = 0; sample < 12; sample++) {
+        const q = withRandom(sample / 12, () => buildConditionalQuestion(pattern, form));
+        answers.add(q.answer);
+        const [condition, result] = q.focused!.rows;
+        const expected = condition.cues.verb === "be"
+          ? `${condition.cues.subject} ${["is", "is", "were", "had been"][index]} ${condition.cues.complement}`.replace(/^I is /, "I am ")
+          : conditionForms[condition.cues.verb][index];
+        assert.ok(q.answer.startsWith(`If ${expected}, `), q.answer);
+        assert.match(condition.detail, /Positif/);
+        assert.match(result.detail, form === "negative" ? /Negatif/ : form === "yesNoQuestion" ? /Yes\/No/ : /Positif/);
+        const body = q.answer.split(", ")[1];
+        if (pattern !== "zero") {
+          const modal = pattern === "first" ? "will" : "would";
+          assert.ok(body.startsWith(form === "yesNoQuestion" ? `${modal} ${result.cues.subject} ` : `${result.cues.subject} ${modal} `), q.answer);
+          if (pattern === "third") assert.match(body, /\bhave (stayed|passed|melted|caught|read|travelled|played|worked)\b/);
+          else assert.ok(body.includes(` ${result.cues.verb}`), q.answer);
+        }
+        assert.equal(checkAnswer(q, q.answer).correct, true, q.answer);
+        for (const alternative of q.focused!.alternatives) assert.ok(checkAnswer(q, alternative).correct, alternative);
+        const wrongCondition = q.answer.replace(expected, `${condition.cues.subject} will ${condition.cues.verb}`);
+        assert.equal(checkAnswer(q, wrongCondition).correct, false, wrongCondition);
+        if (form === "negative") {
+          assert.equal(q.answer.match(/\bnot\b/g)?.length, 1, q.answer);
+          assert.ok(checkAnswer(q, q.answer.replace("will not", "won't").replace("would not", "wouldn't").replace("does not", "doesn't").replace("do not", "don't")).correct);
+        }
+      }
+      assert.ok(answers.size >= (form === "positive" ? 6 : form === "yesNoQuestion" ? 5 : 2));
+      const cycle = createQuestionCycle({ ...DEFAULT_MULTI_FILTER, focus: "conditionals", focusPattern: pattern, forms: [form] });
+      let previous = "";
+      for (let i = 0; i < 12; i++) {
+        const next = withRandom(0, cycle).answer;
+        assert.notEqual(next, previous);
+        previous = next;
+      }
+    }
+  }
+  const allPatterns = new Set(Array.from({ length: 12 }, (_, i) =>
+    withRandom(i / 12, () => buildConditionalQuestion(undefined, "positive")).focused!.rows[0].detail.split(" ")[0]));
+  assert.equal(allPatterns.size, 4);
+});
+
+test("quantifier noun classes, polarity and agreement remain valid across supported combinations", () => {
+  for (const { value: pattern } of FOCUS_PATTERNS.quantifiers) {
+    const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "quantifiers", focusPattern: pattern,
+      tenses: ["presentSimple", "pastSimple", "futureSimple"] };
+    const nouns = new Set<string>();
+    const subjects = new Set<string>();
+    for (const combination of quizCombinations(filter)) {
+      for (let sample = 0; sample < 32; sample++) {
+        const { tense, mode, form } = combination;
+        const values = pattern === "some" || pattern === "few"
+          ? [sample % 2 ? 0.75 : 0.25, (Math.floor(sample / 2) % 4) / 4, sample / 32]
+          : [(sample % 4) / 4, sample / 32];
+        const q = withRandom(values, () => buildFocusedQuestion("quantifiers", pattern, tense, mode, form));
+        const phrase = (mode === "verbal" ? q.focused!.rows[0].cues.complement : q.focused!.rows[0].cues.subject)!;
+        const countable = /\b(books|chairs|emails|apples)$/.test(phrase);
+        nouns.add(phrase.replace(/^(much|many|some|any|a few|a little) /, ""));
+        if (mode === "verbal") subjects.add(q.subject.text);
+        if (pattern === "many") assert.match(phrase, /^many (books|chairs|emails|apples)$/);
+        if (pattern === "much") assert.match(phrase, /^much (water|time|money|sugar)$/);
+        if (pattern === "some") assert.ok(phrase.startsWith(form === "positive" ? "some " : "any "), q.answer);
+        if (pattern === "few") assert.ok(phrase.startsWith(countable ? "a few " : "a little "), q.answer);
+        if (mode !== "verbal") assert.equal(q.subject.number, countable ? "plural" : "singular");
+        assert.equal(checkAnswer(q, q.answer).correct, true, q.answer);
+        const wrong = q.answer.replace(/much|many|a few|a little|some|any/i, countable ? "much" : "many");
+        assert.equal(checkAnswer(q, wrong).correct, false, wrong);
+        if (pattern === "few") assert.equal(checkAnswer(q, q.answer.replace(/\ba (few|little)\b/i, "$1")).correct, false);
+        if (pattern === "some") {
+          assert.equal(checkAnswer(q, q.answer.replace(/\b(some|any)\b/i, form === "positive" ? "any" : "some")).correct, false);
+        }
+      }
+    }
+    assert.ok(nouns.size >= (pattern === "many" || pattern === "much" ? 4 : 8));
+    assert.ok(subjects.size > 3);
+    assert.equal(quizCombinations({ ...filter, forms: ["whQuestion"] }).length, 0);
+    assert.equal(quizCombinations({ ...filter, focusPattern: "must" }).length, 0);
+  }
+  for (const mode of ["nominal", "passive"] as const) {
+    assert.equal(quizCombinations({ ...DEFAULT_MULTI_FILTER, focus: "quantifiers", focusPattern: "some",
+      modes: [mode], forms: ["negative"] }).length, 0);
+    assert.throws(() => buildFocusedQuestion("quantifiers", "some", "presentSimple", mode, "negative"), RangeError);
+  }
+  assert.equal(quizCombinations({ ...DEFAULT_MULTI_FILTER, focus: "conditionals", focusPattern: "must" }).length, 0);
+  assert.throws(() => buildConditionalQuestion("first", "whQuestion"), RangeError);
+  const renderFilter = (modes: Mode[], forms: SentenceForm[]) => renderToStaticMarkup(createElement(SentenceFilters, {
+    filter: { ...DEFAULT_MULTI_FILTER, focus: "quantifiers", focusPattern: "some", modes, forms },
+    generalFilter: DEFAULT_MULTI_FILTER, practiceMode: "arrange", onClose() {}, onApply() {},
+  }));
+  const nominal = renderFilter(["nominal"], ["positive"]);
+  assert.match(nominal.match(/<button\b[^>]*>Negative[^<]*<\/button>/)![0], /disabled/);
+  const negative = renderFilter(["verbal"], ["negative"]);
+  assert.match(negative.match(/<button\b[^>]*>Nominal[^<]*<\/button>/)![0], /disabled/);
+  const empty = renderFilter([], []);
+  assert.doesNotMatch(empty.match(/<button\b[^>]*>Verbal[^<]*<\/button>/)![0], /disabled/);
+  assert.doesNotMatch(empty.match(/<button\b[^>]*>Positive[^<]*<\/button>/)![0], /disabled/);
+});
+
+test("active conjunction filters expose all forms and keep subordinate clauses positive", () => {
+  assert.equal(buildStructureQuestion("reasonClause", "because", "pastSimple", "verbal", "negative").answer,
+    "Maya did not go out because she felt sick.");
+  assert.equal(buildStructureQuestion("reasonClause", "when", "presentSimple", "verbal", "yesNoQuestion").answer,
+    "Do we stop talking when the film starts?");
+  assert.equal(buildStructureQuestion("reasonClause", "before", "presentSimple", "verbal", "negative").answer,
+    "Maya does not eat lunch before she washes her hands.");
+  assert.equal(buildStructureQuestion("reasonClause", "although", "pastSimple", "verbal", "negative").answer,
+    "Maya did not stay home although it rained.");
+  assert.ok(buildStructureQuestion("reasonClause", "after", "pastSimple", "verbal", "yesNoQuestion")
+    .focused!.alternatives.includes("After Maya finished work, did she call her mother?"));
+  for (const { value: pattern } of STRUCTURE_PATTERNS.reasonClause) {
+    for (const tense of ["presentSimple", "pastSimple"] as const) {
+      for (const form of ["positive", "negative", "yesNoQuestion"] as const) {
+        const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "reasonClause", focusPattern: pattern,
+          tenses: [tense], modes: ["verbal"], forms: [form] };
+        assert.equal(quizCombinations(filter).length, 1);
+        const q = createQuestionCycle(filter)();
+        assert.equal(q.form, form);
+        const [main, sub] = q.focused!.rows;
+        assert.match(main.detail, new RegExp(form === "negative" ? "Negative" : form === "yesNoQuestion" ? "Yes/No" : "Positive"));
+        assert.match(sub.detail, /Positive/);
+        assert.equal(sub.cues.wh, pattern);
+        assert.equal(checkAnswer(q, q.answer).correct, true);
+        for (const answer of q.focused!.alternatives) assert.equal(checkAnswer(q, answer).correct, true, answer);
+        assert.equal(checkAnswer(q, q.answer.replace(` ${pattern} `, " unless ")).correct, false);
+        if (form === "negative") {
+          assert.equal(q.answer.match(/\bnot\b/g)?.length, 1);
+          assert.ok(checkAnswer(q, q.answer.replace("does not", "doesn't").replace("do not", "don't").replace("did not", "didn't")).correct);
+        }
+        if (form === "yesNoQuestion") {
+          assert.match(q.answer, /^(Does|Do|Did) /);
+          assert.ok(q.answer.endsWith("?"));
+          const wrong = q.answer.replace(` ${pattern} `, ` ${pattern} did `);
+          assert.equal(checkAnswer(q, wrong).correct, false);
+        }
+        const markup = renderToStaticMarkup(createElement(SentenceFilters, { filter, generalFilter: DEFAULT_MULTI_FILTER,
+          practiceMode: "arrange", onClose() {}, onApply() {} }));
+        assert.match(markup, /klausa penghubung tetap positif/);
+        assert.doesNotMatch(markup, /Latihan pernyataan positif/);
+      }
     }
   }
 });
