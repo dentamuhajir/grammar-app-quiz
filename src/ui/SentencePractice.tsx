@@ -21,7 +21,7 @@ import { BottomSheet } from "./BottomSheet";
 import { useSwipeCard } from "./useSwipeCard";
 import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
-import { BookIcon, SuccessBadge } from "./FeedbackIcons";
+import { BookIcon, SuccessBadge, HintIcon } from "./FeedbackIcons";
 import { SentencePlayback } from "./SentencePlayback";
 import { VoiceInputBar } from "./VoiceInputBar";
 import { loadPracticeMode, savePracticeMode, type SentencePracticeMode } from "../grammar/practiceMode";
@@ -165,6 +165,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
   const [result, setResult] = useState<CheckResult | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [confetti, setConfetti] = useState(0);
+  const celebratedQuestion = useRef<Question | null>(null);
   const [praise, setPraise] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -220,7 +221,8 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
     }
     setResult(r);
     if (!r.correct) setHasIncorrectAttempt(true);
-    if (r.correct) {
+    if (r.correct && celebratedQuestion.current !== question) {
+      celebratedQuestion.current = question;
       setPraise(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
       setConfetti((c) => c + 1);
     }
@@ -344,7 +346,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
                 placeholder="Tulis kalimat dalam bahasa Inggris…"
                 readOnly={solved}
                 aria-invalid={Boolean(result && !result.correct && !result.empty)}
-                aria-describedby={result?.empty ? "sentence-empty-error" : undefined}
+                aria-describedby={result?.empty ? "sentence-empty-error" : result && !result.correct && !result.empty ? "sentence-answer-hint" : undefined}
                 spellCheck={false}
                 autoComplete="off"
                 autoCapitalize="off"
@@ -389,7 +391,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
                 <SuccessBadge />
                 <span>{praise}</span>
               </span>
-              <SentencePlayback text={question.focused ? input.trim() : practiceMode === "translate" ? input.trim() : reviewed.answer} question={question.focused ? undefined : reviewed} />
+              <SentencePlayback text={question.focused || practiceMode === "translate" ? input.trim() : reviewed.answer} question={question.focused ? undefined : reviewed} />
               {question.focused && <p className="basics-explanation">{question.focused.explanation}</p>}
               {relativeFeedback}
               {reason && <p className="basics-explanation"><strong lang="en">Because {reason.clause}</strong> menjelaskan mengapa kejadian itu terjadi.
@@ -417,7 +419,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
           {result && !result.correct && !result.empty && (
             <div className="feedback feedback-bad" role="status">
               <DiffView diff={result.diff} />
-              <p className="hint">💡 {result.hint}</p>
+              <p id="sentence-answer-hint" className="hint"><HintIcon /> {result.hint}</p>
             </div>
           )}
 

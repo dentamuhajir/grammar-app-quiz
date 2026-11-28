@@ -97,9 +97,16 @@ Pada Sentence Practice dan Grammar Topics, geser kartu ke kiri untuk **Skip Soal
 dan ke kanan untuk **Materi**. Swipe kiri dibatasi saat ada draft yang belum selesai.
 Badge tetap dapat diketuk untuk membuka materi.
 
+Jawaban benar ditandai ikon piala, animasi singkat, dan confetti. Kalimat jawaban,
+kontrol pelafalan, dan tombol analisis ditampilkan langsung pada kartu hasil;
+tombol Soal berikutnya berada di bawah kartu. Animasi dekoratif mengikuti
+preferensi reduced motion perangkat.
+
 Jawaban diperiksa kata demi kata dengan toleransi terhadap kapitalisasi, spasi,
 tanda baca, dan singkatan yang didukung. Contohnya, `doesn't` dapat dikenali
-sebagai `does not`. Umpan balik menunjukkan kata yang salah, kurang, atau berlebih.
+sebagai `does not`. Umpan balik langsung menampilkan baris Jawabanmu dan Acuan,
+dengan penanda kata yang salah, kurang, atau berlebih. Petunjuk perbaikan ditandai
+ikon catatan kecil. Tombol Lihat contoh jawaban membuka pelafalan dan pembahasan.
 Setelah jawaban yang belum tepat, pengguna dapat membuka petunjuk atau contoh jawaban.
 Jawaban yang benar atau dibuka contohnya dapat ditelaah melalui pembahasan pola
 dan fungsi bagian kalimat, lalu dilanjutkan dengan **Soal berikutnya**.

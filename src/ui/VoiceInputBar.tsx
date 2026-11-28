@@ -278,12 +278,6 @@ export function VoiceInputBar({
         )}
       </div>
 
-      {listening && (
-        <p className="voice-status-hint">
-          Ucapkan dalam bahasa Inggris. Jika jeda mikir, teks tidak akan hilang—Anda juga bebas mengedit teks dengan keyboard.
-        </p>
-      )}
-
       {errorMsg && <p className="voice-error-hint">{errorMsg}</p>}
     </div>
   );
