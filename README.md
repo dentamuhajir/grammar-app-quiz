@@ -21,12 +21,20 @@ jenis verbal/nominal/passive, serta bentuk positif, negatif, Yes/No, dan WH-ques
 Tersedia 32 subjek dan 80 kata kerja dengan bentuk V1/V2/V3 yang dicatat secara eksplisit.
 Subjek mencakup kata ganti, nama orang, pasangan nama, dan frasa dengan keterangan.
 
-Pengguna dapat memilih tingkat bantuan melalui tiga mode latihan.
+Pengaturan dibuka melalui ringkasan di atas soal. Fokus dikelompokkan menjadi
+Kalimat dasar, Pola kata, dan Hubungan antarklausa. Pilihan paket berada di dalam
+pengaturan Latihan umum: Dasar, Sehari-hari, Lebih lengkap, dan Semua tense.
+Paket Dasar menjadi awal dengan Present Simple verbal/nominal positif.
+Paket Sehari-hari memilih Present Simple, Past Simple, Present Continuous,
+dan Future Simple; Lebih lengkap menambahkan Present Perfect dan Past Continuous.
+
+Susun menjadi cara latihan utama. Pilihan berikut tersedia melalui
+**Bantuan & latihan lainnya** khusus Latihan umum.
 
 | Mode | Yang ditampilkan |
 | --- | --- |
 | **Susun** | Badge tense dan potongan kata Inggris, misalnya `He + prepare + the meal` |
-| **Konteks** | Situasi waktu dan potongan kata Inggris, dengan badge disembunyikan saat mengerjakan |
+| **Sembunyikan nama tense** | Situasi waktu dan bahan kata; jenis dan bentuk kalimat tetap terlihat agar jawaban dapat ditentukan |
 | **Terjemahkan** | Kalimat Indonesia beserta konteks waktunya, dengan petunjuk kata yang tersedia setelah mencoba |
 
 Sebagai contoh, soal terjemahan **“Apakah dia laki-laki akan menyiapkan makanan itu?”**
@@ -36,7 +44,9 @@ Susun menjadi mode awal dan pilihan mode terakhir tersimpan di perangkat.
 Filter mendukung beberapa pilihan sekaligus. Pengguna dapat memilih
 **Present Simple + Past Simple**, **Verbal**, dan **Yes/No + WH** untuk satu sesi.
 Soal bergiliran melalui kombinasi yang didukung, lalu memulai siklus berikutnya.
-Pilihan diterapkan setelah menekan **Terapkan Filter**.
+Pilihan diterapkan setelah menekan **Terapkan pengaturan**. Perpindahan fokus
+mempertahankan pengaturan Latihan umum selama sesi; fokus khusus tetap memakai
+pola dan kombinasi yang didukungnya.
 
 Di mode **Susun**, **Fokus latihan → Relative clause** menghasilkan soal dengan
 dua kelompok bahan kata. Kalimat utama mengikuti filter latihan dan sisipan

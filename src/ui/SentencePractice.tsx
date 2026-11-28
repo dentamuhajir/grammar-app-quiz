@@ -1,8 +1,6 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { checkAnswer, type CheckResult } from "../grammar/check";
 import {
-  DEFAULT_MULTI_FILTER,
-  BEGINNER_FILTER,
   displayCap,
   createQuestionCycle,
   quizCombinations,
@@ -26,9 +24,9 @@ import { DiffView } from "../ui/DiffView";
 import { BookIcon, SuccessBadge } from "./FeedbackIcons";
 import { SentencePlayback } from "./SentencePlayback";
 import { VoiceInputBar } from "./VoiceInputBar";
-import { loadPracticeMode, savePracticeMode, PRACTICE_MODE_LABELS, type SentencePracticeMode } from "../grammar/practiceMode";
+import { loadPracticeMode, savePracticeMode, type SentencePracticeMode } from "../grammar/practiceMode";
 import { sentenceTranslation, checkTranslationAnswer } from "../grammar/translation";
-import { PracticeModePicker } from "./PracticeModePicker";
+import { matchingSentencePreset, STARTER_SENTENCE_FILTER } from "../grammar/sentenceSettings";
 import { useAutoResizeTextarea } from "./useAutoResizeTextarea";
 import { SwipeGuide } from "./SwipeGuide";
 import { SentenceMaterial } from "./SentenceMaterial";
@@ -156,10 +154,10 @@ function filterSummary(f: MultiQuizFilter): string {
 }
 
 export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplore: (question: Question) => void; initialFilter?: MultiQuizFilter; onBack?: () => void }) {
-  const [filter, setFilter] = useState<MultiQuizFilter>(initialFilter ?? BEGINNER_FILTER);
-  const generalFilter = useRef(BEGINNER_FILTER);
+  const [filter, setFilter] = useState<MultiQuizFilter>(initialFilter ?? STARTER_SENTENCE_FILTER);
+  const generalFilter = useRef(STARTER_SENTENCE_FILTER);
   const cycle = useRef<ReturnType<typeof createQuestionCycle> | null>(null);
-  if (!cycle.current) cycle.current = createQuestionCycle(initialFilter ?? BEGINNER_FILTER);
+  if (!cycle.current) cycle.current = createQuestionCycle(initialFilter ?? STARTER_SENTENCE_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
     cycle.current!(),
   );
@@ -172,7 +170,6 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
   const [guideOpen, setGuideOpen] = useState(false);
   const [materialOpen, setMaterialOpen] = useState(false);
   const [practiceMode, setPracticeMode] = useState(() => initialFilter ? "arrange" : loadPracticeMode());
-  const [modeOpen, setModeOpen] = useState(false);
   const [showWordHint, setShowWordHint] = useState(false);
   const [hasIncorrectAttempt, setHasIncorrectAttempt] = useState(false);
   const answerRef = useAutoResizeTextarea(input);
@@ -209,6 +206,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
 
   const solved = revealed || result?.correct === true;
   const showBadges = practiceMode === "arrange" || solved;
+  const showFormBadges = practiceMode !== "translate" || solved;
 
   const check = useCallback(() => {
     if (solved) {
@@ -258,19 +256,15 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
       <Confetti fire={confetti} />
       {onBack && <button type="button" className="inline-popup-link" onClick={onBack}>← Kembali ke Grammar Topics</button>}
 
-      <div className="qa-mode-switch" role="group" aria-label="Pilihan latihan">
-        <button type="button" className="btn btn-ghost" onClick={() => applyFilter(BEGINNER_FILTER, practiceMode)}>Mulai dari dasar</button>
-        <button type="button" className="btn btn-ghost" onClick={() => applyFilter(DEFAULT_MULTI_FILTER, practiceMode)}>Latihan campuran</button>
-      </div>
-
       <button
         type="button"
         className="filter-pill-bar"
         onClick={() => setFiltersOpen(true)}
       >
         <span className="filter-toggle-text">
-          <span className="filter-toggle-label">Filter Latihan</span>
-          <span className="filter-toggle-summary">{filterSummary(filter)}</span>
+          <span className="filter-toggle-label">Pengaturan latihan</span>
+          <span className="filter-toggle-summary">{!filter.focus && `${matchingSentencePreset(filter)?.label ?? "Kustom"} · `}{filterSummary(filter)}
+            {practiceMode === "context" ? " · Tanpa nama tense" : practiceMode === "translate" ? " · Terjemahkan" : ""}</span>
         </span>
         <span className="filter-pill-action">⚙ Ubah</span>
       </button>
@@ -297,12 +291,12 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
                 </span>
               </button>
             )}
-            {showBadges && !focusLabel && (
+            {showFormBadges && !focusLabel && (
               <span className="tag tag-mode">
                 {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
               </span>
             )}
-            {showBadges && !focusLabel && (
+            {showFormBadges && !focusLabel && (
               <span className="tag tag-form">
                 {FORM_LABELS[question.form].replace(/\s*\(.*\)/, "")}
               </span>
@@ -310,15 +304,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
             {showBadges && question.rare && (
               <span className="tag tag-rare">⚠ jarang digunakan</span>
             )}
-            <button
-              type="button"
-              className="tag tag-implicit-toggle"
-              aria-haspopup="dialog"
-              aria-expanded={modeOpen}
-              onClick={() => setModeOpen(true)}
-            >
-              Mode · {PRACTICE_MODE_LABELS[practiceMode]} ▾
-            </button>
+
           </div>
 
           {practiceMode === "context" && (
@@ -476,13 +462,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
         onApply={applyFilter}
       />}
 
-      <BottomSheet open={modeOpen} closeButtonOnly onClose={() => setModeOpen(false)} title="Mode latihan">
-        <PracticeModePicker value={practiceMode} onChange={mode => {
-          if (filter.focus && mode !== "arrange") applyFilter(generalFilter.current, mode);
-          else selectPracticeMode(mode);
-          setModeOpen(false);
-        }} />
-      </BottomSheet>
+
 
       <BottomSheet
         open={materialOpen}

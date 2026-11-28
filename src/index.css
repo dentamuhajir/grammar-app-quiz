@@ -1450,6 +1450,36 @@ button:focus-visible {
   cursor: pointer;
 }
 
+.sentence-focus-groups { display: grid; gap: 0.5rem; }
+.sentence-focus-group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  background: var(--card);
+}
+.sentence-focus-group summary, .sentence-extra-settings > summary { cursor: pointer; }
+.sentence-focus-group summary strong { margin-right: 0.6rem; }
+.sentence-focus-group summary span { display: block; color: var(--muted); font-size: 0.82rem; margin: 0.3rem 0 0 1rem; }
+.sentence-focus-group[open] .tenses-pill-row { margin-top: 0.75rem; }
+.sentence-preset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+.sentence-preset {
+  padding: 0.75rem;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  background: var(--card);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.sentence-preset strong, .sentence-preset small { display: block; }
+.sentence-preset small { margin-top: 0.35rem; color: var(--muted); line-height: 1.4; font-size: 0.78rem; }
+.sentence-preset.active { border-color: var(--green-600); background: var(--ok-soft); }
+.sentence-preset:focus-visible, .sentence-focus-group summary:focus-visible,
+.sentence-extra-settings > summary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.sentence-extra-settings { border-top: 1px solid var(--line); padding-top: 0.8rem; }
+.sentence-extra-settings[open] > summary { margin-bottom: 0.8rem; }
+
 .sentence-tense-options {
   display: grid;
   gap: 0.6rem;

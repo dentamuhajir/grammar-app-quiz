@@ -16,6 +16,7 @@ import { TENSE_LABELS, TENSE_ORDER } from "../src/grammar/labels";
 import type { Mode, Question, SentenceForm, Subject, Tense } from "../src/grammar/types";
 import { sentenceTranslation, checkTranslationAnswer } from "../src/grammar/translation";
 import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode";
+import { copySentenceFilter, matchingSentencePreset, selectSentenceFocus, SENTENCE_FOCUS_GROUPS, SENTENCE_PRESETS, STARTER_SENTENCE_FILTER } from "../src/grammar/sentenceSettings";
 import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
 import { buildReasonQuestion } from "../src/grammar/reasonSentences";
 import { buildGerundQuestion, GERUND_PATTERNS, GERUND_TENSES, GERUND_FORMS } from "../src/grammar/gerundSentences";
@@ -474,6 +475,89 @@ function withRandom<T>(value: number | number[], build: () => T): T {
   Math.random = () => Array.isArray(value) ? value[index++ % value.length] : value;
   try { return build(); } finally { Math.random = original; }
 }
+
+test("settings presets and grouped focus changes preserve supported drills and the general selection", () => {
+  assert.deepEqual(STARTER_SENTENCE_FILTER.tenses, ["presentSimple"]);
+  assert.deepEqual(STARTER_SENTENCE_FILTER.forms, ["positive"]);
+  assert.deepEqual(SENTENCE_PRESETS.find(p => p.id === "everyday")!.filter.tenses,
+    ["presentSimple", "pastSimple", "presentContinuous", "futureSimple"]);
+  const focuses = SENTENCE_FOCUS_GROUPS.flatMap(group => group.items.map(item => item.value));
+  assert.equal(focuses.length, 12);
+  assert.equal(new Set(focuses).size, 12);
+  const custom: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, tenses: ["pastSimple"], modes: ["passive"], forms: ["whQuestion"] };
+  for (const preset of SENTENCE_PRESETS) {
+    assert.equal(matchingSentencePreset(preset.filter)?.id, preset.id);
+    assert.equal(matchingSentencePreset({ ...preset.filter, tenses: [...preset.filter.tenses].reverse() })?.id, preset.id);
+    const copied = copySentenceFilter(preset.filter);
+    copied.tenses.length = 0;
+    assert.ok(preset.filter.tenses.length);
+    const combinations = quizCombinations(preset.filter);
+    assert.ok(combinations.length);
+    const cycle = createQuestionCycle(preset.filter);
+    for (const _ of combinations) {
+      const q = cycle();
+      assert.ok(preset.filter.tenses.includes(q.tense));
+      assert.ok(preset.filter.modes.includes(q.mode));
+      assert.ok(preset.filter.forms.includes(q.form));
+      assert.ok(checkAnswer(q, q.answer).correct);
+    }
+    for (const from of focuses) {
+      const current = selectSentenceFocus(preset.filter, preset.filter, from);
+      for (const to of focuses) {
+        const next = selectSentenceFocus(current, custom, to);
+        assert.ok(quizCombinations(next).length, `${from} -> ${to}`);
+        const q = createQuestionCycle(next)();
+        assert.ok(checkAnswer(q, q.answer).correct, `${from} -> ${to}: ${q.answer}`);
+        if (!to) {
+          assert.deepEqual(next.tenses, custom.tenses);
+          assert.deepEqual(next.modes, custom.modes);
+          assert.deepEqual(next.forms, custom.forms);
+          assert.equal(next.focusPattern, undefined);
+        }
+      }
+    }
+  }
+  assert.equal(matchingSentencePreset(custom), undefined);
+  assert.equal(matchingSentencePreset({ ...STARTER_SENTENCE_FILTER, focus: "conditionals" }), undefined);
+});
+
+test("settings replace home shortcuts and keep presets and extra modes inside the dialog", () => {
+  const page = renderToStaticMarkup(createElement(SentencePractice, { onExplore() {} }));
+  assert.doesNotMatch(page, /Mulai dari dasar|Latihan campuran|Mode ·/);
+  assert.match(page, /Pengaturan latihan/);
+  assert.doesNotMatch(page, /Paket latihan|Sehari-hari|Bantuan &amp; latihan lainnya/);
+  const general = renderToStaticMarkup(createElement(SentenceFilters, {
+    filter: STARTER_SENTENCE_FILTER, generalFilter: STARTER_SENTENCE_FILTER, practiceMode: "arrange", onClose() {}, onApply() {},
+  }));
+  assert.match(general, /aria-label="Pengaturan latihan"/);
+  for (const group of SENTENCE_FOCUS_GROUPS) assert.ok(general.includes(group.label));
+  assert.match(general, /Paket latihan/);
+  assert.match(general, /Sehari-hari/);
+  assert.match(general, /Lebih lengkap/);
+  assert.match(general, /Sembunyikan nama tense/);
+  assert.match(general, /<details class="sentence-extra-settings"><summary>Bantuan/);
+  const specialized = renderToStaticMarkup(createElement(SentenceFilters, {
+    filter: selectSentenceFocus(STARTER_SENTENCE_FILTER, STARTER_SENTENCE_FILTER, "conditionals"),
+    generalFilter: STARTER_SENTENCE_FILTER, practiceMode: "arrange", onClose() {}, onApply() {},
+  }));
+  assert.doesNotMatch(specialized, /Paket latihan|Sembunyikan nama tense|Terjemahkan/);
+});
+
+test("hiding the tense keeps the sentence type and form visible, including stored context preferences", () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: { getItem: () => "context" } });
+  try {
+    const page = renderToStaticMarkup(createElement(SentencePractice, { onExplore() {} }));
+    assert.match(page, /Tanpa nama tense/);
+    assert.match(page, /tag-mode/);
+    assert.match(page, /tag-form/);
+    assert.doesNotMatch(page, /class="tag tag-tense/);
+    assert.match(page, /Situasi:/);
+  } finally {
+    if (original) Object.defineProperty(globalThis, "localStorage", original);
+    else Reflect.deleteProperty(globalThis, "localStorage");
+  }
+});
 
 test("time prepositions match the raw time cue, tense, and both supported positions", () => {
   const at = ["7 a.m.", "9 p.m.", "noon", "midnight"];
