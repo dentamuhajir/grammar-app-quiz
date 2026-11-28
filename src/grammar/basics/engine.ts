@@ -6,6 +6,12 @@ import type { WritingSkill } from "../writingPacks";
 import { TOPIC_WRITING_LESSONS } from "../topicWriting";
 import { EXTENDED_GUIDES, EXTENDED_QUESTIONS } from "./extended";
 import { STRUCTURE_GUIDES, STRUCTURE_QUESTIONS } from "./structures";
+import { GERUND_GUIDE_VISUALS, type GuideVisual } from "./guideVisuals";
+import { MODAL_GUIDE_VISUALS, QUESTION_GUIDE_VISUALS } from "./foundationGuideVisuals";
+import { CONDITIONAL_GUIDE_VISUALS, CONJUNCTION_GUIDE_VISUALS, RELATIVE_GUIDE_VISUALS } from "./clauseGuideVisuals";
+import { ADJECTIVE_GUIDE_VISUALS, ARTICLE_GUIDE_VISUALS, PREPOSITION_GUIDE_VISUALS, PRONOUN_GUIDE_VISUALS, QUANTIFIER_GUIDE_VISUALS } from "./wordChoiceGuideVisuals";
+import { COMPARATIVE_GUIDE_VISUALS, HABIT_GUIDE_VISUALS, PLURAL_GUIDE_VISUALS } from "./formsGuideVisuals";
+import { CAUSATIVE_GUIDE_VISUALS, COLLOCATION_GUIDE_VISUALS, PHRASAL_GUIDE_VISUALS } from "./expressionGuideVisuals";
 
 export type BasicsTopic = keyof typeof BASICS_LABELS;
 export type BasicsFilter = BasicsTopic | "all" | WritingSkill;
@@ -2276,7 +2282,7 @@ export function mistakeHint(q: BasicsQuestion, input: string): string {
 
 export interface BasicsTopicGuide {
   summary: string;
-  rules: Array<{ label: string; detail: string }>;
+  rules: Array<{ label: string; detail: string; visual?: GuideVisual }>;
   examples: string[];
 }
 
@@ -2286,10 +2292,10 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   articles: {
     summary: "Articles (a, an, the, atau tanpa artikel) menentukan apakah suatu kata benda bersifat umum (belum spesifik) atau sudah spesifik/diketahui bersama.",
     rules: [
-      { label: "a + bunyi konsonan", detail: "Untuk 1 benda umum yang diawali bunyi konsonan (a doctor, a university)." },
-      { label: "an + bunyi vokal", detail: "Untuk 1 benda umum yang diawali bunyi vokal a/i/u/e/o (an engineer, an honest person)." },
-      { label: "the (spesifik / unik)", detail: "Untuk benda yang sudah disebut sebelumnya, spesifik, atau hanya ada satu (the sun, the book I bought)." },
-      { label: "Tanpa artikel (-)", detail: "Untuk nama bahasa, olahraga, atau kata benda jamak/uncountable secara umum (speak English, Cats need water)." },
+      { visual: ARTICLE_GUIDE_VISUALS.a, label: "a + bunyi konsonan", detail: "Gunakan a sebelum frasa benda tunggal yang dapat dihitung dan belum spesifik, jika bunyi awal kata sesudahnya konsonan: a doctor, a university. Pilih berdasarkan bunyi, bukan huruf; university dimulai dengan bunyi /y/." },
+      { visual: ARTICLE_GUIDE_VISUALS.an, label: "an + bunyi vokal", detail: "Gunakan an sebelum frasa benda tunggal yang dapat dihitung dan belum spesifik, jika bunyi awal kata sesudahnya vokal: an engineer, an honest person. Huruf h pada honest tidak dibunyikan; karena itu gunakan an honest person." },
+      { visual: ARTICLE_GUIDE_VISUALS.the, label: "the (spesifik / unik)", detail: "Untuk benda yang sudah disebut sebelumnya, spesifik, atau hanya ada satu (the sun, the book I bought)." },
+      { visual: ARTICLE_GUIDE_VISUALS.zero, label: "Tanpa artikel (-)", detail: "Untuk nama bahasa, olahraga, atau kata benda jamak/uncountable secara umum (speak English, Cats need water)." },
     ],
     examples: [
       "Rina is an engineer at a technology company.",
@@ -2301,15 +2307,16 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   prepositions: {
     summary: "Prepositions (kata depan) menghubungkan waktu, tempat/posisi, arah, maupun pasangan kata sifat dan kata kerja tertentu.",
     rules: [
-      { label: "in / on / at (Waktu)", detail: "in = bulan/tahun (in July, in 2024) · on = hari/tanggal (on Monday) · at = jam/titik waktu (at 7 a.m., at noon)." },
-      { label: "in / on / at (Tempat)", detail: "in = di dalam ruang/wadah (in the box) · on = menempel di permukaan (on the table) · at = titik spesifik (at the bus stop)." },
-      { label: "for vs since", detail: "for + durasi waktu (for three hours) · since + titik awal waktu (since Monday / since 2022)." },
-      { label: "Pasangan tetap (adjective/verb + preposition)", detail: "interested in, good at, afraid of, responsible for, wait for, listen to, talk about, look at." },
-      { label: "Verb + preposition dalam pertanyaan", detail: "wait for, listen to, talk about, look at, shop for. Saat objek preposisi ditanyakan, preposisi sering berada di akhir: Who are you waiting for? Bentuk formal For whom are you waiting? juga benar." },
+      { visual: PREPOSITION_GUIDE_VISUALS.time, label: "in / on / at (Waktu)", detail: "in = bulan/tahun (in July, in 2024) · on = hari/tanggal (on Monday) · at = jam/titik waktu (at 7 a.m., at noon)." },
+      { visual: PREPOSITION_GUIDE_VISUALS.place, label: "in / on / at (Tempat)", detail: "in = di dalam ruang/wadah (in the box) · on = menempel di permukaan (on the table) · at = titik spesifik (at the bus stop)." },
+      { visual: PREPOSITION_GUIDE_VISUALS.duration, label: "for vs since", detail: "for + durasi waktu (for three hours) · since + titik awal waktu (since Monday / since 2022)." },
+      { visual: PREPOSITION_GUIDE_VISUALS.pairs, label: "Pasangan tetap (adjective/verb + preposition)", detail: "interested in, good at, afraid of, responsible for, wait for, listen to, talk about, look at." },
+      { visual: PREPOSITION_GUIDE_VISUALS.questions, label: "Verb + preposition dalam pertanyaan", detail: "wait for, listen to, talk about, look at, shop for. Saat objek preposisi ditanyakan, preposisi sering berada di akhir: Who are you waiting for? Bentuk formal For whom are you waiting? juga benar." },
+      { visual: PREPOSITION_GUIDE_VISUALS.noPreposition, label: "Waktu tanpa in/on/at", detail: "Ungkapan waktu dengan next, last, this, atau every biasanya langsung dipakai tanpa in/on/at: next Monday, last week, this morning, every day. Tomorrow dan yesterday juga langsung dipakai. Ini aturan untuk fungsi keterangan waktu tersebut, bukan larangan semua preposisi sebelum kata next/last/this/every." },
     ],
     examples: [
       "The meeting is on Monday at 9 a.m.",
-      "She has lived in Jakarta since 2022 (for four years).",
+      "She has lived in Jakarta since 2022.",
       "He is very good at solving problems.",
       "Who are you waiting for?",
     ],
@@ -2317,36 +2324,38 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   habits: {
     summary: "“Used to” dan “be used to” sama-sama tentang kebiasaan, tetapi berbeda makna dan tata bahasa. Perhatikan bentuk kata kerja yang mengikutinya.",
     rules: [
-      { label: "used to + V1", detail: "Kebiasaan atau keadaan di masa lalu yang sekarang sudah tidak terjadi lagi. Diikuti kata kerja dasar (V1): I used to smoke. · She used to live in Bali." },
-      { label: "be used to + V-ing / kata benda", detail: "Berarti “sudah terbiasa (dengan)” sekarang. “be” menyesuaikan subjek (am/is/are/was), diikuti V-ing atau kata benda: I am used to waking up early. · He is used to the noise." },
-      { label: "Bentuk negatif & tanya (used to)", detail: "Masa lalu: didn't use to + V1 (I didn't use to like coffee) dan Did you use to …? (perhatikan “use”, bukan “used”)." },
+      { visual: HABIT_GUIDE_VISUALS.past, label: "used to + V1", detail: "Kebiasaan atau keadaan di masa lalu yang sekarang sudah tidak terjadi lagi. Diikuti kata kerja dasar (V1): I used to smoke. · She used to live in Bali." },
+      { visual: HABIT_GUIDE_VISUALS.accustomed, label: "be used to + V-ing / kata benda", detail: "Berarti “sudah terbiasa (dengan)” sekarang. “be” menyesuaikan subjek (am/is/are/was), diikuti V-ing atau kata benda: I am used to waking up early. · He is used to the noise." },
+      { visual: HABIT_GUIDE_VISUALS.negativeQuestion, label: "Bentuk negatif & tanya (used to)", detail: "Masa lalu: didn't use to + V1 (I didn't use to like coffee) dan Did you use to …? (perhatikan “use”, bukan “used”)." },
+      { visual: HABIT_GUIDE_VISUALS.gettingAccustomed, label: "Get used to: proses menjadi terbiasa", detail: "Get used to + V-ing/kata benda menyatakan proses menjadi terbiasa. I am getting used to waking up early berarti masih beradaptasi; I am used to waking up early berarti sudah terbiasa. To pada kedua ungkapan ini adalah preposisi, bukan penanda to-infinitive." },
     ],
     examples: [
       "I used to wake up late, but now I am used to waking up early.",
       "She used to live in a village when she was a child.",
       "After three months here, he is used to driving on the left.",
       "Did you use to play football at school?",
+      "I am getting used to waking up early.",
     ],
   },
   questions: {
     summary: "Pertanyaan memakai kata bantu dan kata tanya untuk meminta informasi.",
     rules: [
-      { label: "Question tags", detail: "Pernyataan positif biasanya diikuti tag negatif: She's ready, isn't she? Pernyataan negatif memakai tag positif: They don't drive, do they? Sesuaikan kata bantu dan subjek." },
-      { label: "Yes/No dan Wh-", detail: "Letakkan kata bantu sebelum subjek: Does she work? Where does she work? Setelah do, does, dan did gunakan kata kerja dasar." },
-      { label: "Be dan modal", detail: "Letakkan be atau modal sebelum subjek: Are they ready? What can you do?" },
-      { label: "Who sebagai subjek", detail: "Who called you? menanyakan pelaku. Who did you call? menanyakan orang yang dihubungi." },
-      { label: "Preposisi dan jumlah", detail: "Who are you waiting for? How many books? How much water?" },
-      { label: "Indirect question", detail: "Setelah Could you tell me, gunakan urutan pernyataan: where she works." },
+      { visual: QUESTION_GUIDE_VISUALS.tags, label: "Question tags", detail: "Pernyataan positif biasanya diikuti tag negatif: She's ready, isn't she? Pernyataan negatif memakai tag positif: They don't drive, do they? Sesuaikan kata bantu dan subjek." },
+      { visual: QUESTION_GUIDE_VISUALS.direct, label: "Yes/No dan Wh-", detail: "Letakkan kata bantu sebelum subjek: Does she work? Where does she work? Setelah do, does, dan did gunakan kata kerja dasar." },
+      { visual: QUESTION_GUIDE_VISUALS.beModal, label: "Be dan modal", detail: "Letakkan be atau modal sebelum subjek: Are they ready? What can you do?" },
+      { visual: QUESTION_GUIDE_VISUALS.who, label: "Who sebagai subjek", detail: "Who called you? menanyakan pelaku. Who did you call? menanyakan orang yang dihubungi." },
+      { visual: QUESTION_GUIDE_VISUALS.prepositions, label: "Preposisi dan jumlah", detail: "Who are you waiting for? How many books? How much water?" },
+      { visual: QUESTION_GUIDE_VISUALS.indirect, label: "Indirect question", detail: "Setelah Could you tell me, gunakan urutan pernyataan: where she works." },
     ],
     examples: ["Where did she go?", "Who called you?", "What are you listening to?", "Could you tell me where she works?"],
   },
   plurals: {
     summary: "Singular & Plural mengatur perubahan kata benda dari tunggal (satu) menjadi jamak (lebih dari satu).",
     rules: [
-      { label: "Subject–verb agreement", detail: "Kata kerja mengikuti kata inti subjek. Everyone is ready dan the students are ready. Dalam the basket of apples is, basket adalah inti subjek. Pada present simple, she works memakai -s." },
-      { label: "Reguler (+s / +es)", detail: "Umumnya ditambah -s (books, desks). Kata berakhiran -s, -x, -ch, -sh ditambah -es (boxes, buses)." },
-      { label: "Akhiran huruf -y", detail: "Konsonan + y berubah menjadi -ies (baby → babies). Vokal + y cukup ditambah -s (toy → toys)." },
-      { label: "Irregular (Tidak beraturan)", detail: "Berubah bentuk atau tetap sama: child → children, person → people, mouse → mice, sheep → sheep." },
+      { visual: PLURAL_GUIDE_VISUALS.agreement, label: "Subject–verb agreement", detail: "Kata kerja mengikuti kata inti subjek: Everyone is ready dan the students are ready. Dalam the basket of apples is, basket adalah inti tunggalnya. Pada Present Simple positif verbal, he/she/it memakai V1-s/-es, sedangkan I/you/we/they memakai V1. Untuk be, gunakan I am, he/she/it is, dan you/we/they are." },
+      { visual: PLURAL_GUIDE_VISUALS.regular, label: "Reguler (+s / +es)", detail: "Umumnya ditambah -s (books, desks). Kata berakhiran -s, -x, -ch, -sh ditambah -es (boxes, buses)." },
+      { visual: PLURAL_GUIDE_VISUALS.y, label: "Akhiran huruf -y", detail: "Konsonan + y berubah menjadi -ies (baby → babies). Vokal + y cukup ditambah -s (toy → toys)." },
+      { visual: PLURAL_GUIDE_VISUALS.irregular, label: "Irregular (Tidak beraturan)", detail: "Berubah bentuk atau tetap sama: child → children, person → people, mouse → mice, sheep → sheep." },
     ],
     examples: [
       "There is one book on the desk, and there are three boxes on the floor.",
@@ -2357,11 +2366,11 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   pronouns: {
     summary: "Pronouns & Possessives menggantikan kata benda sesuai posisinya (subjek, objek, kepemilikan, atau diri sendiri).",
     rules: [
-      { label: "Possessive nouns", detail: "Tambahkan 's pada pemilik tunggal (Rina's book). Untuk bentuk jamak berakhiran s, tambahkan apostrof setelah s (students' room). Bentuk jamak tidak beraturan memakai 's (children's toys)." },
-      { label: "Subject vs Object", detail: "Subjek di awal sebelum kata kerja (I, she, they). Objek setelah kata kerja/preposisi (me, her, them)." },
-      { label: "Possessive Adjective", detail: "Wajib diikuti kata benda: my, your, his, her, our, their (my bag, her laptop)." },
-      { label: "Possessive Pronoun", detail: "Berdiri sendiri tanpa kata benda sesudahnya: mine, yours, his, hers, ours, theirs (This bag is mine)." },
-      { label: "Reflexive (-self/-selves)", detail: "Ketika subjek dan objek adalah orang yang sama (myself, himself, themselves)." },
+      { visual: PRONOUN_GUIDE_VISUALS.owners, label: "Possessive nouns", detail: "Tambahkan 's pada pemilik tunggal (Rina's book). Untuk bentuk jamak berakhiran s, tambahkan apostrof setelah s (students' room). Bentuk jamak tidak beraturan memakai 's (children's toys)." },
+      { visual: PRONOUN_GUIDE_VISUALS.subjectObject, label: "Subject vs Object", detail: "Pilih bentuk sesuai fungsi: I/she/they untuk subjek; me/her/them untuk objek verb atau preposisi. She called me dan This gift is for them menunjukkan perbedaannya. Posisi subjek mengikuti struktur kalimat; pertanyaan seperti Did she call? tetap memakai she, bukan her." },
+      { visual: PRONOUN_GUIDE_VISUALS.possessiveAdjective, label: "Possessive Adjective", detail: "Penentu kepemilikan diikuti kata benda: my, your, his, her, its, our, their (my bag, her laptop). Its tidak memakai apostrof: its paw. It’s dengan apostrof adalah singkatan it is atau it has, bukan penentu kepemilikan." },
+      { visual: PRONOUN_GUIDE_VISUALS.possessivePronoun, label: "Possessive Pronoun", detail: "Berdiri sendiri tanpa kata benda sesudahnya: mine, yours, his, hers, ours, theirs (This bag is mine)." },
+      { visual: PRONOUN_GUIDE_VISUALS.reflexive, label: "Reflexive (-self/-selves)", detail: "Ketika subjek dan objek adalah orang yang sama (myself, himself, themselves)." },
     ],
     examples: [
       "She called me yesterday to borrow my notebook.",
@@ -2372,10 +2381,11 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   quantifiers: {
     summary: "Quantifiers menyatakan jumlah atau kuantitas benda berdasarkan apakah benda tersebut dapat dihitung (countable) atau tidak (uncountable).",
     rules: [
-      { label: "Countable vs uncountable nouns", detail: "Countable nouns dapat dihitung: one book, three books. Uncountable nouns seperti water dan advice biasanya memakai satuan: a glass of water, a piece of advice." },
-      { label: "many vs much", detail: "many + benda jamak dapat dihitung (many books) · much + benda tak dapat dihitung (much water, much time, much money)." },
-      { label: "a few vs a little", detail: "a few = beberapa (+ countable jamak: a few minutes) · a little = sedikit (+ uncountable: a little sugar, a little patience)." },
-      { label: "some vs any", detail: "some untuk kalimat positif & tawaran sopan (Would you like some tea?) · any untuk kalimat negatif & tanya (don't have any bread)." },
+      { visual: QUANTIFIER_GUIDE_VISUALS.countability, label: "Countable vs uncountable nouns", detail: "Countable nouns dapat dihitung: one book, three books. Uncountable nouns seperti water dan advice biasanya memakai satuan: a glass of water, a piece of advice." },
+      { visual: QUANTIFIER_GUIDE_VISUALS.manyMuch, label: "many vs much", detail: "many + benda jamak dapat dihitung (many books) · much + benda tak dapat dihitung (much water, much time, much money)." },
+      { visual: QUANTIFIER_GUIDE_VISUALS.fewLittle, label: "a few vs a little", detail: "a few = beberapa (+ countable jamak: a few minutes) · a little = sedikit (+ uncountable: a little sugar, a little patience)." },
+      { visual: QUANTIFIER_GUIDE_VISUALS.someAny, label: "some vs any", detail: "Some lazim dalam pernyataan positif dan pertanyaan tawaran/permintaan: We have some milk; Would you like some tea? Any lazim pada negatif dan pertanyaan netral: We don't have any milk; Do you have any milk? Ini pola umum, bukan aturan mutlak: any juga dapat berarti mana saja, seperti You can choose any book." },
+      { visual: QUANTIFIER_GUIDE_VISUALS.smallAmount, label: "A few / a little vs few / little", detail: "A few dan a little menekankan adanya sejumlah kecil benda. Few dan little tanpa a menekankan sedikitnya jumlah, sering dirasa kurang. Bandingkan We have a little time dengan We have little time. Cukup atau tidaknya jumlah tetap bergantung pada konteks. Few memakai jamak countable; little memakai uncountable." },
     ],
     examples: [
       "How much money and how many books did you bring?",
@@ -2386,9 +2396,10 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   comparatives: {
     summary: "Comparatives membandingkan dua hal (lebih ... daripada), sedangkan Superlatives menyatakan yang paling ... di antara banyak hal.",
     rules: [
-      { label: "Comparative (... than)", detail: "Kata pendek ditambah -er (taller, heavier). Kata panjang (2–3+ suku kata) memakai more (more expensive, more interesting)." },
-      { label: "Superlative (the ...)", detail: "Kata pendek ditambah -est (the tallest, the fastest). Kata panjang memakai most (the most important)." },
-      { label: "Irregular (Tidak beraturan)", detail: "good → better → the best · bad → worse → the worst · far → farther/further → the farthest/furthest." },
+      { visual: COMPARATIVE_GUIDE_VISUALS.comparative, label: "Comparative (... than)", detail: "Comparative membandingkan satu hal dengan hal lain. Banyak adjective satu suku kata memakai -er: taller, faster. Kata lebih panjang umumnya memakai more: more expensive, more interesting. Banyak kata dua suku kata berakhiran -y memakai -ier: happier, heavier. Tidak semua kata dua suku kata mengikuti satu aturan; pelajari bentuk yang lazim bersama katanya. Gunakan than untuk menyebut pembanding, dan jangan gabungkan more dengan -er seperti more taller." },
+      { visual: COMPARATIVE_GUIDE_VISUALS.superlative, label: "Superlative (the ...)", detail: "Superlative memilih yang paling dalam suatu kelompok: the tallest student in the class, the most expensive bag in the shop. Pola umum adalah the + adjective-est atau the most + adjective. Jangan gabungkan most dengan -est seperti the most tallest." },
+      { visual: COMPARATIVE_GUIDE_VISUALS.irregular, label: "Irregular (Tidak beraturan)", detail: "good → better → the best · bad → worse → the worst · far → farther/further → the farthest/furthest." },
+      { visual: COMPARATIVE_GUIDE_VISUALS.spelling, label: "Perubahan ejaan", detail: "Beberapa pola umum: big menggandakan g menjadi bigger/biggest; happy mengubah y menjadi i pada happier/happiest; nice yang sudah berakhiran e cukup ditambah -r/-st menjadi nicer/nicest. Penggandaan konsonan bergantung pada pola bunyi/ejaan katanya; jangan terapkan ke semua adjective." },
     ],
     examples: [
       "This laptop is more expensive than my old one, but it is faster.",
@@ -2397,13 +2408,13 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
     ],
   },
   adjectives: {
-    summary: "Adjectives menerangkan kata benda (atau kondisi subjek), sedangkan Adverbs menerangkan cara suatu kata kerja dilakukan.",
+    summary: "Adjective menerangkan kata benda atau keadaan subjek setelah linking verb. Adverb dapat menerangkan verb, adjective, atau adverb lain, misalnya cara atau frekuensi. Pilih dari fungsi dan makna dalam kalimat; akhiran -ly, -ed, atau -ing saja belum cukup untuk menentukan penggunaannya.",
     rules: [
-      { label: "Word order", detail: "Too mendahului adjective (too hot), sedangkan enough mengikutinya (light enough). Pendapat biasanya mendahului usia: a beautiful old house." },
-      { label: "Posisi adverbs of frequency", detail: "Usually dan always umumnya berada sebelum kata kerja utama (she usually eats), setelah be (he is always late), atau setelah kata bantu pertama (they have often finished early)." },
-      { label: "Adjective vs Adverb (-ly)", detail: "Adjective menerangkan benda/linking verb (quick, careful). Adverb menerangkan kata kerja aksi, umumnya +ly (quickly, carefully)." },
-      { label: "Irregular Adverb", detail: "good → well (speak English well) · fast → fast · hard → hard (work hard; hati-hati: hardly = hampir tidak)." },
-      { label: "Adjective -ed vs -ing", detail: "-ed menggambarkan perasaan orang (bored, tired, interested) · -ing menggambarkan sifat penyebabnya (boring movie, tiring day)." },
+      { visual: ADJECTIVE_GUIDE_VISUALS.order, label: "Word order", detail: "Too mendahului adjective (too hot), sedangkan enough mengikutinya (light enough). Pendapat biasanya mendahului usia: a beautiful old house." },
+      { visual: ADJECTIVE_GUIDE_VISUALS.frequency, label: "Posisi adverbs of frequency", detail: "Usually dan always umumnya berada sebelum kata kerja utama (she usually eats), setelah be (he is always late), atau setelah kata bantu pertama (they have often finished early)." },
+      { visual: ADJECTIVE_GUIDE_VISUALS.adjectiveAdverb, label: "Adjective vs Adverb (-ly)", detail: "Maya is careful menjelaskan sifat Maya melalui linking verb be; careful adalah adjective. Maya drives carefully menjelaskan cara melakukan tindakan; carefully adalah adverb. Banyak adverb cara dibentuk dengan -ly, tetapi ada bentuk tidak beraturan." },
+      { visual: ADJECTIVE_GUIDE_VISUALS.irregular, label: "Irregular Adverb", detail: "good → well (speak English well) · fast → fast · hard → hard (work hard; hati-hati: hardly = hampir tidak)." },
+      { visual: ADJECTIVE_GUIDE_VISUALS.feelings, label: "Adjective -ed vs -ing", detail: "Pada pasangan adjective perasaan ini, -ed menggambarkan yang dirasakan (bored, tired, interested); -ing menggambarkan sifat penyebab perasaan (boring, tiring, interesting). Maya is bored berarti Maya merasa bosan; Maya is boring berarti Maya membuat orang lain bosan. Jadi bukan aturan -ed hanya untuk orang dan -ing hanya untuk benda." },
     ],
     examples: [
       "She is a fluent speaker and she speaks English fluently.",
@@ -2412,31 +2423,46 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
     ],
   },
   gerunds: {
-    summary: "Perhatikan posisi kegiatan dalam kalimat. Bentuk -ing dapat mengisi posisi subjek atau mengikuti preposisi. Bentuk to + V1 dapat menjelaskan tugas, tujuan, atau kata sifat. Setelah beberapa kata kerja, pilihan bentuk juga menentukan makna.",
+    summary: "Gerund (V-ing) menyebut kegiatan dan dapat berfungsi sebagai subjek atau pelengkap preposisi. To-infinitive berbentuk to + kata kerja dasar (V1). Pilih bentuk berdasarkan fungsi dalam kalimat, pola kata sebelumnya, dan makna yang ingin disampaikan; jangan hanya melihat akhiran -ing atau kata to.",
     rules: [
-      { label: "Gerund sebagai subjek atau setelah preposisi", detail: "Swimming is healthy memakai swimming sebagai subjek. Setelah for, perhatikan apa yang disebut. For the team menyebut kelompok, for them memakai kata ganti, dan responsible for ensuring the data is accurate menyebut kegiatan." },
-      { label: "Verb + Gerund (V-ing)", detail: "Kata kerja yang wajib diikuti V-ing: enjoy, finish, avoid, mind, keep, suggest (enjoy reading, finish working)." },
-      { label: "Verb + To-Infinitive (to + V1)", detail: "Kata kerja yang diikuti to + V1: want, decide, plan, hope, promise, agree, need (decide to buy, plan to visit)." },
-      { label: "Tugas atau tujuan + be + to V1", detail: "Dalam My responsibility was to ensure the data was accurate, to ensure menjelaskan isi tanggung jawab saya. Pola yang sama muncul dalam My job is to build websites dan My goal is to finish the course." },
-      { label: "Adjective + to V1", detail: "Happy to help menyatakan kesediaan. This guide is easy to follow menjelaskan tingkat kesulitan mengikuti panduan. It is important to check the data menyatakan pentingnya tindakan itu." },
-      { label: "Stop, remember, try", detail: "Stop talking berarti mengakhiri pembicaraan. Stop to talk berarti menjeda kegiatan lain untuk berbicara. Remember locking berarti ingat pernah mengunci. Remember to lock berarti ingat untuk mengunci. Try restarting mengusulkan solusi. Try to restart menyatakan upaya." },
+      { visual: GERUND_GUIDE_VISUALS.subject, label: "Gerund sebagai subjek", detail: "Swimming is healthy berarti kegiatan berenang itu sehat. Swimming menjadi subjek; bukan orang yang sedang berenang. Bentuk V1 saja tidak tepat untuk pola ini: gunakan Swimming is healthy, bukan Swim is healthy." },
+      { visual: GERUND_GUIDE_VISUALS.continuous, label: "Bedakan gerund dari continuous", detail: "Dalam Swimming is healthy, swimming menyebut kegiatan sebagai subjek. Dalam She is swimming, is swimming adalah rangkaian verb Present Continuous: dia sedang berenang. Jadi tidak semua bentuk -ing adalah gerund." },
+      { visual: GERUND_GUIDE_VISUALS.preposition, label: "Preposition + gerund (V-ing)", detail: "Jika kata kerja langsung menjadi pelengkap preposisi untuk menyebut kegiatan, gunakan V-ing: for improving customer engagement, interested in learning, without checking, dan by practising. Gunakan for improving, bukan for improve atau for to improve. Preposisi juga bisa diikuti frasa benda atau kata ganti: for the team, for them." },
+      { visual: GERUND_GUIDE_VISUALS.twoTo, label: "Dua fungsi to", detail: "Pada want to learn, to menandai infinitive sehingga diikuti V1. Pada look forward to meeting you, to adalah preposisi sehingga kegiatan sesudahnya memakai V-ing. Gunakan look forward to meeting, bukan look forward to meet. Pelajari to bersama ungkapannya; tidak semua to harus diikuti V1." },
+      { visual: GERUND_GUIDE_VISUALS.verbGerund, label: "Verb + gerund (V-ing)", detail: "Jika enjoy, finish, avoid, mind, keep, atau suggest langsung diikuti kata kerja lain sebagai kegiatan, gunakan V-ing: enjoy reading, finish working, suggest checking. Enjoy to read tidak tepat. Ini aturan untuk pola verb + verb tersebut; suggest juga dapat diikuti klausa: I suggest that we check the data." },
+      { visual: GERUND_GUIDE_VISUALS.verbInfinitive, label: "Verb + to-infinitive (to + V1)", detail: "Pola umum setelah want, decide, plan, hope, promise, agree, dan need adalah to + V1: want to learn, decide to buy, plan to visit. Gunakan decide to buy, bukan decide buying. Beberapa verb memiliki pola lain dengan makna berbeda: The car needs cleaning berarti mobil perlu dibersihkan, setara dengan needs to be cleaned." },
+      { visual: GERUND_GUIDE_VISUALS.person, label: "Verb + orang + to V1", detail: "Orang yang melakukan kegiatan dapat disebut di antara dua verb: She asked me to wait dan I want him to help. Me adalah orang yang diminta menunggu; him adalah orang yang diharapkan membantu. Jika memakai kata ganti, gunakan bentuk objek: me/him/her/us/them, bukan I/he/she/we/they." },
+      { visual: GERUND_GUIDE_VISUALS.purpose, label: "To-infinitive untuk tujuan tindakan", detail: "I called her to confirm the meeting menjawab mengapa saya menelepon: untuk mengonfirmasi rapat. Untuk menyatakan tujuan tindakan ini, gunakan to confirm, bukan for confirm. Bedakan dengan frasa setelah preposisi, misalnya a tool for improving customer engagement, yang menjelaskan fungsi alat." },
+      { visual: GERUND_GUIDE_VISUALS.responsibility, label: "Tugas atau sasaran + be + to V1", detail: "My responsibility was to ensure the data was accurate menjelaskan isi tanggung jawab saya. My job is to build websites menyebut tugas, sedangkan My goal is to finish the course menyebut sasaran. To-infinitive di sini melengkapi makna subjek setelah be; berbeda dari tujuan tindakan pada I called her to confirm the meeting." },
+      { visual: GERUND_GUIDE_VISUALS.adjective, label: "Adjective + to V1", detail: "Kata sifat tertentu dapat dilengkapi to-infinitive: happy to help menyatakan kesediaan, easy to follow menyatakan tingkat kesulitan, dan important to check menyatakan penilaian. Contoh: It is important to check the data. Namun adjective yang diikuti preposisi memakai pola preposition + V-ing, seperti interested in learning." },
+      { visual: GERUND_GUIDE_VISUALS.both, label: "Verb yang menerima kedua bentuk", detail: "Like, love, hate, dan prefer dapat diikuti V-ing atau to V1. I like reading dan I like to read sama-sama benar. Perbedaannya sering kecil: V-ing cenderung menyoroti kegiatan atau pengalaman; to-infinitive dapat menyoroti pilihan atau kebiasaan. Jangan menganggap semua verb mengikuti pola enjoy atau want." },
+      { visual: GERUND_GUIDE_VISUALS.stop, label: "Stop: kegiatan berakhir atau jeda untuk tujuan lain", detail: "We stopped talking berarti kami berhenti mengobrol; kegiatan talking berakhir. We stopped to talk berarti kami menjeda kegiatan lain untuk mengobrol. Bentuk setelah stop mengubah kegiatan mana yang dihentikan dan apa tujuannya." },
+      { visual: GERUND_GUIDE_VISUALS.remember, label: "Remember: ingatan atau tugas yang perlu dilakukan", detail: "I remember locking the door berarti saya ingat pernah mengunci pintu; tindakannya sudah terjadi sebelum diingat. Remember to lock the door mengingatkan agar pintu dikunci; tugasnya perlu dilakukan setelah pengingat." },
+      { visual: GERUND_GUIDE_VISUALS.try, label: "Try: mencoba cara atau berusaha", detail: "Try restarting the app menyarankan memulai ulang sebagai cara yang mungkin menyelesaikan masalah. Try to restart the app meminta seseorang berusaha memulai ulang; keberhasilannya belum pasti. V-ing menyoroti cara yang dicoba, sedangkan to V1 menyoroti upaya." },
     ],
     examples: [
       "Swimming every morning keeps my body fit.",
+      "She is swimming in the pool now. (Present Continuous)",
+      "This tool is useful for improving customer engagement.",
+      "I look forward to meeting you.",
       "I was responsible for ensuring the data was accurate.",
       "My responsibility was to ensure the data was accurate.",
       "I enjoy learning English, and I have finished reading this chapter.",
       "They decided to move to a bigger office next month.",
+      "She asked me to wait outside.",
+      "I called her to confirm the meeting.",
+      "It is important to check the data.",
+      "I like reading. / I like to read.",
     ],
   },
   relatives: {
     summary: "Relative Clauses (who, which, that, whose, where) menggabungkan dan memperjelas informasi tentang orang, benda, kepemilikan, atau tempat.",
     rules: [
-      { label: "who (Orang)", detail: "Menjelaskan manusia sebagai subjek/objek klausa (The doctor who treated me)." },
-      { label: "which dan that untuk benda", detail: "Dalam the book that I bought, that juga dapat diganti dengan which. Untuk memberi informasi tambahan di antara koma (non-defining), gunakan which untuk benda; pronoun tidak boleh dihilangkan dan tidak boleh diganti that." },
-      { label: "Pronoun objek boleh dihilangkan", detail: "Dalam defining relative clause tanpa koma, pronoun yang menjadi objek boleh dihilangkan: The book (that/which) I bought is expensive. I adalah subjek bought; the book adalah objek yang dijelaskan. Jadi The book I bought is expensive juga benar." },
-      { label: "Pronoun subjek wajib ditulis", detail: "The woman who called me lives next door: who adalah subjek called, sehingga tidak boleh dihilangkan. Dalam defining clause tentang orang ini, that juga dapat menggantikan who. Jangan menentukan penghilangan hanya dari ada/tidaknya subjek setelah pronoun; periksa fungsi pronoun dan jenis klausa." },
-      { label: "whose (Kepemilikan) & where (Tempat)", detail: "whose + benda milik (the student whose laptop was lost) · where untuk tempat terjadinya aksi (the cafe where we met)." },
+      { visual: RELATIVE_GUIDE_VISUALS.who, label: "who (Orang)", detail: "Menjelaskan manusia sebagai subjek/objek klausa (The doctor who treated me)." },
+      { visual: RELATIVE_GUIDE_VISUALS.whichThat, label: "which dan that untuk benda", detail: "Dalam the book that I bought, that juga dapat diganti dengan which. Untuk memberi informasi tambahan di antara koma (non-defining), gunakan which untuk benda; pronoun tidak boleh dihilangkan dan tidak boleh diganti that." },
+      { visual: RELATIVE_GUIDE_VISUALS.object, label: "Pronoun objek boleh dihilangkan", detail: "Dalam defining relative clause tanpa koma, pronoun yang menjadi objek boleh dihilangkan: The book (that/which) I bought is expensive. I adalah subjek bought; the book adalah objek yang dijelaskan. Jadi The book I bought is expensive juga benar." },
+      { visual: RELATIVE_GUIDE_VISUALS.subject, label: "Pronoun subjek wajib ditulis", detail: "The woman who called me lives next door: who adalah subjek called, sehingga tidak boleh dihilangkan. Dalam defining clause tentang orang ini, that juga dapat menggantikan who. Jangan menentukan penghilangan hanya dari ada/tidaknya subjek setelah pronoun; periksa fungsi pronoun dan jenis klausa." },
+      { visual: RELATIVE_GUIDE_VISUALS.whoseWhere, label: "whose (Kepemilikan) & where (Tempat)", detail: "whose + benda milik (the student whose laptop was lost) · where untuk tempat terjadinya aksi (the cafe where we met)." },
     ],
     examples: [
       "The woman who called you earlier is our new project manager.",
@@ -2445,13 +2471,15 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
     ],
   },
   modals: {
-    summary: "Modals (can, could, should, must, might, may, would) adalah kata kerja bantu yang menambahkan makna kemampuan, saran, kewajiban, larangan, atau kemungkinan. Semua modal wajib diikuti V1 murni (tanpa to).",
+    summary: "Modal inti seperti can, could, should, must, might, may, dan would menambahkan makna kemampuan, saran, kewajiban, larangan, atau kemungkinan. Kata kerja tepat setelah modal memakai bentuk dasar (V1), tanpa to atau akhiran -s. Pilih modal berdasarkan maksud kalimat, bukan hanya waktu kejadian.",
     rules: [
-      { label: "Past modals", detail: "Should have + V3 menyatakan saran atau penyesalan tentang masa lalu. Might have + V3 menyatakan kemungkinan, sedangkan must have + V3 menyatakan kesimpulan kuat." },
-      { label: "can vs could (Kemampuan & Permintaan)", detail: "can = kemampuan saat ini · could = kemampuan masa lalu (when I was young) atau permintaan sopan (Could you help me?)." },
-      { label: "should / should not (Saran)", detail: "Digunakan untuk memberi nasihat atau anjuran yang baik (You should take a rest)." },
-      { label: "must vs must not (Kewajiban & Larangan)", detail: "must = aturan/keharusan wajib · must not / cannot = larangan keras (Visitors must not smoke)." },
-      { label: "might / may (Kemungkinan)", detail: "Menyatakan kemungkinan yang belum pasti terjadi (It might rain later)." },
+      { visual: MODAL_GUIDE_VISUALS.base, label: "Modal + V1", detail: "Gunakan She can swim, bukan She can swims atau She can to swim. Bentuk dasar setelah modal juga bisa be atau have: can be ready dan should have studied. Ungkapan seperti have to dan be able to memiliki pola tersendiri." },
+      { visual: MODAL_GUIDE_VISUALS.past, label: "Past modals", detail: "Should have + V3 menyatakan saran atau penyesalan tentang masa lalu. Might have + V3 menyatakan kemungkinan masa lalu, sedangkan must have + V3 menyatakan kesimpulan kuat tentang masa lalu. Untuk kewajiban masa lalu, gunakan had to + V1, bukan must have + V3." },
+      { visual: MODAL_GUIDE_VISUALS.ability, label: "can vs could (Kemampuan & Permintaan)", detail: "can = kemampuan saat ini · could = kemampuan masa lalu (when I was young) atau permintaan sopan (Could you help me?)." },
+      { visual: MODAL_GUIDE_VISUALS.advice, label: "should / should not (Saran)", detail: "Digunakan untuk memberi nasihat atau anjuran yang baik (You should take a rest)." },
+      { visual: MODAL_GUIDE_VISUALS.obligation, label: "must vs must not (Kewajiban & Larangan)", detail: "must = aturan/keharusan wajib · must not / cannot = larangan keras (Visitors must not smoke)." },
+      { visual: MODAL_GUIDE_VISUALS.noObligation, label: "Must not vs do not have to", detail: "Must not menyatakan larangan: tidak boleh. Do not / does not have to menyatakan tidak ada kewajiban: tidak harus, tetapi boleh. You must not pay in cash melarang pembayaran tunai; You do not have to pay in cash membolehkan cara pembayaran lain." },
+      { visual: MODAL_GUIDE_VISUALS.possibility, label: "might / may (Kemungkinan)", detail: "Menyatakan kemungkinan yang belum pasti terjadi (It might rain later)." },
     ],
     examples: [
       "She can speak three languages, and she could read when she was four.",
@@ -2463,12 +2491,12 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   conjunctions: {
     summary: "Conjunctions (kata penghubung) menyambungkan dua klausa berdasarkan hubungan logika: pertentangan, sebab-akibat, syarat, atau waktu.",
     rules: [
-      { label: "Pertentangan: but vs although", detail: "but menghubungkan dua klausa setara setelah koma · although / even though berada di awal anak kalimat pertentangan." },
-      { label: "Sebab & Akibat: because vs so", detail: "because + alasan/penyebab · so + hasil/akibat setelah koma." },
-      { label: "Syarat: if vs unless", detail: "if = jika · unless = kecuali jika / jika tidak (if ... not)." },
-      { label: "Waktu: while vs until", detail: "while = sementara/ketika dua aksi berlangsung bersamaan · until = sampai batas waktu tertentu." },
-      { label: "When, before, after", detail: "When menyatakan ketika, before sebelum, dan after sesudah. Contoh: Maya washed her hands before she ate lunch. Pertahankan hubungan waktu saat menukar urutan klausa: Before she ate lunch, Maya washed her hands." },
-      { label: "Urutan klausa dan koma", detail: "Anak kalimat dengan because, when, before, after, atau although dapat berada di awal atau akhir. Jika di awal, pisahkan dengan koma: Although it rained, Maya went out. Jangan tambahkan but pada pola although ini." },
+      { visual: CONJUNCTION_GUIDE_VISUALS.contrast, label: "Pertentangan: but vs although", detail: "but menghubungkan dua klausa setara setelah koma · although / even though berada di awal anak kalimat pertentangan." },
+      { visual: CONJUNCTION_GUIDE_VISUALS.cause, label: "Sebab & Akibat: because vs so", detail: "because + alasan/penyebab · so + hasil/akibat setelah koma." },
+      { visual: CONJUNCTION_GUIDE_VISUALS.unless, label: "Syarat: if vs unless", detail: "if = jika · unless = kecuali jika / jika tidak (if ... not)." },
+      { visual: CONJUNCTION_GUIDE_VISUALS.whileUntil, label: "Waktu: while vs until", detail: "while = sementara/ketika dua aksi berlangsung bersamaan · until = sampai batas waktu tertentu." },
+      { visual: CONJUNCTION_GUIDE_VISUALS.time, label: "When, before, after", detail: "When menyatakan ketika, before sebelum, dan after sesudah. Contoh: Maya washed her hands before she ate lunch. Pertahankan hubungan waktu saat menukar urutan klausa: Before she ate lunch, Maya washed her hands." },
+      { visual: CONJUNCTION_GUIDE_VISUALS.order, label: "Urutan klausa dan koma", detail: "Anak kalimat dengan because, when, before, after, atau although dapat berada di awal atau akhir. Jika di awal, pisahkan dengan koma: Although it rained, Maya went out. Jangan tambahkan but pada pola although ini." },
     ],
     examples: [
       "Although it was raining heavily, they continued the match.",
@@ -2479,28 +2507,31 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   conditionals: {
     summary: "Conditionals (Kalimat Pengandaian If) menyatakan hubungan syarat (If...) dan hasil berdasarkan tingkat kemungkinannya (fakta, rencana nyata, khayalan masa kini, atau penyesalan masa lalu).",
     rules: [
-      { label: "Zero Conditional (Fakta Ilmiah)", detail: "If + Present Simple (V1), Present Simple (V1) — selalu benar setiap saat." },
-      { label: "First Conditional (Kemungkinan Nyata)", detail: "If + Present Simple (V1), will + V1 — mungkin terjadi di masa depan (jangan pakai will di klausa If!)." },
-      { label: "Second Conditional (Pengandaian Masa Kini)", detail: "If + Past Simple (V2 / were), would + V1 — berlawanan dengan kenyataan sekarang." },
-      { label: "Third & Mixed Conditional (Masa Lalu)", detail: "Type 3: If + had + V3, would have + V3 (penyesalan masa lalu). Mixed: If + had + V3, would + V1 now (sebab lampau, akibat sekarang)." },
+      { visual: CONDITIONAL_GUIDE_VISUALS.zero, label: "Zero Conditional (Fakta & Kebiasaan)", detail: "If + Present Simple, Present Simple menyatakan hubungan yang umumnya berlaku atau kebiasaan: If I feel tired, I take a break. Gunakan bentuk Present Simple yang sesuai subjek, termasuk -s/-es untuk he/she/it; pola ini tidak terbatas pada fakta ilmiah." },
+      { visual: CONDITIONAL_GUIDE_VISUALS.first, label: "First Conditional (Kemungkinan Nyata)", detail: "Pola dasar If + Present Simple, will + V1 menyatakan kemungkinan nyata di masa depan. Pada pola prediksi ini, klausa if memakai Present Simple meskipun ada tomorrow; will berada di klausa hasil." },
+      { visual: CONDITIONAL_GUIDE_VISUALS.second, label: "Second Conditional (Pengandaian Kini / Mendatang)", detail: "If + Past Simple, would + V1 membayangkan keadaan kini atau masa depan yang tidak nyata atau kecil kemungkinannya. Bentuk lampau di klausa if menunjukkan jarak dari kenyataan, bukan otomatis waktu lampau. Were lazim untuk pengandaian seperti If I were you." },
+      { visual: CONDITIONAL_GUIDE_VISUALS.third, label: "Third Conditional (Pengandaian Masa Lalu)", detail: "If + had + V3, would have + V3 membayangkan syarat dan hasil masa lalu yang berbeda dari kejadian sebenarnya. Contoh: If I had studied harder, I would have passed the exam. Bentuk ini dapat menyatakan penyesalan." },
+      { visual: CONDITIONAL_GUIDE_VISUALS.mixed, label: "Mixed Conditional (Sebab Lampau, Hasil Sekarang)", detail: "Salah satu pola mixed adalah If + had + V3, would + V1 now. Syarat membayangkan masa lalu yang berbeda, sedangkan hasilnya tentang sekarang: If I had slept well, I would not be tired now. Tentukan waktu tiap klausa dari maknanya; ada pola mixed lain." },
+      { visual: CONDITIONAL_GUIDE_VISUALS.order, label: "Urutan syarat, hasil, dan koma", detail: "Klausa if boleh di awal atau akhir. Jika syarat di awal, gunakan koma sebelum hasil: If I have time, I will study. Jika syarat di akhir, biasanya tanpa koma: I will study if I have time. Hubungan syarat–hasil tetap sama." },
     ],
     examples: [
-      "Zero: If you heat water to 100 degrees, it boils.",
+      "Zero: If you heat ice, it melts.",
       "Type 1: If I have time tonight, I will study English.",
       "Type 2: If I had enough money now, I would buy a house.",
       "Type 3: If I had studied harder, I would have passed the exam.",
+      "Mixed: If I had slept well, I would not be tired now.",
     ],
   },
   collocations: {
-    summary: "Pelajari kata yang sering muncul bersama dan potongan kalimat yang bisa dipakai kembali. Saat menemukan get, have, take, atau go, lihat kata sesudahnya untuk memahami makna seluruh ungkapan.",
+    summary: "Pelajari kata yang sering muncul bersama dan potongan kalimat yang bisa dipakai kembali. Saat menemukan get, have, take, atau go, lihat seluruh frasa dan konteksnya. Pasangan seperti make a decision dan do homework perlu dipelajari bersama; jangan menganggap semua kata benda tentang hasil selalu memakai make atau semua kegiatan selalu memakai do.",
     rules: [
-      { label: "make + hasil / keputusan / kemajuan", detail: "make a decision, make progress, make a mistake, make an effort." },
-      { label: "do + tugas / aktivitas / bantuan", detail: "do homework, do an assignment, do your best, do someone a favor." },
-      { label: "take + tindakan / jeda / tanggung jawab", detail: "take responsibility, take a break, take notes, take a risk." },
-      { label: "Ungkapan penting lainnya", detail: "give feedback, pay attention, gain experience, keep a promise, meet a deadline, break a habit, save time." },
-      { label: "Chunks untuk merespons", detail: "It depends on the weather menyebut faktor penentu. Would you mind closing the door? meminta bantuan dengan sopan. Ganti kegiatan setelah mind untuk membuat permintaan baru." },
-      { label: "Common Verbs in Context · get", detail: "Get tired berarti menjadi lelah, get home berarti sampai di rumah, dan I get it berarti saya paham. Dalam I got a ticket at the station, get bisa berarti memperoleh atau membeli." },
-      { label: "Common Verbs in Context · have, take, go", detail: "Pada have a chat dan take a look, kata benda menyebut tindakan utamanya. Go for a walk berarti pergi berjalan kaki. Pelajari seluruh frasa agar bisa memakainya dalam situasi baru." },
+      { visual: COLLOCATION_GUIDE_VISUALS.make, label: "make + hasil / keputusan / kemajuan", detail: "make a decision, make progress, make a mistake, make an effort." },
+      { visual: COLLOCATION_GUIDE_VISUALS.do, label: "do + tugas / aktivitas / bantuan", detail: "do homework, do an assignment, do your best, do someone a favor." },
+      { visual: COLLOCATION_GUIDE_VISUALS.take, label: "take + tindakan / jeda / tanggung jawab", detail: "take responsibility, take a break, take notes, take a risk." },
+      { visual: COLLOCATION_GUIDE_VISUALS.other, label: "Ungkapan penting lainnya", detail: "give feedback, pay attention, gain experience, keep a promise, meet a deadline, break a habit, save time." },
+      { visual: COLLOCATION_GUIDE_VISUALS.responses, label: "Chunks untuk merespons", detail: "It depends on the weather menyebut faktor penentu. Would you mind closing the door? meminta bantuan dengan sopan. Ganti kegiatan setelah mind untuk membuat permintaan baru." },
+      { visual: COLLOCATION_GUIDE_VISUALS.get, label: "Common Verbs in Context · get", detail: "Get tired berarti menjadi lelah, get home berarti sampai di rumah, dan I get it berarti saya paham. Dalam I got a ticket at the station, get bisa berarti memperoleh atau membeli." },
+      { visual: COLLOCATION_GUIDE_VISUALS.everyday, label: "Common Verbs in Context · have, take, go", detail: "Pada have a chat dan take a look, kata benda menyebut tindakan utamanya. Go for a walk berarti pergi berjalan kaki. Pelajari seluruh frasa agar bisa memakainya dalam situasi baru." },
     ],
     examples: [
       "You will make great progress if you practice every day.",
@@ -2511,21 +2542,21 @@ export const BASICS_TOPIC_GUIDES: Record<BasicsTopic, BasicsTopicGuide> = {
   phrasalVerbs: {
     summary: "Pelajari ungkapan percakapan sebagai satu kesatuan. Perhatikan maknanya serta posisi benda atau orang yang dibicarakan.",
     rules: [
-      { label: "Figure out dan find out", detail: "Figure out berarti menemukan jawaban lewat pemikiran. Find out berarti memperoleh informasi. Dengan figure out, kata benda bisa di tengah atau di akhir (figure the answer out, figure out the answer). Kata ganti berada di tengah (figure it out)." },
-      { label: "Run out of + benda", detail: "We ran out of milk berarti persediaan susu habis. Seluruh rangkaian run out of mendahului bendanya. Dengan kata ganti, gunakan run out of it." },
-      { label: "Go ahead", detail: "Saat seseorang meminta izin, Go ahead berarti silakan. Dalam Go ahead and start, pembicara mempersilakan orang lain untuk mulai." },
-      { label: "Be into dan be up to", detail: "I’m into jazz menyatakan minat. What are you up to? menanyakan kegiatan seseorang. Dalam It’s up to you, up to menyatakan siapa yang menentukan pilihan." },
-      { label: "Be about to + V1", detail: "The train is about to leave berarti kereta akan segera berangkat. Tindakan itu belum dimulai." },
+      { visual: PHRASAL_GUIDE_VISUALS.figureFind, label: "Figure out dan find out", detail: "Figure out berarti menemukan jawaban lewat pemikiran. Find out berarti memperoleh informasi. Dengan figure out, kata benda bisa di tengah atau di akhir (figure the answer out, figure out the answer). Kata ganti berada di tengah (figure it out)." },
+      { visual: PHRASAL_GUIDE_VISUALS.runOut, label: "Run out of + benda", detail: "We ran out of milk berarti persediaan susu habis. Seluruh rangkaian run out of mendahului bendanya. Dengan kata ganti, gunakan run out of it." },
+      { visual: PHRASAL_GUIDE_VISUALS.goAhead, label: "Go ahead", detail: "Saat seseorang meminta izin, Go ahead berarti silakan. Dalam Go ahead and start, pembicara mempersilakan orang lain untuk mulai." },
+      { visual: PHRASAL_GUIDE_VISUALS.intoUpTo, label: "Be into dan be up to", detail: "I’m into jazz menyatakan minat. What are you up to? menanyakan kegiatan seseorang. Dalam It’s up to you, up to menyatakan siapa yang menentukan pilihan." },
+      { visual: PHRASAL_GUIDE_VISUALS.aboutTo, label: "Be about to + V1", detail: "The train is about to leave berarti kereta akan segera berangkat. Tindakan itu belum dimulai." },
     ],
     examples: ["I figured it out on the bus.", "We ran out of milk this morning.", "What are you up to this weekend?"],
   },
   causatives: {
     summary: "Untuk menceritakan pekerjaan yang dilakukan orang lain, pilih apakah Anda ingin menyebut pelakunya atau benda yang dikerjakan.",
     rules: [
-      { label: "Have + orang + V1", detail: "I’ll have IT check the laptop berarti saya akan meminta tim IT memeriksa laptop. Sesudah pelaku, gunakan kata kerja dasar." },
-      { label: "Get + orang + to V1", detail: "I’ll get IT to check the laptop menyatakan bahwa saya akan mengusahakan agar tim IT memeriksanya. Setelah orang yang diminta, gunakan to + kata kerja dasar." },
-      { label: "Have atau get + benda + V3", detail: "I had my bike repaired dan I got my bike repaired menceritakan perbaikan oleh orang lain. My bike menerima tindakan sehingga repair menjadi repaired." },
-      { label: "Make, let, help + orang", detail: "Make me wait menyatakan paksaan dan let me leave menyatakan izin. Keduanya memakai V1 dalam kalimat aktif. Help me carry dan help me to carry sama-sama menyatakan bantuan." },
+      { visual: CAUSATIVE_GUIDE_VISUALS.havePerson, label: "Have + orang + V1", detail: "I’ll have IT check the laptop berarti saya akan meminta tim IT memeriksa laptop. Sesudah pelaku, gunakan kata kerja dasar." },
+      { visual: CAUSATIVE_GUIDE_VISUALS.getPerson, label: "Get + orang + to V1", detail: "I’ll get IT to check the laptop menyatakan bahwa saya akan mengusahakan agar tim IT memeriksanya. Setelah orang yang diminta, gunakan to + kata kerja dasar." },
+      { visual: CAUSATIVE_GUIDE_VISUALS.object, label: "Have atau get + benda + V3", detail: "I had my bike repaired dan I got my bike repaired menceritakan perbaikan oleh orang lain. My bike menerima tindakan sehingga repair menjadi repaired." },
+      { visual: CAUSATIVE_GUIDE_VISUALS.makeLetHelp, label: "Make, let, help + orang", detail: "Make me wait menyatakan paksaan dan let me leave menyatakan izin. Keduanya memakai V1 dalam kalimat aktif. Help me carry dan help me to carry sama-sama menyatakan bantuan." },
     ],
     examples: ["I’ll have IT check the laptop.", "I’ll get IT to check the laptop.", "I’ll have the laptop checked."],
   },

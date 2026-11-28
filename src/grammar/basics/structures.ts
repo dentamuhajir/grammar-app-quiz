@@ -1,29 +1,30 @@
 import type { BasicsQuestion, BasicsTopicGuide } from "./engine";
+import { SENTENCE_STRUCTURE_VISUALS, THERE_IT_VISUALS } from "./foundationGuideVisuals";
 
 export const STRUCTURE_GUIDES: Record<"sentenceStructure" | "thereIt", BasicsTopicGuide> = {
   sentenceStructure: {
     summary: "Pahami fungsi bagian kalimat dan susunannya. Kalimat bahasa Inggris memiliki beberapa pola; tidak semuanya membutuhkan objek.",
     rules: [
-      { label: "Subjek, verb, objek, pelengkap", detail: "Subjek adalah hal yang dibicarakan. Verb menyatakan tindakan atau keadaan. Objek mengikuti verb tertentu. Pelengkap memberi informasi tentang subjek atau objek; keterangan menambahkan konteks seperti cara, tempat, atau waktu." },
-      { label: "S–V dan S–V–O", detail: "The baby sleeps memakai subjek + verb tanpa objek. Maya reads some books memakai subjek + verb + objek. Some books adalah satu frasa objek." },
-      { label: "S–V–C: pelengkap subjek", detail: "Maya is a teacher dan They seem tired memakai pelengkap yang menjelaskan subjek. Pelengkap setelah linking verb bukan objek tindakan." },
-      { label: "S–V–O–O: dua objek", detail: "Maya gives her brother some books: her brother penerima, some books benda yang diberikan. Untuk give/send, pola benda + to + penerima juga dapat dipakai: gives some books to her brother. Tidak semua verb memakai pola yang sama." },
-      { label: "S–V–O–C: pelengkap objek", detail: "They painted the door blue: the door adalah objek dan blue menjelaskan hasil pada objek. Bedakan dengan dua objek pada gave Maya a book." },
-      { label: "Posisi keterangan", detail: "Yesterday, they visited the museum dan They visited the museum yesterday sama-sama dapat digunakan. Keterangan pendek di awal tidak selalu memerlukan koma. Posisi dapat mengubah penekanan; tidak semua adverb bebas dipindah." },
-      { label: "Cara → tempat → waktu", detail: "Untuk beberapa keterangan di akhir, urutan umumnya adalah cara, tempat, waktu: Maya works quietly at home every morning. Ini pedoman umum; konteks dan penekanan dapat menghasilkan urutan lain." },
-      { label: "Klausa waktu", detail: "When the film started, we stopped talking memiliki klausa waktu dan klausa utama. Jika klausa when di awal, gunakan koma. Klausa waktu juga dapat di akhir: We stopped talking when the film started. Ini berbeda dari inversion seperti Never have I seen …, yang dibahas di Inversion & Emphasis." },
+      { visual: SENTENCE_STRUCTURE_VISUALS.parts, label: "Subjek, verb, objek, pelengkap", detail: "Subjek adalah hal yang dibicarakan. Verb menyatakan tindakan atau keadaan. Objek mengikuti verb tertentu. Pelengkap memberi informasi tentang subjek atau objek; keterangan menambahkan konteks seperti cara, tempat, atau waktu." },
+      { visual: SENTENCE_STRUCTURE_VISUALS.svSvo, label: "S–V dan S–V–O", detail: "The baby sleeps memakai subjek + verb tanpa objek. Maya reads some books memakai subjek + verb + objek. Some books adalah satu frasa objek." },
+      { visual: SENTENCE_STRUCTURE_VISUALS.svc, label: "S–V–C: pelengkap subjek", detail: "Maya is a teacher dan They seem tired memakai pelengkap yang menjelaskan subjek. Pelengkap setelah linking verb bukan objek tindakan." },
+      { visual: SENTENCE_STRUCTURE_VISUALS.svoo, label: "S–V–O–O: dua objek", detail: "Maya gives her brother some books: her brother penerima, some books benda yang diberikan. Untuk give/send, pola benda + to + penerima juga dapat dipakai: gives some books to her brother. Tidak semua verb memakai pola yang sama." },
+      { visual: SENTENCE_STRUCTURE_VISUALS.svoc, label: "S–V–O–C: pelengkap objek", detail: "They painted the door blue: the door adalah objek dan blue menjelaskan hasil pada objek. Bedakan dengan dua objek pada gave Maya a book." },
+      { visual: SENTENCE_STRUCTURE_VISUALS.position, label: "Posisi keterangan", detail: "Yesterday, they visited the museum dan They visited the museum yesterday sama-sama dapat digunakan. Keterangan pendek di awal tidak selalu memerlukan koma. Posisi dapat mengubah penekanan; tidak semua adverb bebas dipindah." },
+      { visual: SENTENCE_STRUCTURE_VISUALS.adverbs, label: "Cara → tempat → waktu", detail: "Untuk beberapa keterangan di akhir, urutan umumnya adalah cara, tempat, waktu: Maya works quietly at home every morning. Ini pedoman umum; konteks dan penekanan dapat menghasilkan urutan lain." },
+      { visual: SENTENCE_STRUCTURE_VISUALS.timeClause, label: "Klausa waktu", detail: "When the film started, we stopped talking memiliki klausa waktu dan klausa utama. Jika klausa when di awal, gunakan koma. Klausa waktu juga dapat di akhir: We stopped talking when the film started. Ini berbeda dari inversion seperti Never have I seen …, yang dibahas di Inversion & Emphasis." },
     ],
     examples: ["The baby sleeps.", "Maya is a teacher.", "Maya gives her brother some books.", "They painted the door blue.", "Maya works quietly at home every morning.", "When the film started, we stopped talking."],
   },
   thereIt: {
     summary: "There dan it dapat mengisi posisi subjek tanpa menyebut pelaku. Pilih berdasarkan makna: keberadaan, cuaca, waktu, atau penilaian suatu kegiatan.",
     rules: [
-      { label: "There: keberadaan", detail: "There is a book on the desk memperkenalkan keberadaan buku. Gunakan is untuk a book dan are untuk some books. Dalam Past Simple gunakan was/were. There pada pola ini adalah subjek pengantar, bukan keterangan tempat 'di sana'." },
-      { label: "Negatif dan pertanyaan", detail: "Negatif: There is not a book / There are not any books. Pertanyaan: Is there a book? / Are there any books? Untuk latihan bentuk baku, cocokkan be dengan benda tunggal atau jamak sesudahnya." },
-      { label: "It: cuaca dan waktu", detail: "It is cold menyatakan cuaca dan It is five o’clock menyatakan jam. It tidak merujuk benda tertentu. It is raining menggunakan Present Continuous, sedangkan It is cold menggunakan Present Simple dengan be + adjective." },
-      { label: "It + be + adjective + to V1", detail: "It is important to practise every day menilai kegiatan berlatih setiap hari. It mengisi posisi subjek; to practise every day menyebut kegiatan yang dinilai. Pelajari bentuk to-infinitive lebih lanjut di Gerund & Infinitive." },
-      { label: "Bedakan dari it yang merujuk benda", detail: "I bought a book. It is interesting. Di sini it merujuk a book, sehingga bukan dummy subject. Pada It is raining tidak ada benda yang dirujuk. Jangan menganggap semua it adalah pengantar atau selalu memiliki 'subjek asli' setelah be." },
-      { label: "Bedakan dari there sebagai tempat", detail: "The book is there berarti bukunya ada di sana; there menerangkan lokasi. There is a book berarti ada sebuah buku; there memperkenalkan keberadaan." },
+      { visual: THERE_IT_VISUALS.existence, label: "There: keberadaan", detail: "There is a book on the desk memperkenalkan keberadaan buku. Gunakan is untuk a book dan are untuk some books. Dalam Past Simple gunakan was/were. There pada pola ini adalah subjek pengantar, bukan keterangan tempat 'di sana'." },
+      { visual: THERE_IT_VISUALS.negativeQuestion, label: "Negatif dan pertanyaan", detail: "Negatif: There is not a book / There are not any books. Pertanyaan: Is there a book? / Are there any books? Untuk latihan bentuk baku, cocokkan be dengan benda tunggal atau jamak sesudahnya." },
+      { visual: THERE_IT_VISUALS.weatherTime, label: "It: cuaca dan waktu", detail: "It is cold menyatakan cuaca dan It is five o’clock menyatakan jam. It tidak merujuk benda tertentu. It is raining menggunakan Present Continuous, sedangkan It is cold menggunakan Present Simple dengan be + adjective." },
+      { visual: THERE_IT_VISUALS.evaluation, label: "It + be + adjective + to V1", detail: "It is important to practise every day menilai kegiatan berlatih setiap hari. It mengisi posisi subjek; to practise every day menyebut kegiatan yang dinilai. Pelajari bentuk to-infinitive lebih lanjut di Gerund & Infinitive." },
+      { visual: THERE_IT_VISUALS.reference, label: "Bedakan dari it yang merujuk benda", detail: "I bought a book. It is interesting. Di sini it merujuk a book, sehingga bukan dummy subject. Pada It is raining tidak ada benda yang dirujuk. Jangan menganggap semua it adalah pengantar atau selalu memiliki 'subjek asli' setelah be." },
+      { visual: THERE_IT_VISUALS.location, label: "Bedakan dari there sebagai tempat", detail: "The book is there berarti bukunya ada di sana; there menerangkan lokasi. There is a book berarti ada sebuah buku; there memperkenalkan keberadaan." },
     ],
     examples: ["There is a book on the desk.", "There were some books on the desk.", "Are there any books on the desk?", "It is cold.", "It is five o’clock.", "It is important to practise every day."],
   },

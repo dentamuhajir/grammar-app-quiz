@@ -3461,6 +3461,170 @@ button:focus-visible {
   color: var(--ink);
 }
 
+.topic-guide-visual .topic-guide-rule-card {
+  padding: 1rem;
+}
+
+.topic-guide-visual .topic-guide-rule-card > strong {
+  font-size: 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.guide-rule-content {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.topic-guide-visual .topic-guide-rule-card p {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.guide-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.guide-token {
+  padding: 0.08em 0.3em;
+  border-radius: 5px;
+  font-weight: 700;
+  color: var(--ink);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.guide-token-preposition { background: var(--warn-soft); color: var(--warn); }
+.guide-token-gerund { background: var(--green-150); color: var(--green-ink); }
+.guide-token-infinitive { background: var(--violet-100); color: var(--violet-ink); }
+.guide-token-continuous { background: var(--blue-200); }
+.guide-token-error { background: var(--red-200); color: var(--red-800); text-decoration: underline wavy; }
+.guide-token-subject { background: var(--violet-200); }
+.guide-token-verb { background: var(--cyan-200); }
+.guide-token-object { background: var(--green-200); }
+.guide-token-adverb { background: var(--amber-100); }
+.guide-token-wh,
+.guide-token-clause,
+.guide-token-connector { background: var(--pink-200); }
+.guide-token-condition { background: var(--violet-200); }
+.guide-token-result { background: var(--cyan-200); }
+.guide-token-determiner { background: var(--warn-soft); color: var(--warn); }
+.guide-token-noun { background: var(--green-200); }
+.guide-token-adjective { background: var(--violet-100); color: var(--violet-ink); }
+.guide-token-chunk { background: var(--cyan-200); }
+
+.topic-guide-visual .guide-example .guide-example-context {
+  font-size: 0.875rem;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px dashed var(--line);
+  color: var(--ink-soft);
+}
+.guide-example-context > span { font-weight: 700; }
+
+.guide-clause-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.guide-clause-group {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding-inline-start: 0.6rem;
+  border-inline-start: 2px solid var(--line);
+}
+
+.guide-clause-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.topic-guide-visual .topic-guide-example-item {
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.guide-formula {
+  background: var(--brand-soft);
+  border-inline-start: 4px solid var(--violet-ink);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.guide-formula-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--violet-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.topic-guide-visual .guide-formula p {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  line-height: 1.8;
+}
+
+.guide-comparisons {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.guide-example {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: var(--surface-cool);
+}
+
+.guide-example-correct { background: var(--green-50); }
+.guide-example-incorrect { background: var(--red-50); }
+.guide-example-status {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  color: var(--ink-soft);
+}
+.guide-example-correct .guide-example-status { color: var(--success-700); }
+.guide-example-incorrect .guide-example-status { color: var(--red-700); }
+.topic-guide-visual .guide-example .guide-example-note {
+  font-size: 0.875rem;
+  margin-top: 0.45rem;
+  color: var(--muted);
+}
+
+.guide-disclosure summary {
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.guide-disclosure-hint {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.guide-disclosure[open] .guide-disclosure-hint { display: none; }
+.guide-disclosure[open] .guide-rule-content { margin-top: 0.8rem; }
+.guide-disclosure summary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 4px; }
+
 /* ---- Tenses Explorer ---- */
 .sentence-explorer-section {
   margin-top: 1.15rem;

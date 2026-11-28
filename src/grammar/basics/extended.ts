@@ -1,4 +1,7 @@
 import type { BasicsQuestion, BasicsTopicGuide } from "./engine";
+import { NOUN_CLAUSE_GUIDE_VISUALS } from "./clauseGuideVisuals";
+import { DETERMINER_GUIDE_VISUALS } from "./formsGuideVisuals";
+import { INVERSION_GUIDE_VISUALS, PARTICIPLE_GUIDE_VISUALS, REPORTED_GUIDE_VISUALS } from "./advancedClauseGuideVisuals";
 
 export const EXTENDED_QUESTIONS: BasicsQuestion[] = [
   { id: "ext-det-this", topic: "determiners", rule: "This / these", prompt: "___ books here are mine.", cue: "this / these", answer: "these", hint: "Books jamak dan berada di dekat pembicara.", explanation: "These digunakan untuk benda jamak yang dekat." },
@@ -31,29 +34,33 @@ export const EXTENDED_QUESTIONS: BasicsQuestion[] = [
 
 export const EXTENDED_GUIDES: Record<"determiners" | "reportedSpeech" | "nounClauses" | "participles" | "inversion", BasicsTopicGuide> = {
   determiners: { summary: "Determiners memperjelas benda yang dibicarakan, termasuk jumlah dan jaraknya.", rules: [
-    { label: "This / these", detail: "This untuk benda tunggal yang dekat; these untuk benda jamak yang dekat." },
-    { label: "That / those", detail: "That untuk benda tunggal yang jauh; those untuk benda jamak yang jauh." },
-    { label: "Each / every", detail: "Each dan every biasanya diikuti kata benda tunggal, seperti every student." },
-    { label: "Both / either / neither", detail: "Both berarti keduanya. Either berarti salah satu dari dua pilihan; neither berarti tidak satu pun dari keduanya." },
+    { visual: DETERMINER_GUIDE_VISUALS.near, label: "This / these", detail: "This untuk benda tunggal yang dekat; these untuk benda jamak yang dekat." },
+    { visual: DETERMINER_GUIDE_VISUALS.far, label: "That / those", detail: "That untuk benda tunggal yang jauh; those untuk benda jamak yang jauh." },
+    { visual: DETERMINER_GUIDE_VISUALS.eachEvery, label: "Each / every", detail: "Pada pola each/every + noun, gunakan benda countable tunggal dan verb tunggal: Each student has a book; Every student has a book. Each menyoroti anggota satu per satu; every mencakup semua anggota kelompok. Pola each of the students berbeda bentuk dan tidak memakai aturan noun tunggal setelah each secara langsung." },
+    { visual: DETERMINER_GUIDE_VISUALS.two, label: "Both / either / neither", detail: "Untuk dua pilihan, both berarti keduanya, either berarti pilihan mana pun dari dua itu, dan neither berarti tidak satu pun. Pada pola langsung sebelum noun: both + jamak (both answers are), either/neither + tunggal (either choice is; neither answer is). Pola both/either/neither of memiliki aturan tersendiri." },
   ], examples: ["These books are mine.", "Every student has a name.", "Both students passed."] },
   reportedSpeech: { summary: "Reported speech melaporkan apa yang dikatakan atau ditanyakan seseorang.", rules: [
-    { label: "Pernyataan", detail: "Setelah reporting verb lampau, tense sering bergeser: am menjadi was. Pergeseran tidak selalu diperlukan jika pernyataannya masih berlaku." },
-    { label: "Say dan tell", detail: "Gunakan said that atau told someone that. Untuk menyebut penerima setelah said, gunakan said to someone." },
-    { label: "Pertanyaan dan permintaan", detail: "Gunakan urutan pernyataan dalam asked where she lived. Permintaan dapat memakai asked someone to + V1." },
+    { visual: REPORTED_GUIDE_VISUALS.statement, label: "Pernyataan", detail: "Setelah reporting verb lampau, tense sering bergeser: am menjadi was. Pergeseran tidak selalu diperlukan jika pernyataannya masih berlaku." },
+    { visual: REPORTED_GUIDE_VISUALS.sayTell, label: "Say dan tell", detail: "Gunakan said that atau told someone that. Untuk menyebut penerima setelah said, gunakan said to someone." },
+    { visual: REPORTED_GUIDE_VISUALS.question, label: "Pertanyaan yang dilaporkan", detail: "Pertanyaan yang dilaporkan memakai urutan pernyataan dalam anak klausa: She asked where I lived, bukan where did I live. Untuk pertanyaan yes/no, gunakan if atau whether: She asked whether the shop was open." },
+    { visual: REPORTED_GUIDE_VISUALS.request, label: "Permintaan dan larangan", detail: "Gunakan asked/told + orang + to V1: He asked me to wait. Larangan memakai not sebelum to: She told us not to leave. Orang setelah asked/told memakai bentuk objek jika berupa kata ganti, seperti me atau us." },
+    { visual: REPORTED_GUIDE_VISUALS.reference, label: "Kata ganti, tempat, dan waktu", detail: "Sesuaikan I/you, here/there, serta today/tomorrow dengan siapa yang melaporkan, kepada siapa, di mana, dan kapan. Perubahan tidak otomatis: tomorrow dari ucapan kemarin dapat menjadi today jika dilaporkan hari ini. Tense juga tidak selalu bergeser jika informasi masih berlaku atau reporting verb memakai waktu kini." },
   ], examples: ["Maya said she was tired.", "She told me that she was busy.", "He asked me to wait."] },
   nounClauses: { summary: "Noun clause adalah klausa yang dapat berfungsi sebagai subjek, objek, atau pelengkap.", rules: [
-    { label: "That clause", detail: "Dalam I know that she is busy, klausa that she is busy adalah objek know." },
-    { label: "Pertanyaan tidak langsung", detail: "Gunakan urutan subjek lalu kata kerja: I know where she lives." },
-    { label: "Whether dan what", detail: "Whether dapat menyatakan pilihan; what dapat menyatakan hal yang dimaksud: I know what you mean." },
+    { visual: NOUN_CLAUSE_GUIDE_VISUALS.functions, label: "Fungsi seluruh klausa", detail: "Baca noun clause sebagai satu bagian bermakna. That she passed menjadi subjek dalam That she passed is good news; that she is busy menjadi objek dalam I know that she is busy; that we have no time melengkapi The problem is … ." },
+    { visual: NOUN_CLAUSE_GUIDE_VISUALS.that, label: "That clause", detail: "That memperkenalkan isi pernyataan: I know that she is busy. That sering dapat dihilangkan dalam klausa objek setelah know: I know she is busy. Jangan terapkan penghilangan ke semua posisi; pada That she passed is good news, pertahankan that yang memperkenalkan klausa subjek." },
+    { visual: NOUN_CLAUSE_GUIDE_VISUALS.indirect, label: "Pertanyaan tidak langsung", detail: "Gunakan urutan subjek lalu verb di dalam klausa: I know where she lives, bukan I know where does she live. Apakah seluruh kalimat memakai tanda tanya bergantung pada klausa utamanya: I know where she lives. tetapi Do you know where she lives?" },
+    { visual: NOUN_CLAUSE_GUIDE_VISUALS.whether, label: "Whether / if: apakah", detail: "Whether memperkenalkan pilihan atau pertanyaan yes/no tidak langsung: I don't know whether the shop is open or closed. If juga dapat digunakan pada kalimat seperti I don't know if the shop is open. Keduanya tidak selalu dapat saling menggantikan pada semua pola." },
+    { visual: NOUN_CLAUSE_GUIDE_VISUALS.what, label: "What: hal yang …", detail: "What you mean berarti hal yang kamu maksud. Dalam I understand what you mean, seluruh klausa what you mean menjadi objek understand. What sudah memuat makna hal yang; berbeda dari relative clause yang menerangkan benda sebelumnya, seperti the words that you used." },
   ], examples: ["That she passed is good news.", "I don't know whether he is home.", "I understand what you mean."] },
   participles: { summary: "Participle dan reduced relative clause dapat menerangkan kata benda dengan bentuk yang lebih ringkas.", rules: [
-    { label: "Makna aktif", detail: "The woman standing near the door dapat diperluas menjadi the woman who is standing near the door." },
-    { label: "Makna pasif", detail: "The package sent yesterday dapat diperluas menjadi the package that was sent yesterday." },
-    { label: "Periksa makna", detail: "Past participle seperti signed dapat menunjukkan benda menerima tindakan; -ing dapat menunjukkan pelaku melakukan tindakan." },
+    { visual: PARTICIPLE_GUIDE_VISUALS.active, label: "Makna aktif", detail: "The woman standing near the door dapat diperluas menjadi the woman who is standing near the door." },
+    { visual: PARTICIPLE_GUIDE_VISUALS.passive, label: "Makna pasif", detail: "The package sent yesterday dapat diperluas menjadi the package that was sent yesterday." },
+    { visual: PARTICIPLE_GUIDE_VISUALS.meaning, label: "Periksa makna dan predikat utama", detail: "Pada pola penjelas ini, V-ing dapat menunjukkan pelaku melakukan tindakan dan V3 dapat menunjukkan benda menerima tindakan. The documents signed by the manager are here memakai signed sebagai penjelas; are tetap predikat utama. Jangan menganggap semua relative clause bisa diringkas hanya dengan menghapus pronoun atau mengganti verb menjadi -ing." },
   ], examples: ["The woman standing there is my aunt.", "The package sent yesterday arrived today.", "The documents signed by the manager are here."] },
-  inversion: { summary: "Inversion menempatkan kata bantu sebelum subjek dalam beberapa pola penekanan formal.", rules: [
-    { label: "Never di awal", detail: "Never have I seen it memakai kata bantu have sebelum subjek." },
-    { label: "Not only", detail: "Not only did she call memakai did sebelum subjek dan kata kerja dasar call." },
-    { label: "Only then", detail: "Only then did he notice memakai inversi pada klausa utama setelah only then." },
+  inversion: { summary: "Inversion menempatkan kata bantu sebelum subjek dalam pola penekanan formal tertentu. Pernyataan tetap berupa pernyataan meskipun urutannya menyerupai pertanyaan. Tidak semua keterangan di awal memicu inversion; Yesterday, he arrived tetap memakai urutan biasa.", rules: [
+    { visual: INVERSION_GUIDE_VISUALS.never, label: "Never di awal", detail: "Never have I seen it memakai kata bantu have sebelum subjek." },
+    { visual: INVERSION_GUIDE_VISUALS.notOnly, label: "Not only", detail: "Not only did she call memakai did sebelum subjek dan kata kerja dasar call." },
+    { visual: INVERSION_GUIDE_VISUALS.onlyThen, label: "Only then", detail: "Only then did he notice memakai inversi pada klausa utama setelah only then." },
   ], examples: ["Never have I seen that.", "Not only did she call, but she also wrote.", "Only then did he notice the mistake."] },
 };

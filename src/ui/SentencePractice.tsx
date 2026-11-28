@@ -33,6 +33,7 @@ import { SwipeGuide } from "./SwipeGuide";
 import { SentenceMaterial } from "./SentenceMaterial";
 import { STRUCTURE_LABELS, STRUCTURE_PATTERNS, usesStructureBank, type StructureFocus } from "../grammar/structureSentences";
 import { BASICS_TOPIC_GUIDES } from "../grammar/basics/engine";
+import { TopicGuide } from "./TopicGuide";
 import { modalSummary } from "../grammar/modalSentences";
 
 /** The chips shown as the puzzle prompt. */
@@ -481,12 +482,8 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
         onClose={() => setMaterialOpen(false)}
         title="Materi kalimat"
       >
-        {question.focused?.analysis && focusGuide ? <div className="sheet-content-stack">
-          <p>{focusGuide.summary}</p>
-          {focusGuide.rules.map(rule => <section key={rule.label}>
-            <h3>{rule.label}</h3><p>{rule.detail}</p>
-          </section>)}
-        </div> : question.focused ? <p className="note">{question.focused.explanation}</p> : <SentenceMaterial question={reviewed} solved={solved} attempted={hasIncorrectAttempt}
+        {question.focused?.analysis && focusGuide ? <TopicGuide guide={focusGuide} />
+          : question.focused ? <p className="note">{question.focused.explanation}</p> : <SentenceMaterial question={reviewed} solved={solved} attempted={hasIncorrectAttempt}
           hint={result && !result.correct && !result.empty ? result.hint : undefined}
           onExplore={selected => { setMaterialOpen(false); onExplore(selected); }} />}
       </BottomSheet>

@@ -3,7 +3,71 @@
 Catatan ini merangkum perkembangan berdasarkan tanggal commit Git.
 Versi pada `package.json` saat ini adalah `0.1.0`.
 
+## 2026-11-28
+
+### Panduan visual: enam topik terakhir
+
+- Melengkapi Reported Speech, Participles & Reduced Clauses, Inversion & Emphasis,
+  Collocations & Chunks, Phrasal Verbs & Everyday Expressions, dan Causative Verbs.
+- Menambahkan contoh dengan konteks, sorotan ungkapan utuh, pola urutan objek,
+  serta perbandingan bentuk langsung/laporan dan bentuk biasa/inversi.
+- Memisahkan pertanyaan, permintaan, dan perubahan referen dalam Reported Speech;
+  memperjelas penjelas participle dibandingkan predikat utama.
+- Seluruh 24 panduan Grammar Topics kini memiliki panel visual pada setiap aturan.
+
+### Panduan visual: bentuk kata dan kebiasaan
+
+- Memperbarui Singular & Plural, Comparatives & Superlatives, Determiners &
+  Demonstratives, serta Used to & Kebiasaan dengan panel rumus dan contoh pembanding.
+- Memperjelas kata inti subjek, bentuk jamak, ejaan comparative/superlative,
+  serta kesesuaian this/these, that/those, each/every, dan both/either/neither.
+- Membedakan used to, be used to, dan get used to lewat konteks; menyertakan
+  bentuk baku negatif dan pertanyaan dengan did + use to.
+
 ## 2026-11-27
+
+### Panduan visual: kelompok pilihan kata
+
+- Menerapkan panduan visual pada Articles, Prepositions, Quantifiers,
+  Pronouns & Possessives, serta Adjectives & Adverbs.
+- Menambahkan konteks per contoh dan judul panel yang sesuai, seperti pilihan
+  berdasarkan bunyi, referen yang sudah jelas, jenis benda, atau maksud pembicara.
+- Memperjelas a/an berdasarkan bunyi, keterangan waktu tanpa in/on/at,
+  a few/a little vs few/little, its vs it’s, serta bored vs boring.
+- Menambahkan sorotan kata benda, penentu/jumlah, dan kata sifat dengan legenda
+  sesuai isi panduan; contoh yang sama-sama benar dibandingkan lewat konteksnya.
+
+### Panduan visual: kelompok klausa
+
+- Menerapkan rumus, sorotan, serta contoh benar–salah atau pembanding pada
+  Relative Pronouns, Conjunctions, Conditionals, dan Noun Clauses.
+- Menampilkan pasangan klausa dalam kelompok berlabel seperti Syarat–Hasil,
+  Alasan–Hasil, dan Waktu–Kejadian utama; kelompok membungkus pada layar sempit.
+- Memisahkan third dan mixed conditional serta memperjelas zero conditional
+  untuk fakta dan kebiasaan, waktu tiap klausa, dan kedua urutan syarat–hasil.
+- Melengkapi fungsi noun clause, that yang dapat dihilangkan dalam pola tertentu,
+  urutan pertanyaan tidak langsung, serta perbedaan whether/if dan what.
+
+### Panduan visual: kelompok struktur kalimat
+
+- Menerapkan kotak rumus, sorotan bagian kalimat, dan contoh pembanding pada
+  Sentence Structure & Word Order, There & It, Question Formation, dan Modals.
+- Menyesuaikan legenda warna dengan unsur yang muncul pada tiap panduan,
+  mengikuti warna bahan kalimat Sentence Practice untuk subjek, verb, objek,
+  dan keterangan. Contoh tetap disertai label dan alasan, bukan warna saja.
+- Memperjelas modal + V1, must not vs do not have to, serta must have + V3
+  untuk kesimpulan dibandingkan had to untuk kewajiban lampau.
+- Menyediakan bagian buka–tutup untuk question tags, indirect questions,
+  dan past modals. Materi struktur di Sentence Practice memakai komponen
+  panduan yang sama dengan Grammar Topics.
+
+### Panduan Gerund & Infinitive
+
+- Memperjelas fungsi gerund, perbedaannya dari continuous, pola preposition +
+  V-ing, dan dua fungsi to, termasuk contoh for improving customer engagement.
+- Melengkapi pola verb + orang + to V1, infinitive untuk tujuan, serta verb
+  yang menerima gerund dan infinitive. Memisahkan penjelasan stop, remember,
+  dan try dengan contoh pembanding dan memperjelas batasan tiap aturan.
 
 ### Struktur kalimat dan variasi susunan
 

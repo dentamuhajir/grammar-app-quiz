@@ -18,6 +18,7 @@ import { useSwipeCard } from "./useSwipeCard";
 import { WRITING_PACKS } from "../grammar/writingPacks";
 import { useWritingAttempt } from "./useWritingAttempt";
 import { SwipeGuide } from "./SwipeGuide";
+import { TopicGuide } from "./TopicGuide";
 
 type WritingLink = { onWrite: (lessonId: string) => void };
 
@@ -244,32 +245,7 @@ function BasicsSession({ filter, onWrite }: { filter: BasicsFilter } & WritingLi
         onClose={() => setTopicGuideOpen(false)}
         title={`Panduan: ${BASICS_LABELS[question.topic]}`}
       >
-        <div className="sheet-content-stack topic-guide-stack">
-          <p className="note">{topicGuide.summary}</p>
-
-          <div className="topic-guide-section">
-            <h4 className="topic-guide-heading">Aturan & Pola Penggunaan</h4>
-            <div className="topic-guide-rules">
-              {topicGuide.rules.map((rule) => (
-                <div key={rule.label} className="topic-guide-rule-card">
-                  <strong>{rule.label}</strong>
-                  <p>{rule.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="topic-guide-section">
-            <h4 className="topic-guide-heading">Contoh Kalimat</h4>
-            <ul className="topic-guide-examples">
-              {topicGuide.examples.map((ex) => (
-                <li key={ex} className="topic-guide-example-item">
-                  {ex}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <TopicGuide guide={topicGuide} />
       </BottomSheet>
     </>
   );
