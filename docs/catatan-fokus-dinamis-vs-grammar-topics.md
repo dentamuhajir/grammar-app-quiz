@@ -18,6 +18,7 @@ setiap kombinasi yang ditawarkan menghasilkan soal yang valid dan wajar.
 
 | Fokus | Cara menghasilkan soal | Batas saat ini |
 |---|---|---|
+| **Gerund & Infinitive** | Merangkai subjek, verb utama enjoy/avoid/want, dan kegiatan terkurasi melalui engine. | Present/Past/Future Simple verbal, positif/negatif/Yes-No. Enjoy/avoid + V-ing, want + to V1. Verb kegiatan disajikan sebagai V1; stop/remember/try dan gerund sebagai subjek belum dicakup. |
 | **Modals** | Menyaring pola menurut fungsi dan waktu/konteks, lalu merangkai tindakan dengan modal, have to, be able to, atau be allowed to. | Enam fungsi, 30 pola, konteks sekarang/masa lalu/masa depan sesuai dukungan. Positif/negatif/tanya dibatasi per pola. Verbal; belum mencakup nominal/passive, modal continuous, atau would hipotetis. |
 | **Adverbs of Frequency** | Memilih usually/often/always, subjek orang, verb atau pelengkap terkurasi, lalu merangkai dengan `conjugate*` dan slot `mid`. | Simple dan Perfect Simple; verbal/nominal; positif, negatif, Yes/No Question. Negatif menargetkan posisi setelah not. Checker mendukung usually/often di awal kalimat positif dan often di akhir. |
 | **Relative clause** | Klausa utama memakai `conjugate*`; sisipan memakai daftar deskripsi dan pola peristiwa terkurasi. | Beberapa kombinasi dikecualikan oleh `quizCombinations`, termasuk nominal perfect continuous dan `which` + nominal continuous. Tense pilihan berlaku untuk klausa utama. |

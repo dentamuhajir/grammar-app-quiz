@@ -51,6 +51,13 @@ berlaku pada klausa utama; klausa penghubung tetap positif. Kedua urutan diterim
 misalnya *Did Maya stay home because she felt sick?* dan
 *Because she felt sick, did Maya stay home?*.
 
+**Gerund & Infinitive** melatih enjoy/avoid + V-ing dan want + to V1.
+Bahan menampilkan verb kegiatan dalam bentuk dasar, misalnya
+`she + enjoy + read + some books`. Pengguna membentuk
+*She enjoys reading some books.* Tersedia Present/Past/Future Simple verbal,
+positif, negatif, dan Yes/No; tense dan bentuk berlaku pada verb utama.
+Pola dengan perubahan makna seperti stop/remember/try belum dicakup.
+
 **If / Conditionals** merangkai pasangan bahan terkurasi untuk Zero, First,
 Second, dan Third. Syarat tetap positif, sementara hasil mengikuti bentuk
 positif, negatif, atau Yes/No yang dipilih. Kedua urutan klausa diterima.

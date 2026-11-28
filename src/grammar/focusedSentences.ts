@@ -3,9 +3,11 @@ import { FORM_LABELS, MODE_LABELS, TENSE_LABELS } from "./labels";
 import type { ClauseCues, Mode, Question, SentenceForm, Subject, Tense, Verb } from "./types";
 import type { StructurePattern } from "./structureSentences";
 import { INDEFINITE_PERSONS, PERSON_SUBJECTS } from "./data/subjects";
+import { GERUND_PATTERNS } from "./gerundSentences";
 
-export type FocusPattern = StructurePattern | "much" | "many" | "some" | "few" | "zero" | "first" | "second" | "third" | "who" | "which" | "usually" | "often" | "always" | "can" | "should" | "must";
+export type FocusPattern = StructurePattern | "enjoy" | "avoid" | "want" | "much" | "many" | "some" | "few" | "zero" | "first" | "second" | "third" | "who" | "which" | "usually" | "often" | "always" | "can" | "should" | "must";
 export const FOCUS_PATTERNS = {
+  gerundInfinitive: GERUND_PATTERNS,
   quantifiers: [
     { value: "much", label: "much" }, { value: "many", label: "many" },
     { value: "some", label: "some / any" }, { value: "few", label: "a few / a little" },

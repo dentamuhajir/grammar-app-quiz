@@ -18,6 +18,7 @@ import { sentenceTranslation, checkTranslationAnswer } from "../src/grammar/tran
 import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode";
 import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
 import { buildReasonQuestion } from "../src/grammar/reasonSentences";
+import { buildGerundQuestion, GERUND_PATTERNS, GERUND_TENSES, GERUND_FORMS } from "../src/grammar/gerundSentences";
 import { buildConditionalQuestion, buildFocusedQuestion, FOCUS_PATTERNS } from "../src/grammar/focusedSentences";
 import { buildStructureQuestion, STRUCTURE_ITEMS, STRUCTURE_PATTERNS, type StructureFocus } from "../src/grammar/structureSentences";
 import { normalize } from "../src/grammar/check/normalize";
@@ -471,6 +472,94 @@ function withRandom<T>(value: number | number[], build: () => T): T {
   Math.random = () => Array.isArray(value) ? value[index++ % value.length] : value;
   try { return build(); } finally { Math.random = original; }
 }
+
+test("gerund and infinitive patterns conjugate the main verb and preserve the activity form", () => {
+  const counts = new Set<string>();
+  for (const { value: pattern } of GERUND_PATTERNS) {
+    for (const tense of GERUND_TENSES) {
+      for (const form of GERUND_FORMS) {
+        const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "gerundInfinitive", focusPattern: pattern,
+          tenses: [tense], modes: ["verbal"], forms: [form] };
+        assert.equal(quizCombinations(filter).length, 1);
+        const qFromCycle = createQuestionCycle(filter)();
+        assert.equal(qFromCycle.tense, tense);
+        assert.equal(qFromCycle.form, form);
+        assert.equal(qFromCycle.verb!.base, pattern);
+        for (let i = 0; i < 32; i++) {
+          const q = withRandom((i + 0.5) / 32, () => buildGerundQuestion(tense, form, pattern));
+          const cues = q.focused!.rows[0].cues;
+          const activity = VERBS.find(v => v.base === cues.secondaryVerb)!;
+          const secondary = pattern === "want" ? `to ${activity.base}` : activity.ing;
+          const tail = [secondary, cues.complement, cues.time].filter(Boolean).join(" ");
+          counts.add(`${pattern}:${cues.subject}:${activity.base}`);
+          assert.ok(q.answer.endsWith(`${tail}${form === "yesNoQuestion" ? "?" : "."}`), q.answer);
+          const singular = q.subject.person === 3 && q.subject.number === "singular";
+          const aux = tense === "pastSimple" ? "did" : tense === "futureSimple" ? "will" : singular ? "does" : "do";
+          const main = tense === "pastSimple" ? `${pattern}ed` : singular ? `${pattern}s` : pattern;
+          const body = form === "yesNoQuestion" ? `${aux} ${q.subject.text} ${pattern}`
+            : form === "negative" ? `${q.subject.text} ${aux} not ${pattern}`
+            : tense === "futureSimple" ? `${q.subject.text} will ${pattern}` : `${q.subject.text} ${main}`;
+          assert.equal(q.answer.toLowerCase(), `${body} ${tail}${form === "yesNoQuestion" ? "?" : "."}`.toLowerCase());
+          assert.equal(checkAnswer(q, q.answer).correct, true, q.answer);
+          const wrong = q.answer.replace(secondary, pattern === "want" ? activity.ing : `to ${activity.base}`);
+          assert.equal(checkAnswer(q, wrong).correct, false, wrong);
+          assert.equal(checkAnswer(q, q.answer.replace(secondary, activity.base)).correct, false);
+          if (form === "negative") {
+            const contracted = q.answer.replace(/does not/i, "doesn't").replace(/do not/i, "don't")
+              .replace(/did not/i, "didn't").replace(/will not/i, "won't");
+            assert.ok(checkAnswer(q, contracted).correct, contracted);
+          }
+          const guide = sentenceGuide(q);
+          assert.equal(normalize(guide.parts.map(part => part.text).join(" ")), normalize(q.answer));
+          assert.ok(guide.parts.some(part => part.role.includes(pattern === "want" ? "To-infinitive" : "Gerund")));
+          assert.ok(!guide.parts.some(part => part.role === "Penghubung / preposisi"), q.answer);
+        }
+      }
+    }
+  }
+  assert.equal(counts.size, 96);
+  const cycle = createQuestionCycle({ ...DEFAULT_MULTI_FILTER, focus: "gerundInfinitive" });
+  const combinations = quizCombinations({ ...DEFAULT_MULTI_FILTER, focus: "gerundInfinitive" });
+  assert.equal(combinations.length, 9);
+  const seen = new Set(Array.from({ length: 9 }, () => { const q = cycle(); return `${q.tense}:${q.form}`; }));
+  assert.equal(seen.size, 9);
+  const single = createQuestionCycle({ ...DEFAULT_MULTI_FILTER, focus: "gerundInfinitive", focusPattern: "want",
+    tenses: ["presentSimple"], forms: ["positive"] });
+  const first = withRandom(0, single);
+  assert.notEqual(withRandom(0, single).answer, first.answer);
+  for (const patch of [{ modes: ["nominal"] }, { modes: ["passive"] }, { forms: ["whQuestion"] },
+    { tenses: ["presentContinuous"] }, { focusPattern: "many" }]) {
+    const filter = { ...DEFAULT_MULTI_FILTER, focus: "gerundInfinitive", ...patch } as MultiQuizFilter;
+    assert.equal(quizCombinations(filter).length, 0);
+    assert.throws(() => createQuestionCycle(filter), RangeError);
+  }
+  assert.throws(() => buildGerundQuestion("pastContinuous", "positive", "want"), RangeError);
+  assert.throws(() => buildGerundQuestion("presentSimple", "whQuestion", "want"), RangeError);
+  assert.throws(() => buildGerundQuestion("presentSimple", "positive", "many"), RangeError);
+});
+
+test("gerund practice renders base activity cues, whole phrases, filter choices and focus material", () => {
+  const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "gerundInfinitive", focusPattern: "enjoy",
+    tenses: ["pastSimple"], forms: ["negative"], modes: ["verbal"] };
+  const q = withRandom(0, () => buildGerundQuestion("pastSimple", "negative", "enjoy"));
+  assert.equal(q.focused!.rows[0].cues.secondaryVerb, "read");
+  assert.equal(q.focused!.rows[0].cues.complement, "some books");
+  assert.equal(q.answer, "I did not enjoy reading some books.");
+  const page = withRandom(0, () => renderToStaticMarkup(createElement(SentencePractice, { initialFilter: filter, onExplore() {} })));
+  assert.match(page, /Gerund &amp; Infinitive/);
+  assert.match(page, /class="chip chip-cue">read<\/span>/);
+  assert.match(page, /class="chip chip-object">some books<\/span>/);
+  assert.match(page, /Past Simple/);
+  assert.match(page, /Negative/);
+  const markup = renderToStaticMarkup(createElement(SentenceFilters, {
+    filter, generalFilter: DEFAULT_MULTI_FILTER, practiceMode: "arrange", onClose() {}, onApply() {},
+  }));
+  assert.match(markup, /enjoy \+ V-ing/);
+  assert.match(markup, /avoid \+ V-ing/);
+  assert.match(markup, /want \+ to V1/);
+  assert.match(markup.match(/<button\b[^>]*>Nominal[^<]*<\/button>/)![0], /disabled/);
+  assert.match(markup.match(/<button\b[^>]*>WH[^<]*<\/button>/)![0], /disabled/);
+});
 
 test("conditional rules cover every curated situation, nominal be and irregular verbs", () => {
   const forms = ["positive", "negative", "yesNoQuestion"] as const;

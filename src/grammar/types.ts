@@ -95,6 +95,7 @@ export interface Complement {
 export type WhWord = "What" | "Where" | "When" | "Why" | "How" | "How long";
 
 export interface ClauseCues {
+  secondaryVerb?: string;
   modal?: string;
   wh?: string;
   subject?: string;
