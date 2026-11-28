@@ -1,6 +1,8 @@
 import { BEHAVIORAL_ADJECTIVES, COMPLEMENTS } from "./data/complements";
 import { buildRelativeQuestion } from "./relativeSentences";
 import { buildGerundQuestion, GERUND_FORMS, GERUND_TENSES, supportsGerund } from "./gerundSentences";
+import { buildComparisonQuestion, COMPARISON_FORMS, COMPARISON_TENSES, supportsComparison } from "./comparisonSentences";
+import { buildTimePrepositionQuestion, TIME_PREPOSITION_FORMS, supportsTimePreposition } from "./timePrepositionSentences";
 import { buildStructureQuestion, structureItems, usesStructureBank, type StructureFocus } from "./structureSentences";
 import { buildReasonQuestion } from "./reasonSentences";
 import { buildModalQuestion, modalPatterns, type ModalSelection } from "./modalSentences";
@@ -56,7 +58,7 @@ export const DEFAULT_FILTER: QuizFilter = {
 };
 
 export interface MultiQuizFilter extends ModalSelection {
-  focus?: "gerundInfinitive" | "relativeClause" | "reasonClause" | "quantifiers" | "conditionals" | "frequencyAdverbs" | "modals" | "sentenceStructure" | "thereIt";
+  focus?: "timePrepositions" | "comparisons" | "gerundInfinitive" | "relativeClause" | "reasonClause" | "quantifiers" | "conditionals" | "frequencyAdverbs" | "modals" | "sentenceStructure" | "thereIt";
   focusPattern?: FocusPattern;
   tenses: Tense[];
   modes: Mode[];
@@ -82,6 +84,16 @@ export const REASON_TENSES = ["presentSimple", "pastSimple"] as const;
 
 interface QuizCombination { tense: Tense; mode: Mode; form: SentenceForm; modalPattern?: string }
 export function quizCombinations(filter: MultiQuizFilter): QuizCombination[] {
+  if (filter.focus === "timePrepositions") {
+    if (!filter.modes.includes("verbal")) return [];
+    return filter.tenses.filter(tense => supportsTimePreposition(filter.focusPattern, tense)).flatMap(tense =>
+      filter.forms.filter(form => TIME_PREPOSITION_FORMS.includes(form)).map(form => ({ tense, mode: "verbal" as const, form })));
+  }
+  if (filter.focus === "comparisons") {
+    if (!filter.modes.includes("nominal") || !supportsComparison(filter.focusPattern)) return [];
+    return filter.tenses.filter(tense => COMPARISON_TENSES.includes(tense)).flatMap(tense =>
+      filter.forms.filter(form => COMPARISON_FORMS.includes(form)).map(form => ({ tense, mode: "nominal" as const, form })));
+  }
   if (filter.focus === "gerundInfinitive") {
     if (!filter.modes.includes("verbal") || !supportsGerund(filter.focusPattern)) return [];
     return filter.tenses.filter(tense => GERUND_TENSES.includes(tense)).flatMap(tense =>
@@ -149,6 +161,16 @@ export function createQuestionCycle(filter: MultiQuizFilter): () => Question {
     const combination = remaining.pop()!;
     previous = combination;
     const {tense, mode, form} = combination;
+    if (filter.focus === "timePrepositions") {
+      const question = buildTimePrepositionQuestion(tense, form, filter.focusPattern, previousFocusedAnswer);
+      previousFocusedAnswer = question.answer;
+      return question;
+    }
+    if (filter.focus === "comparisons") {
+      const question = buildComparisonQuestion(tense, form, filter.focusPattern, previousFocusedAnswer);
+      previousFocusedAnswer = question.answer;
+      return question;
+    }
     if (filter.focus === "gerundInfinitive") {
       const question = buildGerundQuestion(tense, form, filter.focusPattern, previousFocusedAnswer);
       previousFocusedAnswer = question.answer;

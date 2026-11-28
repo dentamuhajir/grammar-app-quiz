@@ -58,6 +58,23 @@ Bahan menampilkan verb kegiatan dalam bentuk dasar, misalnya
 positif, negatif, dan Yes/No; tense dan bentuk berlaku pada verb utama.
 Pola dengan perubahan makna seperti stop/remember/try belum dicakup.
 
+**Preposisi waktu** melatih pemilihan at/on/in atau tanpa preposisi dari 24 bahan
+waktu terkurasi. Chip menampilkan `Monday`, bukan `on Monday`, sehingga pengguna
+menentukan preposisinya sendiri. Kategori meliputi jam/titik waktu, hari/tanggal,
+bulan/tahun/bagian hari, dan tanpa preposisi seperti yesterday atau next Monday.
+Tersedia Present/Past/Future Simple verbal, positif, negatif, dan Yes/No.
+Bahan waktu mengikuti tense; keterangan waktu boleh di awal atau akhir kalimat.
+Latihan preposisi tempat, durasi for/since, dan batas waktu by/until belum dicakup.
+
+**Comparatives & Superlatives** menyediakan data ukuran, harga, skor, atau jarak
+untuk menentukan arah perbandingan. Bahan adjective tetap berupa kata dasar,
+misalnya `Room B + be + big + Room A`, sehingga pengguna membentuk
+*Room B is bigger than Room A.* Pola superlative membandingkan anggota dalam
+kelompok berisi tiga pembanding. Tersedia Present/Past/Future Simple nominal,
+positif, negatif, dan Yes/No; data negatif mendukung pernyataan yang disangkal.
+Bentuk tidak beraturan good/bad/far dicakup, termasuk farther/further dan
+farthest/furthest. Pola less/as ... as belum dicakup.
+
 **If / Conditionals** merangkai pasangan bahan terkurasi untuk Zero, First,
 Second, dan Third. Syarat tetap positif, sementara hasil mengikuti bentuk
 positif, negatif, atau Yes/No yang dipilih. Kedua urutan klausa diterima.

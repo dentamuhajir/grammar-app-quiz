@@ -19,6 +19,8 @@ import { loadPracticeMode, savePracticeMode } from "../src/grammar/practiceMode"
 import { buildRelativeQuestion } from "../src/grammar/relativeSentences";
 import { buildReasonQuestion } from "../src/grammar/reasonSentences";
 import { buildGerundQuestion, GERUND_PATTERNS, GERUND_TENSES, GERUND_FORMS } from "../src/grammar/gerundSentences";
+import { buildComparisonQuestion, COMPARISON_PATTERNS, COMPARISON_TENSES, COMPARISON_FORMS } from "../src/grammar/comparisonSentences";
+import { buildTimePrepositionQuestion, TIME_PREPOSITION_PATTERNS, TIME_PREPOSITION_TENSES, TIME_PREPOSITION_FORMS } from "../src/grammar/timePrepositionSentences";
 import { buildConditionalQuestion, buildFocusedQuestion, FOCUS_PATTERNS } from "../src/grammar/focusedSentences";
 import { buildStructureQuestion, STRUCTURE_ITEMS, STRUCTURE_PATTERNS, type StructureFocus } from "../src/grammar/structureSentences";
 import { normalize } from "../src/grammar/check/normalize";
@@ -472,6 +474,207 @@ function withRandom<T>(value: number | number[], build: () => T): T {
   Math.random = () => Array.isArray(value) ? value[index++ % value.length] : value;
   try { return build(); } finally { Math.random = original; }
 }
+
+test("time prepositions match the raw time cue, tense, and both supported positions", () => {
+  const at = ["7 a.m.", "9 p.m.", "noon", "midnight"];
+  const on = ["Mondays", "Friday mornings", "Monday", "May 20"];
+  const inside = ["March", "July", "the morning", "the afternoon", "the evening", "2020"];
+  const bare = ["today", "this week", "every Monday", "every evening", "yesterday", "last night", "last week", "tomorrow", "next Monday", "next year"];
+  const seen = new Set<string>();
+  for (const { value: pattern } of TIME_PREPOSITION_PATTERNS) {
+    for (const tense of TIME_PREPOSITION_TENSES) {
+      for (const form of TIME_PREPOSITION_FORMS) {
+        const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "timePrepositions", focusPattern: pattern,
+          tenses: [tense], modes: ["verbal"], forms: [form] };
+        assert.equal(quizCombinations(filter).length, 1);
+        const fromCycle = createQuestionCycle(filter)();
+        assert.equal(fromCycle.tense, tense);
+        assert.equal(fromCycle.form, form);
+        assert.equal(fromCycle.mode, "verbal");
+        for (let i = 0; i < 48; i++) {
+          const q = withRandom(i / 48, () => buildTimePrepositionQuestion(tense, form, pattern));
+          const raw = q.focused!.rows[0].cues.time!;
+          seen.add(raw);
+          const prep = at.includes(raw) ? "at" : on.includes(raw) ? "on" : inside.includes(raw) ? "in" : "";
+          assert.ok(prep || bare.includes(raw), raw);
+          assert.equal(pattern, prep === "at" ? "timeClock" : prep === "on" ? "timeDay" : prep === "in" ? "timePeriod" : "timeBare");
+          assert.equal(q.timeSignal, prep ? `${prep} ${raw}` : raw);
+          if (["yesterday", "last night", "last week", "2020"].includes(raw)) assert.equal(tense, "pastSimple");
+          if (["tomorrow", "next Monday", "next year"].includes(raw)) assert.equal(tense, "futureSimple");
+          if (["every Monday", "every evening", "Mondays", "Friday mornings"].includes(raw)) assert.equal(tense, "presentSimple");
+          assert.ok(q.focused!.rows[0].detail.includes(TENSE_LABELS[tense]));
+          assert.equal(checkAnswer(q, q.answer).correct, true, q.answer);
+          const wrongPhrase = `${prep === "at" ? "on" : prep === "on" ? "in" : "at"} ${raw}`;
+          const wrong = q.answer.replace(q.timeSignal!, wrongPhrase);
+          assert.equal(checkAnswer(q, wrong).correct, false, wrong);
+          if (prep) assert.equal(checkAnswer(q, q.answer.replace(q.timeSignal!, raw)).correct, false);
+          for (const answer of [q.answer, ...q.focused!.alternatives]) {
+            assert.equal(checkAnswer(q, answer).correct, true, answer);
+            const guide = sentenceGuide({ ...q, answer });
+            assert.equal(normalize(guide.parts.map(part => part.text).join(" ")), normalize(answer));
+            assert.ok(guide.parts.every(part => part.role !== "Penghubung / preposisi"), answer);
+            assert.ok(guide.parts.some(part => part.role === "Keterangan waktu"));
+          }
+          if (form === "negative") {
+            const contracted = q.answer.replace(/does not/i, "doesn't").replace(/do not/i, "don't")
+              .replace(/did not/i, "didn't").replace(/will not/i, "won't");
+            assert.ok(checkAnswer(q, contracted).correct, contracted);
+          }
+        }
+      }
+    }
+  }
+  assert.equal(seen.size, 24);
+  const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "timePrepositions" };
+  const cycle = createQuestionCycle(filter);
+  assert.equal(quizCombinations(filter).length, 9);
+  assert.equal(new Set(Array.from({ length: 9 }, () => {
+    const q = cycle(); return `${q.tense}:${q.form}`;
+  })).size, 9);
+  const single = createQuestionCycle({ ...filter, focusPattern: "timeBare", tenses: ["pastSimple"], forms: ["positive"] });
+  assert.notEqual(withRandom(0, single).answer, withRandom(0, single).answer);
+  for (const patch of [{ modes: ["nominal"] }, { modes: ["passive"] }, { forms: ["whQuestion"] },
+    { tenses: ["pastPerfect"] }, { focusPattern: "many" }]) {
+    const narrowed = { ...filter, ...patch } as MultiQuizFilter;
+    assert.equal(quizCombinations(narrowed).length, 0);
+    assert.throws(() => createQuestionCycle(narrowed), RangeError);
+  }
+  assert.throws(() => buildTimePrepositionQuestion("presentContinuous", "positive"), RangeError);
+  assert.throws(() => buildTimePrepositionQuestion("presentSimple", "whQuestion"), RangeError);
+  assert.throws(() => buildTimePrepositionQuestion("presentSimple", "positive", "many"), RangeError);
+});
+
+test("time-preposition UI hides the preposition in cues and keeps meaningful phrases intact", () => {
+  const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "timePrepositions", focusPattern: "timeDay",
+    tenses: ["pastSimple"], forms: ["positive"], modes: ["verbal"] };
+  const q = withRandom(0, () => buildTimePrepositionQuestion("pastSimple", "positive", "timeDay"));
+  assert.equal(q.answer, "I worked on Monday.");
+  assert.ok(q.focused!.alternatives.includes("On Monday, I worked."));
+  const page = withRandom(0, () => renderToStaticMarkup(createElement(SentencePractice, { initialFilter: filter, onExplore() {} })));
+  assert.match(page, /class="chip chip-time">Monday<\/span>/);
+  assert.doesNotMatch(page, /class="chip chip-time">on Monday<\/span>/);
+  assert.match(page, /Preposisi waktu/);
+  assert.match(page, /Hari &amp; tanggal/);
+  assert.doesNotMatch(page, /timeDay/);
+  const markup = renderToStaticMarkup(createElement(SentenceFilters, {
+    filter, generalFilter: DEFAULT_MULTI_FILTER, practiceMode: "arrange", onClose() {}, onApply() {},
+  }));
+  assert.match(markup, /Jam &amp; titik waktu/);
+  assert.match(markup, /Tanpa preposisi/);
+  assert.match(markup.match(/<button\b[^>]*>Nominal[^<]*<\/button>/)![0], /disabled/);
+  assert.match(markup.match(/<button\b[^>]*>WH[^<]*<\/button>/)![0], /disabled/);
+  const future = withRandom(0.99, () => buildTimePrepositionQuestion("futureSimple", "yesNoQuestion", "timeBare"));
+  assert.equal(future.focused!.rows[0].cues.time, "next year");
+  assert.ok(checkAnswer(future, future.focused!.alternatives[0]).correct);
+});
+
+test("comparison patterns follow the facts, adjective rules and selected tense/form", () => {
+  const spellings: Record<string, [string, string]> = {
+    big: ["bigger", "biggest"], tall: ["taller", "tallest"], heavy: ["heavier", "heaviest"],
+    expensive: ["more expensive", "most expensive"], good: ["better", "best"],
+    bad: ["worse", "worst"], far: ["farther", "farthest"],
+  };
+  const covered = new Set<string>();
+  for (const { value: pattern } of COMPARISON_PATTERNS) {
+    for (const tense of COMPARISON_TENSES) {
+      for (const form of COMPARISON_FORMS) {
+        const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "comparisons", focusPattern: pattern,
+          tenses: [tense], modes: ["nominal"], forms: [form] };
+        assert.equal(quizCombinations(filter).length, 1);
+        const fromCycle = createQuestionCycle(filter)();
+        assert.equal(fromCycle.tense, tense);
+        assert.equal(fromCycle.form, form);
+        assert.equal(fromCycle.mode, "nominal");
+        for (let sample = 0; sample < 48; sample++) {
+          const q = withRandom(sample / 48, () => buildComparisonQuestion(tense, form, pattern));
+          const { cues, detail } = q.focused!.rows[0];
+          covered.add(`${pattern}:${cues.complement}:${q.subject.number}`);
+          assert.ok(detail.includes(TENSE_LABELS[tense]));
+          const adjective = spellings[cues.complement!][pattern === "comparative" ? 0 : 1];
+          assert.equal(q.complement!.text, pattern === "comparative"
+            ? `${adjective} than ${cues.comparison}` : `the ${adjective} in the group`);
+          const matches = [...q.focused!.instruction.matchAll(/(Room [ABC]|Tower [ABC]|Box [ABC]|Laptop [ABC]|Hotel [ABC]|Road [ABC]|Station [ABC]|the (?:red|blue|green) boxes): (\d+)/g)];
+          assert.equal(matches.length, 3);
+          const facts = new Map(matches.map(match => [match[1], Number(match[2])]));
+          const target = facts.get(q.subject.text)!;
+          const comparison = pattern === "comparative" ? facts.get(cues.comparison!)! : Math.max(...facts.values());
+          assert.ok(pattern === "comparative"
+            ? form === "negative" ? target < comparison : target > comparison
+            : form === "negative" ? target < comparison : target === comparison, q.focused!.instruction);
+          const be = tense === "presentSimple" ? q.subject.number === "plural" ? "are" : "is"
+            : tense === "pastSimple" ? q.subject.number === "plural" ? "were" : "was" : "will";
+          const expectedStart = form === "yesNoQuestion" ? `${be} ${q.subject.text}`
+            : `${q.subject.text} ${be}${form === "negative" ? " not" : ""}`;
+          assert.ok(q.answer.toLowerCase().startsWith(expectedStart.toLowerCase()), q.answer);
+          if (tense === "futureSimple") assert.match(q.answer, /\bbe\b/);
+          assert.equal(checkAnswer(q, q.answer).correct, true);
+          for (const answer of q.focused!.alternatives) {
+            assert.ok(checkAnswer(q, answer).correct, answer);
+            const guide = sentenceGuide({ ...q, answer });
+            assert.equal(normalize(guide.parts.map(part => part.text).join(" ")), normalize(answer));
+            assert.ok(guide.parts.every(part => part.role !== "Penghubung / preposisi"), answer);
+          }
+          const guide = sentenceGuide(q);
+          assert.ok(guide.parts.every(part => part.role !== "Penghubung / preposisi"), q.answer);
+          assert.equal(normalize(guide.parts.map(part => part.text).join(" ")), normalize(q.answer));
+          assert.equal(checkAnswer(q, q.answer.replace(adjective, `more ${adjective}`)).correct, false);
+          if (pattern === "comparative") assert.equal(checkAnswer(q, q.answer.replace(" than ", " ")).correct, false);
+          else assert.equal(checkAnswer(q, q.answer.replace(`the ${adjective}`, adjective)).correct, false);
+          if (form === "negative") {
+            const contraction = q.answer.replace(/is not/i, "isn't").replace(/are not/i, "aren't")
+              .replace(/was not/i, "wasn't").replace(/were not/i, "weren't").replace(/will not/i, "won't");
+            assert.ok(checkAnswer(q, contraction).correct, contraction);
+          }
+        }
+      }
+    }
+  }
+  assert.equal(covered.size, 16);
+  const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "comparisons" };
+  const cycle = createQuestionCycle(filter);
+  assert.equal(quizCombinations(filter).length, 9);
+  assert.equal(new Set(Array.from({ length: 9 }, () => {
+    const q = cycle(); return `${q.tense}:${q.form}`;
+  })).size, 9);
+  const patterns = new Set(Array.from({ length: 48 }, (_, i) =>
+    withRandom(i / 48, () => buildComparisonQuestion("presentSimple", "positive")).focused!.rows[0].detail.split(" ")[0]));
+  assert.equal(patterns.size, 2);
+  for (const patch of [{ modes: ["verbal"] }, { modes: ["passive"] }, { forms: ["whQuestion"] },
+    { tenses: ["presentContinuous"] }, { focusPattern: "many" }]) {
+    const narrowed = { ...filter, ...patch } as MultiQuizFilter;
+    assert.equal(quizCombinations(narrowed).length, 0);
+    assert.throws(() => createQuestionCycle(narrowed), RangeError);
+  }
+  assert.throws(() => buildComparisonQuestion("presentPerfect", "positive"), RangeError);
+  assert.throws(() => buildComparisonQuestion("presentSimple", "whQuestion"), RangeError);
+  assert.throws(() => buildComparisonQuestion("presentSimple", "positive", "want"), RangeError);
+  const single = createQuestionCycle({ ...filter, focusPattern: "comparative", tenses: ["presentSimple"], forms: ["positive"] });
+  assert.notEqual(withRandom(0, single).answer, withRandom(0, single).answer);
+});
+
+test("comparison UI shows context, base adjective, target and supported filter choices", () => {
+  const filter: MultiQuizFilter = { ...DEFAULT_MULTI_FILTER, focus: "comparisons", focusPattern: "comparative",
+    tenses: ["presentSimple"], forms: ["positive"], modes: ["nominal"] };
+  const q = withRandom(0, () => buildComparisonQuestion("presentSimple", "positive", "comparative"));
+  assert.equal(q.answer, "Room B is bigger than Room A.");
+  const page = withRandom(0, () => renderToStaticMarkup(createElement(SentencePractice, { initialFilter: filter, onExplore() {} })));
+  assert.match(page, /Room A: 12 m²; Room B: 18 m²; Room C: 24 m²/);
+  assert.match(page, /Mulai dengan Room B/);
+  assert.match(page, /class="chip chip-object">big<\/span>/);
+  assert.match(page, /class="chip chip-object">Room A<\/span>/);
+  assert.match(page, /Comparatives &amp; Superlatives/);
+  const markup = renderToStaticMarkup(createElement(SentenceFilters, {
+    filter, generalFilter: DEFAULT_MULTI_FILTER, practiceMode: "arrange", onClose() {}, onApply() {},
+  }));
+  assert.match(markup, /Comparative · dua pembanding/);
+  assert.match(markup, /Superlative · dalam kelompok/);
+  assert.match(markup.match(/<button\b[^>]*>Verbal[^<]*<\/button>/)![0], /disabled/);
+  assert.match(markup.match(/<button\b[^>]*>WH[^<]*<\/button>/)![0], /disabled/);
+  assert.equal(withRandom(0, () => buildComparisonQuestion("presentSimple", "negative", "comparative")).answer,
+    "Room A is not bigger than Room B.");
+  assert.equal(withRandom(0, () => buildComparisonQuestion("presentSimple", "positive", "superlative")).answer,
+    "Room C is the biggest in the group.");
+});
 
 test("gerund and infinitive patterns conjugate the main verb and preserve the activity form", () => {
   const counts = new Set<string>();

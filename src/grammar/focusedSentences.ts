@@ -4,9 +4,13 @@ import type { ClauseCues, Mode, Question, SentenceForm, Subject, Tense, Verb } f
 import type { StructurePattern } from "./structureSentences";
 import { INDEFINITE_PERSONS, PERSON_SUBJECTS } from "./data/subjects";
 import { GERUND_PATTERNS } from "./gerundSentences";
+import { COMPARISON_PATTERNS } from "./comparisonSentences";
+import { TIME_PREPOSITION_PATTERNS } from "./timePrepositionSentences";
 
-export type FocusPattern = StructurePattern | "enjoy" | "avoid" | "want" | "much" | "many" | "some" | "few" | "zero" | "first" | "second" | "third" | "who" | "which" | "usually" | "often" | "always" | "can" | "should" | "must";
+export type FocusPattern = StructurePattern | typeof TIME_PREPOSITION_PATTERNS[number]["value"] | "comparative" | "superlative" | "enjoy" | "avoid" | "want" | "much" | "many" | "some" | "few" | "zero" | "first" | "second" | "third" | "who" | "which" | "usually" | "often" | "always" | "can" | "should" | "must";
 export const FOCUS_PATTERNS = {
+  timePrepositions: TIME_PREPOSITION_PATTERNS,
+  comparisons: COMPARISON_PATTERNS,
   gerundInfinitive: GERUND_PATTERNS,
   quantifiers: [
     { value: "much", label: "much" }, { value: "many", label: "many" },

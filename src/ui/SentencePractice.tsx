@@ -17,6 +17,7 @@ import {
 import { implicitContextCue, sentenceGuide } from "../grammar/explanations";
 import type { ClauseCues, Question } from "../grammar/types";
 import { SentenceFilters } from "./SentenceFilters";
+import { TIME_PREPOSITION_PATTERNS } from "../grammar/timePrepositionSentences";
 import { SentenceExplanation } from "./SentenceExplanation";
 import { BottomSheet } from "./BottomSheet";
 import { useSwipeCard } from "./useSwipeCard";
@@ -108,6 +109,7 @@ function ClauseChips({ cues }: { cues: ClauseCues }) {
     { text: cues.secondaryVerb, role: "cue", plus: true },
     { text: cues.recipient, role: "object", plus: true },
     { text: cues.complement, role: "object", plus: true },
+    { text: cues.comparison, role: "object", plus: true },
     { text: cues.objectComplement, role: "complement", plus: true },
     { text: cues.manner, role: "manner", plus: true },
     { text: cues.place, role: "place", plus: true },
@@ -130,6 +132,8 @@ function ClausePrompt({ rows, instruction }: { rows: { label: string; detail: st
 }
 
 function filterSummary(f: MultiQuizFilter): string {
+  if (f.focus === "timePrepositions") return `Preposisi waktu · ${TIME_PREPOSITION_PATTERNS.find(p => p.value === f.focusPattern)?.label ?? "Semua pola"} · ${f.tenses.map(t => TENSE_LABELS[t]).join(" / ")} · ${f.forms.length} bentuk`;
+  if (f.focus === "comparisons") return `Comparatives & Superlatives · ${f.focusPattern ?? "Semua pola"} · ${f.tenses.map(t => TENSE_LABELS[t]).join(" / ")} · ${f.forms.length} bentuk`;
   if (f.focus === "gerundInfinitive") return `Gerund & Infinitive · ${f.focusPattern ?? "Semua pola"} · ${f.tenses.map(t => TENSE_LABELS[t]).join(" / ")} · ${f.forms.length} bentuk`;
   if (usesStructureBank(f.focus, f.focusPattern)) {
     const focus = f.focus as StructureFocus;
@@ -178,7 +182,9 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
   const structureFocus = usesStructureBank(filter.focus, filter.focusPattern) ? filter.focus as StructureFocus : undefined;
   const focusGuide = structureFocus
     ? BASICS_TOPIC_GUIDES[structureFocus === "relativeClause" ? "relatives" : structureFocus === "reasonClause" ? "conjunctions" : structureFocus]
-    : filter.focus === "gerundInfinitive" ? BASICS_TOPIC_GUIDES.gerunds : undefined;
+    : filter.focus === "gerundInfinitive" ? BASICS_TOPIC_GUIDES.gerunds
+    : filter.focus === "comparisons" ? BASICS_TOPIC_GUIDES.comparatives
+    : filter.focus === "timePrepositions" ? BASICS_TOPIC_GUIDES.prepositions : undefined;
   const translation = practiceMode === "translate" ? sentenceTranslation(question) : null;
   const relativeFeedback = relative && <p className="basics-explanation">
     <strong lang="en">{relative.pronoun}</strong> merujuk pada <strong lang="en">{relative.antecedent}</strong>, {relative.pronoun === "who" ? "orang" : "benda"} yang dijelaskan dalam sisipan.
