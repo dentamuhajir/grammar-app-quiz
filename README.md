@@ -21,12 +21,20 @@ jenis verbal/nominal/passive, serta bentuk positif, negatif, Yes/No, dan WH-ques
 Tersedia 32 subjek dan 80 kata kerja dengan bentuk V1/V2/V3 yang dicatat secara eksplisit.
 Subjek mencakup kata ganti, nama orang, pasangan nama, dan frasa dengan keterangan.
 
-Pengguna dapat memilih tingkat bantuan melalui tiga mode latihan.
+Pengaturan dibuka melalui ringkasan di atas soal. Fokus dikelompokkan menjadi
+Kalimat dasar, Pola kata, dan Hubungan antarklausa. Pilihan paket berada di dalam
+pengaturan Latihan umum: Dasar, Sehari-hari, Lebih lengkap, dan Semua tense.
+Paket Dasar menjadi awal dengan Present Simple verbal/nominal positif.
+Paket Sehari-hari memilih Present Simple, Past Simple, Present Continuous,
+dan Future Simple; Lebih lengkap menambahkan Present Perfect dan Past Continuous.
+
+Susun menjadi cara latihan utama. Pilihan berikut tersedia melalui
+**Bantuan & latihan lainnya** khusus Latihan umum.
 
 | Mode | Yang ditampilkan |
 | --- | --- |
 | **Susun** | Badge tense dan potongan kata Inggris, misalnya `He + prepare + the meal` |
-| **Konteks** | Situasi waktu dan potongan kata Inggris, dengan badge disembunyikan saat mengerjakan |
+| **Sembunyikan nama tense** | Situasi waktu dan bahan kata; jenis dan bentuk kalimat tetap terlihat agar jawaban dapat ditentukan |
 | **Terjemahkan** | Kalimat Indonesia beserta konteks waktunya, dengan petunjuk kata yang tersedia setelah mencoba |
 
 Sebagai contoh, soal terjemahan **“Apakah dia laki-laki akan menyiapkan makanan itu?”**
@@ -36,7 +44,9 @@ Susun menjadi mode awal dan pilihan mode terakhir tersimpan di perangkat.
 Filter mendukung beberapa pilihan sekaligus. Pengguna dapat memilih
 **Present Simple + Past Simple**, **Verbal**, dan **Yes/No + WH** untuk satu sesi.
 Soal bergiliran melalui kombinasi yang didukung, lalu memulai siklus berikutnya.
-Pilihan diterapkan setelah menekan **Terapkan Filter**.
+Pilihan diterapkan setelah menekan **Terapkan pengaturan**. Perpindahan fokus
+mempertahankan pengaturan Latihan umum selama sesi; fokus khusus tetap memakai
+pola dan kombinasi yang didukungnya.
 
 Di mode **Susun**, **Fokus latihan → Relative clause** menghasilkan soal dengan
 dua kelompok bahan kata. Kalimat utama mengikuti filter latihan dan sisipan
@@ -45,17 +55,58 @@ jawaban. Untuk sisipan seperti
 *which Dad repaired yesterday*, jawaban *which was repaired by Dad yesterday*
 juga diterima.
 
-**Sebab dan alasan** menyediakan bahan kata untuk kejadian dan alasannya dalam
-Present Simple atau Past Simple. Kedua urutan klausa dengan *because* diterima,
-misalnya *I stayed home because I felt sick* dan *Because I felt sick, I stayed home*.
+**Penghubung antarklausa** menyediakan because, when, before, after, dan although
+dalam Present Simple atau Past Simple. Bentuk positif, negatif, atau Yes/No
+berlaku pada klausa utama; klausa penghubung tetap positif. Kedua urutan diterima,
+misalnya *Did Maya stay home because she felt sick?* dan
+*Because she felt sick, did Maya stay home?*.
+
+**Gerund & Infinitive** melatih enjoy/avoid + V-ing dan want + to V1.
+Bahan menampilkan verb kegiatan dalam bentuk dasar, misalnya
+`she + enjoy + read + some books`. Pengguna membentuk
+*She enjoys reading some books.* Tersedia Present/Past/Future Simple verbal,
+positif, negatif, dan Yes/No; tense dan bentuk berlaku pada verb utama.
+Pola dengan perubahan makna seperti stop/remember/try belum dicakup.
+
+**Preposisi waktu** melatih pemilihan at/on/in atau tanpa preposisi dari 24 bahan
+waktu terkurasi. Chip menampilkan `Monday`, bukan `on Monday`, sehingga pengguna
+menentukan preposisinya sendiri. Kategori meliputi jam/titik waktu, hari/tanggal,
+bulan/tahun/bagian hari, dan tanpa preposisi seperti yesterday atau next Monday.
+Tersedia Present/Past/Future Simple verbal, positif, negatif, dan Yes/No.
+Bahan waktu mengikuti tense; keterangan waktu boleh di awal atau akhir kalimat.
+Latihan preposisi tempat, durasi for/since, dan batas waktu by/until belum dicakup.
+
+**Comparatives & Superlatives** menyediakan data ukuran, harga, skor, atau jarak
+untuk menentukan arah perbandingan. Bahan adjective tetap berupa kata dasar,
+misalnya `Room B + be + big + Room A`, sehingga pengguna membentuk
+*Room B is bigger than Room A.* Pola superlative membandingkan anggota dalam
+kelompok berisi tiga pembanding. Tersedia Present/Past/Future Simple nominal,
+positif, negatif, dan Yes/No; data negatif mendukung pernyataan yang disangkal.
+Bentuk tidak beraturan good/bad/far dicakup, termasuk farther/further dan
+farthest/furthest. Pola less/as ... as belum dicakup.
+
+**If / Conditionals** merangkai pasangan bahan terkurasi untuk Zero, First,
+Second, dan Third. Syarat tetap positif, sementara hasil mengikuti bentuk
+positif, negatif, atau Yes/No yang dipilih. Kedua urutan klausa diterima.
+
+**Quantifiers** mencakup empat benda countable dan empat uncountable dengan
+subjek yang bervariasi. Frasa seperti *a few chairs* tetap menjadi satu bahan.
+Some/any mengikuti bentuk kalimat; latihan negatif some/any memakai jenis verbal.
 
 Pada Sentence Practice dan Grammar Topics, geser kartu ke kiri untuk **Skip Soal**
 dan ke kanan untuk **Materi**. Swipe kiri dibatasi saat ada draft yang belum selesai.
 Badge tetap dapat diketuk untuk membuka materi.
 
+Jawaban benar ditandai ikon piala, animasi singkat, dan confetti. Kalimat jawaban,
+kontrol pelafalan, dan tombol analisis ditampilkan langsung pada kartu hasil;
+tombol Soal berikutnya berada di bawah kartu. Animasi dekoratif mengikuti
+preferensi reduced motion perangkat.
+
 Jawaban diperiksa kata demi kata dengan toleransi terhadap kapitalisasi, spasi,
 tanda baca, dan singkatan yang didukung. Contohnya, `doesn't` dapat dikenali
-sebagai `does not`. Umpan balik menunjukkan kata yang salah, kurang, atau berlebih.
+sebagai `does not`. Umpan balik langsung menampilkan baris Jawabanmu dan Acuan,
+dengan penanda kata yang salah, kurang, atau berlebih. Petunjuk perbaikan ditandai
+ikon catatan kecil. Tombol Lihat contoh jawaban membuka pelafalan dan pembahasan.
 Setelah jawaban yang belum tepat, pengguna dapat membuka petunjuk atau contoh jawaban.
 Jawaban yang benar atau dibuka contohnya dapat ditelaah melalui pembahasan pola
 dan fungsi bagian kalimat, lalu dilanjutkan dengan **Soal berikutnya**.

@@ -18,12 +18,15 @@ setiap kombinasi yang ditawarkan menghasilkan soal yang valid dan wajar.
 
 | Fokus | Cara menghasilkan soal | Batas saat ini |
 |---|---|---|
+| **Preposisi waktu** | Merangkai subjek, kegiatan, dan bahan waktu tanpa preposisi; engine membentuk verb dan checker memeriksa at/on/in atau tanpa preposisi. | 24 bahan waktu sesuai tense. Present/Past/Future Simple verbal, positif/negatif/Yes-No; waktu di awal atau akhir. Preposisi tempat, for/since dan by/until belum dicakup. |
+| **Comparatives & Superlatives** | Merangkai adjective, subjek dan pembanding dari data ukuran/harga/skor/jarak; be dibentuk oleh engine. | Present/Past/Future Simple nominal, positif/negatif/Yes-No. Comparative dan superlative, tujuh adjective dasar termasuk good/bad/far. Subjek target dan data menentukan arah; less/as ... as belum dicakup. |
+| **Gerund & Infinitive** | Merangkai subjek, verb utama enjoy/avoid/want, dan kegiatan terkurasi melalui engine. | Present/Past/Future Simple verbal, positif/negatif/Yes-No. Enjoy/avoid + V-ing, want + to V1. Verb kegiatan disajikan sebagai V1; stop/remember/try dan gerund sebagai subjek belum dicakup. |
 | **Modals** | Menyaring pola menurut fungsi dan waktu/konteks, lalu merangkai tindakan dengan modal, have to, be able to, atau be allowed to. | Enam fungsi, 30 pola, konteks sekarang/masa lalu/masa depan sesuai dukungan. Positif/negatif/tanya dibatasi per pola. Verbal; belum mencakup nominal/passive, modal continuous, atau would hipotetis. |
 | **Adverbs of Frequency** | Memilih usually/often/always, subjek orang, verb atau pelengkap terkurasi, lalu merangkai dengan `conjugate*` dan slot `mid`. | Simple dan Perfect Simple; verbal/nominal; positif, negatif, Yes/No Question. Negatif menargetkan posisi setelah not. Checker mendukung usually/often di awal kalimat positif dan often di akhir. |
 | **Relative clause** | Klausa utama memakai `conjugate*`; sisipan memakai daftar deskripsi dan pola peristiwa terkurasi. | Beberapa kombinasi dikecualikan oleh `quizCombinations`, termasuk nominal perfect continuous dan `which` + nominal continuous. Tense pilihan berlaku untuk klausa utama. |
-| **Sebab & alasan** | Memilih situasi terkurasi dan subjek, lalu membentuk klausa dengan engine. | Present/Past Simple, verbal, positif. |
-| **Quantifiers** | Merangkai frasa kuantitas dengan engine. | Tiga simple tense; bahan masih sempit: tiga subjek orang, books/water, need/available/use sesuai jenis kalimat. |
-| **Conditionals** | Memilih dari 16 jawaban tertulis menurut jenis conditional dan bentuk. | Pilihan mengubah item yang dipilih, tetapi bahan belum dirangkai secara dinamis. |
+| **Penghubung antarklausa** | UI memakai bank because/when/before/after/although; engine membentuk negatif dan pertanyaan klausa utama. | Present/Past Simple, verbal, positif/negatif/Yes-No. Klausa penghubung tetap positif. Jalur lama tanpa pola tetap because positif. |
+| **Quantifiers** | Merangkai frasa kuantitas dengan engine dari subjek orang dan empat benda per kelas. | Tiga simple tense; need/available/use sesuai jenis kalimat. Some/any negatif hanya verbal. |
+| **Conditionals** | Merangkai pasangan klausa terkurasi dengan engine menurut Zero/First/Second/Third. | Syarat positif; hasil positif/negatif/Yes-No. Kedua urutan diterima. Mixed conditional belum tersedia. |
 
 Rujukan kode: [generator](../src/grammar/generator.ts),
 [relative clause](../src/grammar/relativeSentences.ts),
@@ -69,9 +72,8 @@ Rujukan perbedaan makna: British Council tentang
 [kemampuan masa lalu](https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/past-ability), dan
 [kesimpulan tentang masa lalu](https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/modals-deductions-about-past).
 
-Conditionals yang sekarang memakai lookup adalah kondisi implementasi, bukan
-bukti bahwa topiknya harus statis. Relative clause juga menunjukkan bahwa bahan
-terkurasi dapat menjadi bagian dari fokus dinamis.
+Conditionals kini dirangkai dari bahan terkurasi. Relative clause juga menunjukkan
+bahwa bahan terkurasi dapat menjadi bagian dari fokus dinamis.
 
 ## Syarat kelayakan jadi fokus fleksibel
 

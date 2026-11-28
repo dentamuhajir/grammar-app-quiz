@@ -1,82 +1,25 @@
 export function SuccessBadge() {
-  return (
-    <svg
-      className="success-badge-icon"
-      width="36"
-      height="36"
-      viewBox="0 0 40 40"
-      fill="none"
-      aria-hidden="true"
-    >
-      {/* Top-left pink sparkle */}
-      <path
-        d="M6.5 4L7.7 6.8L10.5 8L7.7 9.2L6.5 12L5.3 9.2L2.5 8L5.3 6.8L6.5 4Z"
-        fill="#fb85c6"
-        stroke="#141414"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      {/* Top-right orange sparkle */}
-      <path
-        d="M34 5L35 7.3L37.3 8.3L35 9.3L34 11.6L33 9.3L30.7 8.3L33 7.3L34 5Z"
-        fill="#f97316"
-        stroke="#141414"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      {/* Bottom-left purple dot */}
-      <circle
-        cx="5.5"
-        cy="30.5"
-        r="2.3"
-        fill="#8c52ff"
-        stroke="#141414"
-        strokeWidth="1.6"
-      />
-      {/* 3D bottom shadow layer of main badge */}
-      <circle
-        cx="20"
-        cy="23"
-        r="13.5"
-        fill="#15803d"
-        stroke="#141414"
-        strokeWidth="2.2"
-      />
-      {/* Main golden star-circle badge */}
-      <circle
-        cx="20"
-        cy="19.5"
-        r="13.5"
-        fill="#fde047"
-        stroke="#141414"
-        strokeWidth="2.2"
-      />
-      {/* Inner green circle */}
-      <circle
-        cx="20"
-        cy="19.5"
-        r="9.8"
-        fill="#4ade80"
-        stroke="#141414"
-        strokeWidth="2"
-      />
-      {/* Chunky white checkmark with dark outline */}
-      <path
-        d="M15.2 19.8L18.5 23.1L25.2 16.2"
-        stroke="#141414"
-        strokeWidth="4.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M15.2 19.8L18.5 23.1L25.2 16.2"
-        stroke="#ffffff"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <svg className="success-badge-icon success-trophy" width="36" height="36" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+    <g stroke="#141414" strokeWidth="2.2" strokeLinejoin="round">
+      <path d="M14 10H6V17C6 23 10 27 17 27V22C13 22 11 20 11 16V15H14Z" fill="#fbbf24" />
+      <path d="M34 10H42V17C42 23 38 27 31 27V22C35 22 37 20 37 16V15H34Z" fill="#fbbf24" />
+      <path d="M21 28H27V38H21Z" fill="#ca8a04" />
+      <path d="M14 7H34V18C34 25 30 30 24 30C18 30 14 25 14 18Z" fill="#fde047" />
+      <path d="M16 37H32L35 43H13Z" fill="#fbbf24" />
+      <path d="M13 7H35" strokeLinecap="round" />
+    </g>
+    <path d="M18 12V18C18 22 20 25 22 26" stroke="#fff7cc" strokeWidth="2.5" strokeLinecap="round" />
+  </svg>;
+}
+
+export function HintIcon() {
+  return <svg className="hint-inline-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="4" y="4" width="15" height="18" rx="2" fill="#fff7e5" stroke="#141414" strokeWidth="1.6" />
+    <rect x="8" y="2" width="7" height="4" rx="1" fill="#bae6fd" stroke="#141414" strokeWidth="1.5" />
+    <path d="M7 10H13M7 14H10" stroke="#141414" strokeWidth="1.4" strokeLinecap="round" />
+    <path d="M12 16L18 10L21 13L15 19L11 20Z" fill="#fde047" stroke="#141414" strokeWidth="1.5" strokeLinejoin="round" />
+    <path d="M17 11L20 14" stroke="#141414" strokeWidth="1.4" />
+  </svg>;
 }
 
 export function BookIcon() {

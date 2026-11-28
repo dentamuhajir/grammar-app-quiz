@@ -1,8 +1,6 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { checkAnswer, type CheckResult } from "../grammar/check";
 import {
-  DEFAULT_MULTI_FILTER,
-  BEGINNER_FILTER,
   displayCap,
   createQuestionCycle,
   quizCombinations,
@@ -17,17 +15,18 @@ import {
 import { implicitContextCue, sentenceGuide } from "../grammar/explanations";
 import type { ClauseCues, Question } from "../grammar/types";
 import { SentenceFilters } from "./SentenceFilters";
+import { TIME_PREPOSITION_PATTERNS } from "../grammar/timePrepositionSentences";
 import { SentenceExplanation } from "./SentenceExplanation";
 import { BottomSheet } from "./BottomSheet";
 import { useSwipeCard } from "./useSwipeCard";
 import { Confetti } from "../ui/Confetti";
 import { DiffView } from "../ui/DiffView";
-import { BookIcon, SuccessBadge } from "./FeedbackIcons";
+import { BookIcon, SuccessBadge, HintIcon } from "./FeedbackIcons";
 import { SentencePlayback } from "./SentencePlayback";
 import { VoiceInputBar } from "./VoiceInputBar";
-import { loadPracticeMode, savePracticeMode, PRACTICE_MODE_LABELS, type SentencePracticeMode } from "../grammar/practiceMode";
+import { loadPracticeMode, savePracticeMode, type SentencePracticeMode } from "../grammar/practiceMode";
 import { sentenceTranslation, checkTranslationAnswer } from "../grammar/translation";
-import { PracticeModePicker } from "./PracticeModePicker";
+import { matchingSentencePreset, STARTER_SENTENCE_FILTER } from "../grammar/sentenceSettings";
 import { useAutoResizeTextarea } from "./useAutoResizeTextarea";
 import { SwipeGuide } from "./SwipeGuide";
 import { SentenceMaterial } from "./SentenceMaterial";
@@ -105,8 +104,10 @@ function ClauseChips({ cues }: { cues: ClauseCues }) {
     { text: cues.subject, role: "subject", plus: Boolean(cues.wh) },
     { text: cues.modal, role: "modal", plus: true },
     { text: cues.verb, role: "cue", plus: Boolean(cues.subject) },
+    { text: cues.secondaryVerb, role: "cue", plus: true },
     { text: cues.recipient, role: "object", plus: true },
     { text: cues.complement, role: "object", plus: true },
+    { text: cues.comparison, role: "object", plus: true },
     { text: cues.objectComplement, role: "complement", plus: true },
     { text: cues.manner, role: "manner", plus: true },
     { text: cues.place, role: "place", plus: true },
@@ -129,6 +130,9 @@ function ClausePrompt({ rows, instruction }: { rows: { label: string; detail: st
 }
 
 function filterSummary(f: MultiQuizFilter): string {
+  if (f.focus === "timePrepositions") return `Preposisi waktu · ${TIME_PREPOSITION_PATTERNS.find(p => p.value === f.focusPattern)?.label ?? "Semua pola"} · ${f.tenses.map(t => TENSE_LABELS[t]).join(" / ")} · ${f.forms.length} bentuk`;
+  if (f.focus === "comparisons") return `Comparatives & Superlatives · ${f.focusPattern ?? "Semua pola"} · ${f.tenses.map(t => TENSE_LABELS[t]).join(" / ")} · ${f.forms.length} bentuk`;
+  if (f.focus === "gerundInfinitive") return `Gerund & Infinitive · ${f.focusPattern ?? "Semua pola"} · ${f.tenses.map(t => TENSE_LABELS[t]).join(" / ")} · ${f.forms.length} bentuk`;
   if (usesStructureBank(f.focus, f.focusPattern)) {
     const focus = f.focus as StructureFocus;
     const pattern = STRUCTURE_PATTERNS[focus].find(item => item.value === f.focusPattern)?.label ?? "Semua pola";
@@ -150,10 +154,10 @@ function filterSummary(f: MultiQuizFilter): string {
 }
 
 export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplore: (question: Question) => void; initialFilter?: MultiQuizFilter; onBack?: () => void }) {
-  const [filter, setFilter] = useState<MultiQuizFilter>(initialFilter ?? BEGINNER_FILTER);
-  const generalFilter = useRef(BEGINNER_FILTER);
+  const [filter, setFilter] = useState<MultiQuizFilter>(initialFilter ?? STARTER_SENTENCE_FILTER);
+  const generalFilter = useRef(STARTER_SENTENCE_FILTER);
   const cycle = useRef<ReturnType<typeof createQuestionCycle> | null>(null);
-  if (!cycle.current) cycle.current = createQuestionCycle(initialFilter ?? BEGINNER_FILTER);
+  if (!cycle.current) cycle.current = createQuestionCycle(initialFilter ?? STARTER_SENTENCE_FILTER);
   const [question, setQuestion] = useState<Question>(() =>
     cycle.current!(),
   );
@@ -161,12 +165,12 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
   const [result, setResult] = useState<CheckResult | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [confetti, setConfetti] = useState(0);
+  const celebratedQuestion = useRef<Question | null>(null);
   const [praise, setPraise] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [materialOpen, setMaterialOpen] = useState(false);
   const [practiceMode, setPracticeMode] = useState(() => initialFilter ? "arrange" : loadPracticeMode());
-  const [modeOpen, setModeOpen] = useState(false);
   const [showWordHint, setShowWordHint] = useState(false);
   const [hasIncorrectAttempt, setHasIncorrectAttempt] = useState(false);
   const answerRef = useAutoResizeTextarea(input);
@@ -176,7 +180,9 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
   const structureFocus = usesStructureBank(filter.focus, filter.focusPattern) ? filter.focus as StructureFocus : undefined;
   const focusGuide = structureFocus
     ? BASICS_TOPIC_GUIDES[structureFocus === "relativeClause" ? "relatives" : structureFocus === "reasonClause" ? "conjunctions" : structureFocus]
-    : undefined;
+    : filter.focus === "gerundInfinitive" ? BASICS_TOPIC_GUIDES.gerunds
+    : filter.focus === "comparisons" ? BASICS_TOPIC_GUIDES.comparatives
+    : filter.focus === "timePrepositions" ? BASICS_TOPIC_GUIDES.prepositions : undefined;
   const translation = practiceMode === "translate" ? sentenceTranslation(question) : null;
   const relativeFeedback = relative && <p className="basics-explanation">
     <strong lang="en">{relative.pronoun}</strong> merujuk pada <strong lang="en">{relative.antecedent}</strong>, {relative.pronoun === "who" ? "orang" : "benda"} yang dijelaskan dalam sisipan.
@@ -201,6 +207,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
 
   const solved = revealed || result?.correct === true;
   const showBadges = practiceMode === "arrange" || solved;
+  const showFormBadges = practiceMode !== "translate" || solved;
 
   const check = useCallback(() => {
     if (solved) {
@@ -214,7 +221,8 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
     }
     setResult(r);
     if (!r.correct) setHasIncorrectAttempt(true);
-    if (r.correct) {
+    if (r.correct && celebratedQuestion.current !== question) {
+      celebratedQuestion.current = question;
       setPraise(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
       setConfetti((c) => c + 1);
     }
@@ -250,19 +258,15 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
       <Confetti fire={confetti} />
       {onBack && <button type="button" className="inline-popup-link" onClick={onBack}>← Kembali ke Grammar Topics</button>}
 
-      <div className="qa-mode-switch" role="group" aria-label="Pilihan latihan">
-        <button type="button" className="btn btn-ghost" onClick={() => applyFilter(BEGINNER_FILTER, practiceMode)}>Mulai dari dasar</button>
-        <button type="button" className="btn btn-ghost" onClick={() => applyFilter(DEFAULT_MULTI_FILTER, practiceMode)}>Latihan campuran</button>
-      </div>
-
       <button
         type="button"
         className="filter-pill-bar"
         onClick={() => setFiltersOpen(true)}
       >
         <span className="filter-toggle-text">
-          <span className="filter-toggle-label">Filter Latihan</span>
-          <span className="filter-toggle-summary">{filterSummary(filter)}</span>
+          <span className="filter-toggle-label">Pengaturan latihan</span>
+          <span className="filter-toggle-summary">{!filter.focus && `${matchingSentencePreset(filter)?.label ?? "Kustom"} · `}{filterSummary(filter)}
+            {practiceMode === "context" ? " · Tanpa nama tense" : practiceMode === "translate" ? " · Terjemahkan" : ""}</span>
         </span>
         <span className="filter-pill-action">⚙ Ubah</span>
       </button>
@@ -289,12 +293,12 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
                 </span>
               </button>
             )}
-            {showBadges && !focusLabel && (
+            {showFormBadges && !focusLabel && (
               <span className="tag tag-mode">
                 {MODE_LABELS[question.mode].replace(/\s*\(.*\)/, "")}
               </span>
             )}
-            {showBadges && !focusLabel && (
+            {showFormBadges && !focusLabel && (
               <span className="tag tag-form">
                 {FORM_LABELS[question.form].replace(/\s*\(.*\)/, "")}
               </span>
@@ -302,15 +306,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
             {showBadges && question.rare && (
               <span className="tag tag-rare">⚠ jarang digunakan</span>
             )}
-            <button
-              type="button"
-              className="tag tag-implicit-toggle"
-              aria-haspopup="dialog"
-              aria-expanded={modeOpen}
-              onClick={() => setModeOpen(true)}
-            >
-              Mode · {PRACTICE_MODE_LABELS[practiceMode]} ▾
-            </button>
+
           </div>
 
           {practiceMode === "context" && (
@@ -350,7 +346,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
                 placeholder="Tulis kalimat dalam bahasa Inggris…"
                 readOnly={solved}
                 aria-invalid={Boolean(result && !result.correct && !result.empty)}
-                aria-describedby={result?.empty ? "sentence-empty-error" : undefined}
+                aria-describedby={result?.empty ? "sentence-empty-error" : result && !result.correct && !result.empty ? "sentence-answer-hint" : undefined}
                 spellCheck={false}
                 autoComplete="off"
                 autoCapitalize="off"
@@ -395,7 +391,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
                 <SuccessBadge />
                 <span>{praise}</span>
               </span>
-              <SentencePlayback text={question.focused ? input.trim() : practiceMode === "translate" ? input.trim() : reviewed.answer} question={question.focused ? undefined : reviewed} />
+              <SentencePlayback text={question.focused || practiceMode === "translate" ? input.trim() : reviewed.answer} question={question.focused ? undefined : reviewed} />
               {question.focused && <p className="basics-explanation">{question.focused.explanation}</p>}
               {relativeFeedback}
               {reason && <p className="basics-explanation"><strong lang="en">Because {reason.clause}</strong> menjelaskan mengapa kejadian itu terjadi.
@@ -423,7 +419,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
           {result && !result.correct && !result.empty && (
             <div className="feedback feedback-bad" role="status">
               <DiffView diff={result.diff} />
-              <p className="hint">💡 {result.hint}</p>
+              <p id="sentence-answer-hint" className="hint"><HintIcon /> {result.hint}</p>
             </div>
           )}
 
@@ -468,13 +464,7 @@ export function SentencePractice({ onExplore, initialFilter, onBack }: { onExplo
         onApply={applyFilter}
       />}
 
-      <BottomSheet open={modeOpen} closeButtonOnly onClose={() => setModeOpen(false)} title="Mode latihan">
-        <PracticeModePicker value={practiceMode} onChange={mode => {
-          if (filter.focus && mode !== "arrange") applyFilter(generalFilter.current, mode);
-          else selectPracticeMode(mode);
-          setModeOpen(false);
-        }} />
-      </BottomSheet>
+
 
       <BottomSheet
         open={materialOpen}
